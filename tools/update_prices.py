@@ -115,6 +115,10 @@ def main():
     if not KEY:
         print("BŁĄD: brak sekretu SUPABASE_SERVICE_KEY. Dodaj go w Settings > Secrets and variables > Actions.")
         return 1
+    if not KEY.isascii() or " " in KEY:
+        print("BŁĄD: SUPABASE_SERVICE_KEY zawiera znak, którego nie ma w kluczu (np. wielokropek …). "
+              "Skopiuj pełny klucz przyciskiem kopiowania w Supabase, a nie jego skróconą, wyświetlaną wersję.")
+        return 1
     try:
         plans = supa("GET", "/rest/v1/docs?select=user_id,data&path=eq.app/plan")
     except urllib.error.HTTPError as e:
