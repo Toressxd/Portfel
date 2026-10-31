@@ -91,7 +91,7 @@
         const email = box.querySelector("#lg-mail").value.trim(), password = box.querySelector("#lg-pass").value;
         if (!email || password.length < 8) return msg("Wpisz e-mail i hasło (min. 8 znaków), potem kliknij Załóż konto.");
         msg("Zakładam konto…");
-        const { data, error } = await sb.auth.signUp({ email, password });
+        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
         if (error) return msg("Nie udało się założyć konta: " + error.message);
         if (!data.session) return msg("Konto założone. Kliknij link w e-mailu od Supabase, potem zaloguj się tutaj.");
         box.remove(); resolve(data.user);
