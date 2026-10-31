@@ -121,8 +121,11 @@ def build(plan, fxd):
             else:
                 seria.append(item)
                 last_week = d.isocalendar()[:2]
-    from zoneinfo import ZoneInfo
-    now = datetime.now(ZoneInfo("Europe/Warsaw"))  # the runner is on UTC; the app shows Polish time
+    try:
+        from zoneinfo import ZoneInfo
+        now = datetime.now(ZoneInfo("Europe/Warsaw"))  # the runner is on UTC; the app shows Polish time
+    except Exception:  # Windows without the tzdata package: the local clock is Polish anyway
+        now = datetime.now()
     return {"asOf": now.strftime("%Y-%m-%d %H:%M"), "ceny": ceny, "bez_notowan": braki,
             "fx": {c: round(s[max(s)], 4) for c, s in fxd.items()}, "wskazniki": wsk,
             "benchmark": {"isin": BENCHMARK, "nazwa": "100% MSCI World", "seria": seria}}
