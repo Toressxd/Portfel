@@ -1,0 +1,4 @@
+.claude/
+build.py
+supabase-setup.sql
+__pycache__/
