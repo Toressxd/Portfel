@@ -6,8 +6,8 @@ Prices are Yahoo's free, delayed daily closes."""
 import json, os, sys, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timezone
 
-URL = os.environ["SUPABASE_URL"].rstrip("/")
-KEY = os.environ["SUPABASE_SERVICE_KEY"]
+URL = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
+KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
 UA = {"User-Agent": "Mozilla/5.0"}
 BENCHMARK = "IE00B4L5Y983"
 
@@ -109,7 +109,20 @@ def build(plan, fxd):
 
 
 def main():
-    plans = supa("GET", "/rest/v1/docs?select=user_id,data&path=eq.app/plan")
+    if not URL.startswith("https://"):
+        print("BŁĄD: brak sekretu SUPABASE_URL (albo nie zaczyna się od https://). Dodaj go w Settings > Secrets and variables > Actions.")
+        return 1
+    if not KEY:
+        print("BŁĄD: brak sekretu SUPABASE_SERVICE_KEY. Dodaj go w Settings > Secrets and variables > Actions.")
+        return 1
+    try:
+        plans = supa("GET", "/rest/v1/docs?select=user_id,data&path=eq.app/plan")
+    except urllib.error.HTTPError as e:
+        print(f"BŁĄD: Supabase odpowiedział {e.code}. 401/403 = zły klucz w SUPABASE_SERVICE_KEY (potrzebny klucz secret, nie publishable). {e.read()[:200]!r}")
+        return 1
+    except urllib.error.URLError as e:
+        print(f"BŁĄD: nie mogę połączyć się z {URL}: {e.reason}. Sprawdź sekret SUPABASE_URL.")
+        return 1
     if not plans:
         print("Brak planów, nic do zrobienia.")
         return 0
