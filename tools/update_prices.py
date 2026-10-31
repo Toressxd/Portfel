@@ -56,6 +56,25 @@ def fetch(symbol, rng="3mo"):
     return out
 
 
+PREFERRED = ["GER", "LSE", "AMS", "MIL", "EBS", "PAR"]  # exchanges a Polish XTB investor typically buys on
+
+
+def find_symbol(isin):
+    """Yahoo symbol for an ISIN typed in the plan wizard (None when Yahoo does not know it)."""
+    url = "https://query2.finance.yahoo.com/v1/finance/search?" + urllib.parse.urlencode({"q": isin, "quotesCount": 10, "newsCount": 0})
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=20) as r:
+            quotes = json.load(r).get("quotes", [])
+    except (urllib.error.URLError, ValueError):
+        return None
+    quotes = [q for q in quotes if q.get("quoteType") in ("ETF", "EQUITY", "MUTUALFUND") and q.get("symbol")]
+    quotes.sort(key=lambda q: PREFERRED.index(q["exchange"]) if q.get("exchange") in PREFERRED else 99)
+    for q in quotes:
+        if fetch(q["symbol"]):
+            return q["symbol"]
+    return None
+
+
 def back(points, n):
     return points[max(0, len(points) - 1 - n)]
 
@@ -137,10 +156,28 @@ def main():
         if s:
             fxd[c] = dict(s["points"])
     ok = 0
+    upsert = lambda uid, path, data: supa("POST", "/rest/v1/docs?on_conflict=user_id,path", [{"user_id": uid, "path": path, "data": data}],
+                                          prefer="resolution=merge-duplicates,return=minimal")
     for row in plans:
-        stan = build(row["data"], fxd)
-        supa("POST", "/rest/v1/docs?on_conflict=user_id,path", [{"user_id": row["user_id"], "path": "app/stan", "data": stan}],
-             prefer="resolution=merge-duplicates,return=minimal")
+        uid, plan = row["user_id"], row["data"]
+        # funds added by ISIN in the wizard: find their Yahoo quote once and remember it in the plan
+        isins = {i for r in plan.get("role", {}).values() for i in r.get("fundusze", {})}
+        missing = [i for i in isins if i not in plan.get("notowania", {})]
+        if missing:
+            found = {i: s for i in missing if (s := find_symbol(i))}
+            if found:
+                plan.setdefault("notowania", {}).update(found)
+                upsert(uid, "app/plan", plan)
+            print(f"  nowe notowania: {found}, nie znaleziono: {[i for i in missing if i not in found]}")
+        stan = build(plan, fxd)
+        upsert(uid, "app/stan", stan)
+        # opening positions saved before their fund had a price: turn the value into units now
+        todo = supa("GET", f"/rest/v1/docs?select=path,data&user_id=eq.{uid}&path=like.transakcje/*&data->>do_przeliczenia=eq.true")
+        for t in todo or []:
+            d, c = t["data"], stan["ceny"].get(t["data"].get("isin"))
+            if c and d.get("wartosc_otwarcia_pln"):
+                d.update(jednostki=round(float(d["wartosc_otwarcia_pln"]) / c["pln"], 6), waluta=c["waluta"], do_przeliczenia=False)
+                upsert(uid, t["path"], d)
         ok += 1
         print(f"użytkownik {row['user_id'][:8]}…: {len(stan['ceny'])} funduszy, braki {stan['bez_notowan']}")
     print(f"zaktualizowano {ok} portfeli")

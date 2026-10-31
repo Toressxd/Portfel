@@ -227,12 +227,13 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="sheet-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-10-31-2"></script>
-<script src="backend.js?v=2026-10-31-2"></script>
+<script src="config.js?v=2026-10-31-3"></script>
+<script src="backend.js?v=2026-10-31-3"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
-  const S = { plan: null, stan: null, cele: null, tx: [], raporty: [], analizy: [], historia: [], budzet: [], budzetCfg: null, przeglad: null, loaded: {}, canWrite: true };
+  const S = { plan: null, stan: null, cele: null, tx: [], raporty: [], dzienne: [], analizy: [], historia: [], budzet: [], budzetCfg: null, przeglad: null, loaded: {}, canWrite: true };
+  let wizShown = false;
   let db = null, sample = null, snapWritten = false, aiCtl = null, aiText = "", aiBusy = false, aiErr = "";
   let bMonth = new Date().toISOString().slice(0, 7);
   const $ = (s, r = document) => r.querySelector(s);
@@ -283,7 +284,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     else { try { first = localStorage.getItem("portfel-tab") || "start"; } catch (e) { first = "start"; } }
   }
   show(first);
-  document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if (g) { const [v, extra] = g.dataset.go.split(":"); if (v === "add") openSheet(extra || "wydatek"); else show(v); } });
+  document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if (g) { const [v, extra] = g.dataset.go.split(":"); if (v === "add") openSheet(extra || "wydatek"); else if (v === "plan") openWizard(); else show(v); } });
 
   /* ---------- portfolio calculations ---------- */
   function fundIndex() {
@@ -302,12 +303,13 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       const p = pos[t.isin] ||= { isin: t.isin, nazwa: name[t.isin] || t.isin, rola: role[t.isin] || "inne", jednostki: 0, koszt: 0, konta: {} };
       const u = +t.jednostki || 0, pln = +t.kwota_pln || 0;
       if (isSell(t)) { if (p.jednostki > 0) p.koszt -= p.koszt * Math.min(1, u / p.jednostki); p.jednostki -= u; p.konta[t.konto] = (p.konta[t.konto] || 0) - u; }
+      else if (t.jednostki == null && t.wartosc_otwarcia_pln) { p.stat = (p.stat || 0) + +t.wartosc_otwarcia_pln; p.koszt += pln; p.konta[t.konto] = (p.konta[t.konto] || 0) + 1; } // units come with the first nightly price
       else { p.jednostki += u; p.koszt += pln; p.konta[t.konto] = (p.konta[t.konto] || 0) + u; }
     }
-    const list = Object.values(pos).filter(p => p.jednostki > 1e-9).map(p => {
+    const list = Object.values(pos).filter(p => p.jednostki > 1e-9 || p.stat > 0).map(p => {
       const c = ceny[p.isin];
-      const wartosc = c ? p.jednostki * c.pln : null;
-      return { ...p, cena: c, wartosc, prev: c ? wartosc / (1 + c.tydz_pln_proc / 100) : null };
+      const wartosc = c || p.stat ? (c ? p.jednostki * c.pln : 0) + (p.stat || 0) : null;
+      return { ...p, cena: c, wartosc, prev: c && !p.stat ? wartosc / (1 + c.tydz_pln_proc / 100) : wartosc };
     }).sort((a, b) => (b.wartosc || 0) - (a.wartosc || 0));
     const total = list.reduce((s, p) => s + (p.wartosc || 0), 0);
     const prevTotal = list.reduce((s, p) => s + (p.prev || 0), 0);
@@ -427,7 +429,10 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   function checks(c) {
     const out = [];
     const m = monthSum(curMonth());
-    if (!c.list.length) out.push({ lvl: "todo", t: "Dodaj swoje pozycje z XTB", go: "portfel" });
+    if (S.loaded.plan && !S.plan) out.push({ lvl: "todo", t: "Ustaw swój plan", s: "Cel, podział portfela i zasady. Ok. 10 minut.", go: "plan" });
+    else if (!c.list.length) out.push({ lvl: "todo", t: "Dodaj swoje pozycje", s: "Przez Mój plan → Obecny stan albo czerwony plus.", go: "portfel" });
+    const prz = S.plan?.profil?.przeglad;
+    if (prz && prz <= today()) out.push({ lvl: "todo", t: "Czas na przegląd planu", s: "Sprawdź cel, wagi i tezy. Zmieniaj tylko z ważnego powodu.", go: "plan" });
     if (!m.przychod) out.push({ lvl: "todo", t: "Wpisz wypłatę z tego miesiąca", s: "To 10 sekund przez czerwony plus.", go: "add:przychod" });
     const lim = limits();
     const over = Object.entries(m.byCat).filter(([k, v]) => +lim[k] && v > +lim[k]);
@@ -438,9 +443,10 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     else if (+pod.zebrane < +pod.cel) out.push({ lvl: "info", t: `Poduszka: ${pct(+pod.zebrane / +pod.cel * 100, 0, false)} celu`, s: `${zl(+pod.zebrane)} z ${zl(+pod.cel)}`, go: "cele" });
     else out.push({ lvl: "ok", t: "Poduszka finansowa gotowa", go: "cele" });
     if (c.list.length) {
-      const worst = [...c.roles].sort((a, b) => Math.abs(b.odch) - Math.abs(a.odch))[0];
-      if (worst && Math.abs(worst.odch) > 5) out.push({ lvl: "info", t: `Plan 60/40: ${worst.nazwa} ${pct(worst.odch, 1)} pp od celu`, s: "Wyrównujesz to wpłatami, bez sprzedawania.", go: "portfel" });
-      else out.push({ lvl: "ok", t: "Portfel trzyma się planu 60/40", go: "portfel" });
+      const band = r => S.plan?.role?.[r.rola]?.pasmo ?? 5;
+      const out_ = c.roles.filter(r => Math.abs(r.odch) > band(r)).sort((a, b) => Math.abs(b.odch) - Math.abs(a.odch));
+      if (out_.length) out.push({ lvl: "info", t: `Poza pasmem: ${out_[0].nazwa} ${pct(out_[0].odch, 1)} pkt od celu${out_.length > 1 ? ` (i ${out_.length - 1} inne)` : ""}`, s: S.plan?.profil?.rebalans === "rok" ? "Według Twoich zasad wyrównujesz raz w roku." : "Wyrównujesz to wpłatami, bez sprzedawania.", go: "portfel" });
+      else out.push({ lvl: "ok", t: "Portfel mieści się w pasmach planu", go: "portfel" });
     }
     const lim2 = S.cele?.limity || {};
     const rok = String(lim2.rok || new Date().getFullYear());
@@ -495,14 +501,15 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       <div class="card">
         <div class="status-head"><div class="mark ${todo ? "todo" : "ok"}">${todo ? todo : "✓"}</div>
           <div><h2>${todo ? (todo === 1 ? "Jedna rzecz do zrobienia" : `${todo} rzeczy do zrobienia`) : "Spokojnie. Wszystko według planu."}</h2><p class="note">Reszta poniżej jest w porządku albo tylko do wiadomości.</p></div></div>
-        <ul class="checks">${ch.sort((a, b) => ["todo", "warn", "info", "ok"].indexOf(a.lvl) - ["todo", "warn", "info", "ok"].indexOf(b.lvl)).map(x => `<li><span class="ic ${x.lvl}">${x.lvl === "ok" ? "✓" : x.lvl === "todo" ? "!" : x.lvl === "warn" ? "!" : "i"}</span><div><div>${esc(x.t)}</div>${x.s ? `<div class="note">${esc(x.s)}</div>` : ""}</div><button class="go" type="button" data-go="${x.go}">${x.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button></li>`).join("")}</ul>
+        <ul class="checks">${ch.sort((a, b) => ["todo", "warn", "info", "ok"].indexOf(a.lvl) - ["todo", "warn", "info", "ok"].indexOf(b.lvl)).map(x => `<li><span class="ic ${x.lvl}">${x.lvl === "ok" ? "✓" : x.lvl === "todo" ? "!" : x.lvl === "warn" ? "!" : "i"}</span><div><div>${esc(x.t)}</div>${x.s ? `<div class="note">${esc(x.s)}</div>` : ""}</div><button class="go" type="button" data-go="${x.go}">${x.go === "plan" ? "Ustaw" : x.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button></li>`).join("")}</ul>
       </div>
+      ${(() => { const d = S.dzienne[0]; if (!d || (Date.now() - new Date(d.data + "T12:00:00")) / 86400000 > 4) return ""; return `<div class="card"><header><h2>Na rynkach</h2><span class="note">${esc(d.data)}</span></header><div class="md">${md(d.podsumowanie || d.tresc)}</div><div class="actions"><button class="go" type="button" data-go="raporty">Cały raport</button></div></div>`; })()}
       <div class="card">
         <header><h2>Przegląd: ${esc(monthName(curMonth()))}</h2><span class="note">${done} z ${STEPS.length} · ok. 20 minut</span></header>
         <div class="progress"><div style="width:${done / STEPS.length * 100}%"></div></div>
         <ol class="steps">${STEPS.map(s => { const d = stepDone(s.id); return `<li class="${d ? "done" : ""}"><input type="checkbox" id="st-${s.id}" ${d ? "checked" : ""} ${S.canWrite && db ? "" : "disabled"} aria-label="${esc(s.t)}"><span>${esc(s.t)}</span><button class="go" type="button" data-go="${s.go}">${s.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button></li>`; }).join("")}</ol>
       </div>
-      ${c.roles.length ? `<div class="card"><header><h2>Plan 60/40</h2><span class="note">czerwona kreska = cel</span></header><div class="roles">${c.roles.map(r => `<div class="role"><div class="row"><span>${esc(r.nazwa)}</span><span class="mono">${c.list.length ? nf(r.waga, 1) + "% / " : ""}${r.cel}%</span></div>${bar(c.list.length ? r.waga : 0, 100, r.cel, r.rola === "rdzen" ? "" : "red")}</div>`).join("")}</div></div>` : ""}
+      ${c.roles.length ? `<div class="card"><header><h2>Plan ${esc(S.plan?.rdzen_satelity || "")}</h2><span class="note">czerwona kreska = cel</span></header><div class="roles">${c.roles.map(r => `<div class="role"><div class="row"><span>${esc(r.nazwa)}</span><span class="mono">${c.list.length ? nf(r.waga, 1) + "% / " : ""}${r.cel}%</span></div>${bar(c.list.length ? r.waga : 0, 100, r.cel, r.rola === "rdzen" ? "" : "red")}</div>`).join("")}</div></div>` : ""}
     </div>`;
     el.querySelectorAll("ol.steps input").forEach(inp => inp.addEventListener("change", async () => {
       const id = inp.id.slice(3), kroki = { ...(S.przeglad?.kroki || {}), [id]: inp.checked };
@@ -640,6 +647,10 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     const days = Math.max(0, Math.ceil((new Date(rok + "-12-31T23:59:59") - new Date()) / 86400000));
     const obl = bondList(), avg = avgMonthlyExpenses();
     el.innerHTML = `<div style="display:grid;gap:18px">
+      ${(() => { const pr = S.plan?.profil || {}; if (!+pr.cel_kwota) return ""; const maj = calc().total + bondsValue() + (+(pod.zebrane || 0)); const yrs = Math.max(0, +pr.cel_rok - new Date().getFullYear()); const est = fv(maj, +pr.wplata || 0, .04, yrs);
+        return `<div class="card"><header><h2>Cel: ${esc({ emerytura: "emerytura", mieszkanie: "mieszkanie / duży zakup", pomnazanie: "pomnażanie" }[pr.cel] || "mój cel")}</h2><span class="note">${zl(+pr.cel_kwota)} do ${esc(pr.cel_rok)}</span></header>
+          <div class="role"><div class="row"><span>Majątek ${zl(maj)}</span><span class="mono">${pct(maj / pr.cel_kwota * 100, 0, false)}</span></div>${bar(maj, +pr.cel_kwota, null, "red")}</div>
+          ${yrs ? `<p class="note">Przy wpłatach ${zl(+pr.wplata)} miesięcznie i założonych 4% rocznie po inflacji byłoby ok. ${zl(est)} w ${esc(pr.cel_rok)}. To ilustracja, nie prognoza.</p>` : ""}</div>`; })()}
       <div class="card"><header><h2>Poduszka finansowa</h2><span class="note">3–6 miesięcy wydatków</span></header>
         ${+pod.cel ? `<div class="role"><div class="row"><span>${zl(+pod.zebrane || 0)} z ${zl(+pod.cel)}</span><span class="mono">${pct((+pod.zebrane || 0) / +pod.cel * 100, 0, false)}</span></div>${bar(+pod.zebrane || 0, +pod.cel, null)}</div>` : '<p class="note">Ustaw cel poniżej.</p>'}
         ${avg ? `<p class="note">Z budżetu: średnio ${zl(avg.avg)} miesięcznie, czyli ${zl(avg.avg * 3)}–${zl(avg.avg * 6)}.</p><div class="actions"><button class="btn ghost" type="button" id="p-3">Wpisz 3×</button><button class="btn ghost" type="button" id="p-6">Wpisz 6×</button></div>` : '<p class="note">Po miesiącu wpisywania wydatków podpowiem cel z Twoich prawdziwych kosztów.</p>'}
@@ -687,7 +698,9 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
         <p class="note">Claude czyta plan, pozycje, budżet z 3 miesięcy, cele, tezy i ostatni raport. Ocenia kierunek i pokazuje, co warto sprawdzić. Nie mówi, co kupić. Zużywa Twój limit Claude.</p>
         <div class="actions">${sample ? `<button class="btn" type="button" id="ai-go" ${aiBusy ? "disabled" : ""}>Poproś o analizę</button>${aiBusy ? '<button class="btn ghost" type="button" id="ai-stop">Zatrzymaj</button>' : ""}` : (window.PortfelBackend ? '<button class="btn" type="button" id="ai-copy">Skopiuj dane do analizy</button><span class="note">Wklej je w aplikacji Claude i wyślij.</span>' : '<span class="note">Analiza działa po otwarciu strony w Claude.</span>')}<span class="note" id="ai-msg" role="status">${esc(aiErr)}</span></div>
         <div class="md" id="ai-out">${aiText ? md(aiText) : lastA ? md(lastA.tresc) : ""}</div></div>
-      <div class="card"><header><h2>Raporty tygodniowe</h2><span class="note">napisz Claude „raport tygodnia”</span></header>
+      <div class="card"><header><h2>Raporty dzienne</h2><span class="note">pn–pt rano, automatycznie</span></header>
+        ${S.dzienne.length ? S.dzienne.slice(0, 10).map((r, i) => `<details class="more" ${i === 0 ? "open" : ""}><summary>${esc(r.tytul || "Raport dzienny")} <span class="note mono">${esc(r.data)}</span></summary><div class="md">${md(r.tresc)}</div></details>`).join("") : '<p class="note">Pierwszy raport dzienny pojawi się w najbliższy dzień roboczy rano.</p>'}</div>
+      <div class="card"><header><h2>Raporty tygodniowe</h2><span class="note">soboty, automatycznie</span></header>
         ${S.raporty.length ? S.raporty.map((r, i) => `<details class="more" ${i === 0 ? "open" : ""}><summary>${esc(r.tytul || "Raport")} <span class="note mono">${esc(r.data)}</span></summary><div class="md">${md(r.tresc)}</div></details>`).join("") : '<div class="empty"><strong>Nie ma jeszcze raportów.</strong><span>W czacie napisz „raport tygodnia”. Zapisze się tutaj.</span></div>'}</div>
       <div class="card"><header><h2>Tezy</h2><span class="note">zmieniają się przez fakty, nie przez kurs</span></header>
         ${tezy.map(([k, t]) => { const hist = chrono.filter(r => r.tezy?.[k]).map(r => r.tezy[k]); const draft = /^SZKIC/.test(t.kiedy_sie_myle || ""); return `<details class="more"><summary><span>${esc(S.plan.role[k]?.nazwa || k)}</span>${statusPill(hist[hist.length - 1])}</summary>
@@ -827,6 +840,7 @@ ${JSON.stringify(data)}`;
     const draw = () => {
       $("#sheet-root").innerHTML = `<div class="sheet-bg" id="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="Ustawienia">
         <header style="display:flex;justify-content:space-between;align-items:center"><h2>Ustawienia</h2><button class="btn ghost" type="button" id="set-close">Gotowe</button></header>
+        <div class="setrow"><span class="label">Mój plan</span><div class="actions"><button class="btn" type="button" id="cfg-plan">${S.plan ? "Zmień mój plan" : "Ustaw mój plan"}</button><span class="note">Cel, podział, pasma, tezy i zasady.</span></div></div>
         <div class="setrow"><span class="label">Motyw</span>${seg("motyw", [["system", "Jak w telefonie"], ["jasny", "Jasny"], ["ciemny", "Ciemny"]], 3)}</div>
         <div class="setrow"><span class="label">Wielkość tekstu</span>${seg("tekst", [["normalny", "Normalny"], ["duzy", "Duży"]], 2)}</div>
         <div class="setrow"><span class="label">Ekran po otwarciu</span>${seg("ekran", [["start", "Start"], ["budzet", "Budżet"], ["ostatnia", "Ostatni"]], 3)}</div>
@@ -843,6 +857,7 @@ ${JSON.stringify(data)}`;
       $("#set-close").onclick = closeSheet;
       $("#sheet-root").querySelectorAll("[data-cfg]").forEach(b => b.onclick = async () => { await saveCfg({ [b.dataset.cfg]: b.dataset.val }); draw(); });
       $("#cfg-out")?.addEventListener("click", () => window.PortfelBackend.signOut());
+      $("#cfg-plan").onclick = () => { closeSheet(); openWizard(); };
       $("#cfg-priv").onchange =e => saveCfg({ prywatny: e.target.checked });
       $("#cfg-calm").onchange = e => saveCfg({ spokojny: e.target.checked });
       $("#cfg-wpl").onchange = e => { const v = +e.target.value || 5000; try { localStorage.removeItem("portfel-wplata"); } catch (err) {} saveCfg({ wplata: v }); };
@@ -850,6 +865,217 @@ ${JSON.stringify(data)}`;
     draw();
   }
   $("#set-btn").addEventListener("click", openSettings);
+
+  /* ---------- plan wizard ("Mój plan"): goal, safety, allocation with bands, theses, rules, current state ---------- */
+  // Funds with checked data (justETF, 31.08.2026). Any other fund can be added by ISIN; the nightly price job finds its quote.
+  const KATALOG = [
+    ["IE00B4L5Y983", "iShares Core MSCI World", "EUNL.DE", .20, "Akcje: kraje rozwinięte, ok. 1250 spółek"],
+    ["IE00BK5BQT80", "Vanguard FTSE All-World", "VWRA.L", .14, "Akcje: cały świat, rozwinięte i wschodzące"],
+    ["IE00B5BMR087", "iShares Core S&P 500", "CSPX.L", .07, "Akcje: 500 największych spółek USA"],
+    ["IE00BKM4GZ66", "iShares Core MSCI EM IMI", "EIMI.L", .18, "Akcje: rynki wschodzące (Tajwan, Korea, Chiny, Indie)"],
+    ["IE00B53SZB19", "iShares Nasdaq 100", "CNDX.L", .30, "Akcje: technologia USA"],
+    ["IE00BMC38736", "VanEck Semiconductor", "SMH.L", .35, "Akcje: producenci chipów, 25 spółek"],
+    ["IE00BGV5VN51", "Xtrackers AI & Big Data", "XAIX.DE", .35, "Akcje: AI i dane, 100 spółek"],
+    ["IE00B43HR379", "iShares S&P 500 Health Care", "IUHC.L", .15, "Akcje: ochrona zdrowia USA"],
+    ["IE000YYE6WK5", "VanEck Defense", "DFEN.DE", .55, "Akcje: zbrojeniówka USA i Europy"],
+    ["IE00BJ5JPG56", "iShares MSCI China", "ICHN.AS", .28, "Akcje: jeden kraj, Chiny"],
+    ["IE000YU9K6K2", "VanEck Space Innovators", "JEDI.L", .55, "Akcje: kosmos, 25 spółek, bardzo zmienny"],
+    ["IE00063FT9K6", "iShares Copper Miners", "CEBS.DE", .55, "Akcje: kopalnie miedzi"],
+    ["IE0003Z9E2Y3", "Global X Copper Miners", "COPX.L", .55, "Akcje: kopalnie miedzi"],
+    ["IE00B4ND3602", "iShares Physical Gold", "IGLN.L", .12, "Złoto fizyczne (ETC)"],
+    ["IE00B4NCWG09", "iShares Physical Silver", "ISLN.L", .20, "Srebro fizyczne (ETC)"],
+    ["GB00B15KXQ89", "WisdomTree Copper", "COPA.L", .49, "Miedź, kontrakty terminowe (ETC)"],
+    ["IE00B5WHFQ43", "iShares MSCI Mexico Capped", "CMXC.L", .65, "Akcje: jeden kraj, Meksyk"]
+  ].map(([isin, nazwa, yahoo, ter, opis]) => ({ isin, nazwa, yahoo, ter, opis }));
+  const KAT = Object.fromEntries(KATALOG.map(k => [k.isin, k]));
+  const DEFAULT_WSK = { "^GSPC": "S&P 500", "^VIX": "VIX (strach na rynku)", "USDPLN=X": "USD/PLN", "EURPLN=X": "EUR/PLN", "GC=F": "Złoto (USD/uncja)", "NVDA": "NVIDIA" };
+  const slug = s => (s || "rola").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 24) || "rola";
+  const ISIN_RE = /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/;
+  // future value of a lump sum plus monthly payments at a yearly return r
+  const fv = (start, monthly, r, years) => { const m = r / 12, n = Math.round(years * 12); return m ? start * Math.pow(1 + m, n) + monthly * (Math.pow(1 + m, n) - 1) / m : start + monthly * n; };
+
+  let W = null, wStep = 0;
+  function wizardState() {
+    const p = S.plan || {}, ce = S.cele || {}, prof = p.profil || {};
+    const role = Object.entries(p.role || {}).map(([k, d]) => ({ key: k, nazwa: d.nazwa, cel: d.cel, rdzen: k === "rdzen" || !!d.rdzen, pasmo: d.pasmo ?? 5,
+      fundusze: Object.entries(d.fundusze || {}).filter(([i]) => !(p.nie_dokupujemy || []).includes(i)).map(([isin, nazwa]) => ({ isin, nazwa })) }));
+    const held = calc().list.map(x => x.isin);
+    return {
+      profil: { cel: prof.cel || "pomnazanie", cel_kwota: prof.cel_kwota || "", cel_rok: prof.cel_rok || new Date().getFullYear() + 10, konta: prof.konta || ["zwykle"], broker: prof.broker || "XTB",
+        wplata: prof.wplata || CFG.wplata || 1000, spadek: prof.spadek || "czekam", rebalans: prof.rebalans || "wplaty", przy_spadku: prof.przy_spadku || "", zmiana_planu: prof.zmiana_planu || "", przeglad: prof.przeglad || addYears(today(), 1) },
+      wydatki: prof.wydatki || "", poduszka: { cel: ce.poduszka?.cel || "", zebrane: ce.poduszka?.zebrane || "" }, bezpieczny: prof.bezpieczny ?? "",
+      role: role.length ? role : [], tezy: JSON.parse(JSON.stringify(p.tezy || {})),
+      nieDokup: [...new Set([...(p.nie_dokupujemy || []), ...held.filter(i => !role.some(r => r.fundusze.some(f => f.isin === i)))])],
+      otwarcie: S.tx.length ? [] : [{ isin: "", konto: "zwykle", wartosc: "", koszt: "" }]
+    };
+  }
+  const W_STEPS = ["Cel", "Bezpieczeństwo", "Podział", "Tezy", "Zasady", "Obecny stan", "Podsumowanie"];
+  function openWizard() {
+    if (!db || !S.canWrite) { $("#notice").textContent = "Plan można zapisać po zalogowaniu."; $("#notice").hidden = false; return; }
+    W = wizardState(); wStep = 0; sheet = { mode: "plan" }; drawWizard();
+  }
+  function wWarnings() {
+    const out = [], roles = W.role, sum = roles.reduce((s, r) => s + (+r.cel || 0), 0);
+    if (Math.abs(sum - 100) > 0.01) out.push(`Wagi sumują się do ${nf(sum, 1)}%, a powinny do 100%.`);
+    if (!roles.some(r => r.rdzen)) out.push("Żadna rola nie jest oznaczona jako rdzeń (szeroki rynek).");
+    const isins = roles.flatMap(r => r.fundusze.map(f => f.isin));
+    const has = i => isins.includes(i);
+    if (has("IE00BK5BQT80") && has("IE00B4L5Y983")) out.push("FTSE All-World zawiera już MSCI World (korelacja ok. 0,99): to w dużej mierze ten sam fundusz dwa razy.");
+    if (has("IE00B5BMR087") && (has("IE00B4L5Y983") || has("IE00BK5BQT80"))) out.push("S&P 500 to ok. 60–70% funduszu światowego: te pozycje mocno się pokrywają.");
+    if (has("IE00BJ5JPG56") || has("IE00B5WHFQ43")) out.push("Masz fundusz na jeden kraj: to większe ryzyko niż szeroki indeks.");
+    const w = +W.profil.wplata || 0;
+    for (const r of roles) if (+r.cel > 0 && w && w * r.cel / 100 < 100) out.push(`${r.nazwa || "Rola"}: przy wpłacie ${zl(w)} to tylko ${zl(w * r.cel / 100)} miesięcznie.`);
+    for (const r of roles) if (!r.fundusze.length) out.push(`${r.nazwa || "Rola"}: nie wybrano funduszu.`);
+    const sat = roles.filter(r => !r.rdzen).reduce((s, r) => s + (+r.cel || 0), 0);
+    if (sat > 40) out.push(`Satelity (tematy) to ${nf(sat, 0)}% portfela. W podejściu rdzeń + satelity zwykle to 10–30%. To Twoja decyzja, tylko zwracam uwagę.`);
+    const ter = roles.reduce((s, r) => s + (+r.cel || 0) / 100 * (r.fundusze.length ? (KAT[r.fundusze[0].isin]?.ter ?? .4) : 0), 0);
+    return { list: out, sum, ter };
+  }
+  function drawWizard() {
+    const root = $("#sheet-root"), P = W.profil;
+    const step = W_STEPS[wStep];
+    const fundOpts = sel => `<option value="">Wybierz fundusz…</option>${KATALOG.map(k => `<option value="${k.isin}" ${k.isin === sel ? "selected" : ""}>${esc(k.nazwa)} · TER ${nf(k.ter, 2)}%</option>`).join("")}<option value="inny" ${sel && !KAT[sel] ? "selected" : ""}>Inny fundusz (wpisz ISIN)</option>`;
+    let body = "";
+    if (step === "Cel") body = `
+      <p class="note">Plan zaczyna się od celu, a nie od funduszy. Na podstawie celu i horyzontu łatwiej ustalić, ile wahań ma sens.</p>
+      <div class="setrow"><span class="label">Po co inwestujesz</span><div class="seg n3" role="group">${[["emerytura", "Emerytura"], ["mieszkanie", "Mieszkanie / duży zakup"], ["pomnazanie", "Pomnażanie"]].map(([v, l]) => `<button type="button" data-p="cel" data-v="${v}" aria-pressed="${P.cel === v}">${l}</button>`).join("")}</div></div>
+      <div class="fgrid"><div class="field"><label for="w-ck">Kwota celu (zł, opcjonalnie)</label><input id="w-ck" data-f="cel_kwota" type="number" min="0" step="1000" inputmode="numeric" value="${esc(P.cel_kwota)}"></div>
+        <div class="field"><label for="w-cr">Rok celu</label><input id="w-cr" data-f="cel_rok" type="number" min="${new Date().getFullYear()}" max="2100" inputmode="numeric" value="${esc(P.cel_rok)}"></div>
+        <div class="field"><label for="w-wp">Miesięczna wpłata (zł)</label><input id="w-wp" data-f="wplata" type="number" min="0" step="100" inputmode="numeric" value="${esc(P.wplata)}"></div>
+        <div class="field"><label for="w-br">Broker</label><input id="w-br" data-f="broker" value="${esc(P.broker)}"></div></div>
+      <div class="setrow"><span class="label">Konta</span><div class="catchips">${[["zwykle", "Zwykłe"], ["IKE", "IKE"], ["IKZE", "IKZE"]].map(([v, l]) => `<button type="button" data-konto="${v}" aria-pressed="${P.konta.includes(v)}">${l}</button>`).join("")}</div></div>
+      <div class="setrow"><span class="label">Gdyby portfel spadł o 30% w kilka miesięcy</span><div class="seg n3" role="group">${[["sprzedaje", "Sprzedałbym"], ["czekam", "Czekam"], ["dokupuje", "Dokupuję"]].map(([v, l]) => `<button type="button" data-p="spadek" data-v="${v}" aria-pressed="${P.spadek === v}">${l}</button>`).join("")}</div>
+        ${P.spadek === "sprzedaje" ? '<p class="note">To ważna informacja: przy takiej reakcji większa część bezpieczna (obligacje) zwykle pomaga trzymać się planu.</p>' : ""}</div>`;
+    else if (step === "Bezpieczeństwo") { const wy = +W.wydatki || 0; body = `
+      <p class="note">Najpierw rezerwa na nieprzewidziane wydatki, potem inwestowanie. Dzięki temu nie musisz sprzedawać w złym momencie.</p>
+      <div class="fgrid"><div class="field"><label for="w-wy">Miesięczne wydatki (zł)</label><input id="w-wy" data-w="wydatki" type="number" min="0" step="100" inputmode="numeric" value="${esc(W.wydatki)}"></div>
+        <div class="field"><label for="w-pc">Cel poduszki (zł)</label><input id="w-pc" data-pod="cel" type="number" min="0" step="500" inputmode="numeric" value="${esc(W.poduszka.cel)}"></div>
+        <div class="field"><label for="w-pz">Już odłożone (zł)</label><input id="w-pz" data-pod="zebrane" type="number" min="0" step="100" inputmode="numeric" value="${esc(W.poduszka.zebrane)}"></div>
+        <div class="field"><label for="w-bz">Część bezpieczna majątku (%)</label><input id="w-bz" data-w="bezpieczny" type="number" min="0" max="100" step="5" inputmode="numeric" value="${esc(W.bezpieczny)}"></div></div>
+      ${wy ? `<div class="actions"><span class="note">Poduszka 3–6 miesięcy: ${zl(wy * 3)}–${zl(wy * 6)}</span><button class="btn ghost" type="button" data-podx="3">3×</button><button class="btn ghost" type="button" data-podx="6">6×</button></div>` : ""}
+      <p class="note">Część bezpieczna to obligacje, lokaty i konto oszczędnościowe poza portfelem ETF. Obligacje wpiszesz potem w zakładce Cele.</p>`; }
+    else if (step === "Podział") { const ww = wWarnings(); body = `
+      <p class="note">Ustal role, ich wagi i fundusz w każdej roli. Pasmo to tolerancja: dopóki waga mieści się w celu ± pasmo, nic nie robisz.</p>
+      ${!W.role.length ? `<div class="setrow"><span class="label">Zacznij od szkieletu (wagi ustawiasz sam)</span><div class="actions">
+        <button class="btn ghost" type="button" data-tpl="jeden">Jeden fundusz na świat</button><button class="btn ghost" type="button" data-tpl="rdzen">Rdzeń + satelity</button><button class="btn ghost" type="button" data-tpl="obl">Rdzeń + część bezpieczna</button></div></div>` : ""}
+      <div style="display:grid;gap:12px">${W.role.map((r, i) => `<div class="card" style="background:var(--bg);border:1px solid var(--line)">
+        <div class="fgrid"><div class="field"><label for="r-n-${i}">Rola</label><input id="r-n-${i}" data-r="${i}" data-k="nazwa" value="${esc(r.nazwa)}" placeholder="np. Rdzeń: świat"></div>
+          <div class="field"><label for="r-c-${i}">Waga (%)</label><input id="r-c-${i}" data-r="${i}" data-k="cel" type="number" min="0" max="100" step="1" inputmode="numeric" value="${esc(r.cel)}"></div>
+          <div class="field"><label for="r-p-${i}">Pasmo ± pkt</label><input id="r-p-${i}" data-r="${i}" data-k="pasmo" type="number" min="0" max="20" step="1" inputmode="numeric" value="${esc(r.pasmo)}"></div></div>
+        <div class="field"><label for="r-f-${i}">Fundusz</label><select id="r-f-${i}" data-rf="${i}">${fundOpts(r.fundusze[0]?.isin)}</select></div>
+        ${r.fundusze[0] && !KAT[r.fundusze[0].isin] || r._inny ? `<div class="fgrid"><div class="field"><label for="r-i-${i}">ISIN</label><input id="r-i-${i}" data-ri="${i}" value="${esc(r.fundusze[0]?.isin || "")}" placeholder="IE00…" style="text-transform:uppercase"></div><div class="field"><label for="r-in-${i}">Nazwa funduszu</label><input id="r-in-${i}" data-rn="${i}" value="${esc(r.fundusze[0]?.nazwa || "")}"></div></div><p class="note">Kursy tego funduszu pojawią się po nocnej aktualizacji.</p>` : r.fundusze[0] ? `<p class="note">${esc(KAT[r.fundusze[0].isin]?.opis || "")}</p>` : ""}
+        <div class="actions"><label class="switch" style="gap:8px"><input type="checkbox" data-rr="${i}" ${r.rdzen ? "checked" : ""}> to rdzeń (szeroki rynek)</label><button class="link" type="button" data-rdel="${i}">Usuń rolę</button></div></div>`).join("")}</div>
+      <div class="actions"><button class="btn ghost" type="button" id="r-add">Dodaj rolę</button><span class="mono">Suma ${nf(ww.sum, 1)}% · TER ok. ${nf(ww.ter, 2)}%</span></div>
+      ${ww.list.length ? `<ul class="checks">${ww.list.map(t => `<li><span class="ic warn">!</span><div>${esc(t)}</div><span></span></li>`).join("")}</ul>` : '<p class="note up">Podział wygląda spójnie.</p>'}`; }
+    else if (step === "Tezy") { const sats = W.role.filter(r => !r.rdzen); body = `
+      <p class="note">Dla każdej pozycji poza rdzeniem zapisz, dlaczego ją masz i kiedy uznasz, że się mylisz. Dzięki temu przy spadku sprawdzasz fakty, a nie emocje.</p>
+      ${sats.length ? sats.map(r => { const k = r.key || slug(r.nazwa); const t = W.tezy[k] || {}; return `<div class="card" style="background:var(--bg);border:1px solid var(--line)"><h3>${esc(r.nazwa)}</h3>
+        <div class="field"><label for="t-a-${k}">Dlaczego to mam</label><textarea id="t-a-${k}" data-t="${k}" data-tk="teza" rows="2">${esc(t.teza || "")}</textarea></div>
+        <div class="field"><label for="t-b-${k}">Co obserwuję (po przecinku)</label><input id="t-b-${k}" data-t="${k}" data-tk="co_obserwowac" value="${esc((t.co_obserwowac || []).join(", "))}"></div>
+        <div class="field"><label for="t-c-${k}">Kiedy uznam, że się mylę</label><textarea id="t-c-${k}" data-t="${k}" data-tk="kiedy_sie_myle" rows="2">${esc((t.kiedy_sie_myle || "").replace(/^SZKIC do zatwierdzenia:\s*/, ""))}</textarea></div></div>`; }).join("") : '<p class="note">Nie masz satelitów, więc nie ma tez do opisania. Rdzeń to po prostu cały rynek.</p>'}`; }
+    else if (step === "Zasady") body = `
+      <div class="setrow"><span class="label">Jak wyrównujesz portfel</span><div class="seg n3" role="group">${[["wplaty", "Dokupuję to, co poniżej celu"], ["pasmo", "Gdy wyjdzie poza pasmo"], ["rok", "Raz w roku"]].map(([v, l]) => `<button type="button" data-p="rebalans" data-v="${v}" aria-pressed="${P.rebalans === v}">${l}</button>`).join("")}</div></div>
+      <div class="field"><label for="w-ps">Co robię przy dużym spadku (zapisz teraz, na spokojnie)</label><textarea id="w-ps" data-f="przy_spadku" rows="2" placeholder="np. Nie sprzedaję. Wpłacam dalej według planu. Sprawdzam tylko, czy tezy są aktualne.">${esc(P.przy_spadku)}</textarea></div>
+      <div class="field"><label for="w-zp">Kiedy zmieniam plan</label><textarea id="w-zp" data-f="zmiana_planu" rows="2" placeholder="np. Tylko przy zmianie celu, horyzontu albo gdy teza spełni warunek „kiedy się mylę”.">${esc(P.zmiana_planu)}</textarea></div>
+      <div class="field" style="max-width:220px"><label for="w-pr">Przegląd planu (data)</label><input id="w-pr" data-f="przeglad" type="date" value="${esc(P.przeglad)}"></div>
+      ${W.nieDokup.length ? `<div class="setrow"><span class="label">Stare pozycje, których nie dokupuję</span><p class="note">${W.nieDokup.map(i => esc(KAT[i]?.nazwa || fundIndex().name[i] || i)).join(", ")}</p></div>` : ""}`;
+    else if (step === "Obecny stan") { const funds = [...W.role.flatMap(r => r.fundusze), ...W.nieDokup.map(i => ({ isin: i, nazwa: KAT[i]?.nazwa || i }))].filter(f => f.isin); body = `
+      ${S.tx.length ? `<p class="note">Masz już ${S.tx.length} transakcji w aplikacji, więc ten krok możesz pominąć. Nowe zakupy dodasz czerwonym plusem.</p>` : `<p class="note">Wpisz fundusze, które już masz: obecną wartość i ile za nie zapłaciłeś (z aplikacji brokera). Jeśli zaczynasz od zera, pomiń ten krok.</p>`}
+      ${W.otwarcie.map((o, i) => `<div class="fgrid"><div class="field" style="grid-column:span 2"><label for="o-f-${i}">Fundusz</label><select id="o-f-${i}" data-o="${i}" data-ok="isin"><option value="">—</option>${funds.map(f => `<option value="${esc(f.isin)}" ${f.isin === o.isin ? "selected" : ""}>${esc(f.nazwa)}</option>`).join("")}</select></div>
+        <div class="field"><label for="o-k-${i}">Konto</label><select id="o-k-${i}" data-o="${i}" data-ok="konto">${["zwykle", "IKE", "IKZE"].map(k => `<option ${k === o.konto ? "selected" : ""}>${k}</option>`).join("")}</select></div>
+        <div class="field"><label for="o-w-${i}">Wartość teraz (zł)</label><input id="o-w-${i}" data-o="${i}" data-ok="wartosc" type="number" min="0" step="0.01" inputmode="decimal" value="${esc(o.wartosc)}"></div>
+        <div class="field"><label for="o-c-${i}">Zapłaciłem (zł)</label><input id="o-c-${i}" data-o="${i}" data-ok="koszt" type="number" min="0" step="0.01" inputmode="decimal" value="${esc(o.koszt)}"></div></div>`).join("")}
+      <div class="actions"><button class="btn ghost" type="button" id="o-add2">Dodaj fundusz</button></div>`; }
+    else { const ww = wWarnings(), start = calc().total || W.otwarcie.reduce((s, o) => s + (+o.wartosc || 0), 0), yrs = Math.max(0, (+P.cel_rok || 0) - new Date().getFullYear()), goal = +P.cel_kwota || 0;
+      const sc = [["ostrożnie", .02], ["umiarkowanie", .04], ["optymistycznie", .06]].map(([l, r]) => [l, r, fv(start, +P.wplata || 0, r, yrs)]);
+      body = `<div class="md">
+      <h3>Cel</h3><p>${esc({ emerytura: "Emerytura", mieszkanie: "Mieszkanie / duży zakup", pomnazanie: "Pomnażanie" }[P.cel])}${goal ? `: ${zl(goal)}` : ""}, rok ${esc(P.cel_rok)} (${yrs} lat). Wpłata ${zl(+P.wplata)} miesięcznie, konta: ${esc(P.konta.join(", "))}, ${esc(P.broker)}.</p>
+      <h3>Podział</h3><ul>${W.role.map(r => `<li>${esc(r.nazwa)}: <strong>${nf(+r.cel || 0, 0)}%</strong> ± ${esc(r.pasmo)} pkt · ${esc(r.fundusze.map(f => f.nazwa).join(", ") || "brak funduszu")}${r.rdzen ? " · rdzeń" : ""}</li>`).join("")}</ul>
+      <p>Średni koszt (TER) ok. <strong>${nf(ww.ter, 2)}%</strong> rocznie.</p>
+      <h3>Zasady</h3><ul><li>Wyrównuję: ${esc({ wplaty: "nowymi wpłatami, dokupując to, co najbardziej poniżej celu", pasmo: "gdy waga wyjdzie poza pasmo", rok: "raz w roku" }[P.rebalans])}.</li>${P.przy_spadku ? `<li>Przy spadku: ${esc(P.przy_spadku)}</li>` : ""}${P.zmiana_planu ? `<li>Zmieniam plan: ${esc(P.zmiana_planu)}</li>` : ""}<li>Przegląd planu: ${esc(P.przeglad)}.</li></ul>
+      ${yrs ? `<h3>Ile może być w ${esc(P.cel_rok)}</h3><p class="note">Ilustracja przy stałych wpłatach i założonej rocznej stopie po inflacji. To założenia, nie prognoza: rzeczywiste wyniki będą inne i mogą być ujemne.</p><ul>${sc.map(([l, r, v]) => `<li>${l} (${nf(r * 100, 0)}% rocznie): <strong>${zl(v)}</strong>${goal ? (v >= goal ? " · cel osiągnięty" : ` · brakuje ${zl(goal - v)}`) : ""}</li>`).join("")}</ul>` : ""}
+      </div>${ww.list.length ? `<ul class="checks">${ww.list.map(t => `<li><span class="ic warn">!</span><div>${esc(t)}</div><span></span></li>`).join("")}</ul>` : ""}
+      <p class="note">Plan jest Twoją decyzją. Aplikacja tylko pilnuje, żebyś się go trzymał, i ostrzega o rzeczach, które łatwo przeoczyć.</p>`; }
+    root.innerHTML = `<div class="sheet-bg" id="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="Mój plan" style="max-width:640px">
+      <header style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><span class="label">Mój plan · krok ${wStep + 1} z ${W_STEPS.length}</span><h2>${esc(step)}</h2></div><button class="btn ghost" type="button" id="w-x">Zamknij</button></header>
+      <div class="progress"><div style="width:${(wStep + 1) / W_STEPS.length * 100}%"></div></div>
+      ${body}
+      <div class="actions" style="justify-content:space-between">${wStep ? '<button class="btn ghost" type="button" id="w-back">Wstecz</button>' : "<span></span>"}${wStep < W_STEPS.length - 1 ? '<button class="btn" type="button" id="w-next">Dalej</button>' : '<button class="btn" type="button" id="w-save">Zapisz plan</button>'}</div>
+      <p class="note" id="w-msg" role="status"></p></div></div>`;
+    // inputs
+    root.querySelectorAll("[data-f]").forEach(el => el.addEventListener("input", () => { P[el.dataset.f] = el.value; }));
+    root.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { P[b.dataset.p] = b.dataset.v; drawWizard(); });
+    root.querySelectorAll("[data-konto]").forEach(b => b.onclick = () => { const k = b.dataset.konto; P.konta = P.konta.includes(k) ? P.konta.filter(x => x !== k) : [...P.konta, k]; drawWizard(); });
+    root.querySelectorAll("[data-w]").forEach(el => el.addEventListener("input", () => { W[el.dataset.w] = el.value; }));
+    root.querySelectorAll("[data-pod]").forEach(el => el.addEventListener("input", () => { W.poduszka[el.dataset.pod] = el.value; }));
+    root.querySelectorAll("[data-podx]").forEach(b => b.onclick = () => { W.poduszka.cel = Math.round(+W.wydatki * +b.dataset.podx / 100) * 100; drawWizard(); });
+    root.querySelectorAll("[data-tpl]").forEach(b => b.onclick = () => {
+      const t = b.dataset.tpl;
+      W.role = t === "jeden" ? [{ key: "rdzen", nazwa: "Rdzeń: cały świat", cel: 100, rdzen: true, pasmo: 5, fundusze: [] }]
+        : t === "rdzen" ? [{ key: "rdzen", nazwa: "Rdzeń: świat", cel: "", rdzen: true, pasmo: 5, fundusze: [] }, { key: "", nazwa: "Satelita 1", cel: "", rdzen: false, pasmo: 3, fundusze: [] }, { key: "", nazwa: "Satelita 2", cel: "", rdzen: false, pasmo: 3, fundusze: [] }]
+        : [{ key: "rdzen", nazwa: "Rdzeń: świat", cel: "", rdzen: true, pasmo: 5, fundusze: [] }, { key: "", nazwa: "Złoto", cel: "", rdzen: false, pasmo: 3, fundusze: [] }];
+      drawWizard();
+    });
+    root.querySelectorAll("[data-r]").forEach(el => el.addEventListener("change", () => { const r = W.role[+el.dataset.r]; r[el.dataset.k] = el.dataset.k === "nazwa" ? el.value : (el.value === "" ? "" : +el.value); drawWizard(); }));
+    root.querySelectorAll("[data-rf]").forEach(el => el.addEventListener("change", () => { const r = W.role[+el.dataset.rf]; if (el.value === "inny") { r._inny = true; r.fundusze = []; } else { r._inny = false; r.fundusze = el.value ? [{ isin: el.value, nazwa: KAT[el.value].nazwa }] : []; } drawWizard(); }));
+    root.querySelectorAll("[data-ri]").forEach(el => el.addEventListener("change", () => { const r = W.role[+el.dataset.ri], v = el.value.trim().toUpperCase(); if (!ISIN_RE.test(v)) { $("#w-msg").textContent = "ISIN ma 12 znaków, np. IE00B4L5Y983."; return; } r.fundusze = [{ isin: v, nazwa: r.fundusze[0]?.nazwa || v }]; drawWizard(); }));
+    root.querySelectorAll("[data-rn]").forEach(el => el.addEventListener("change", () => { const r = W.role[+el.dataset.rn]; if (r.fundusze[0]) r.fundusze[0].nazwa = el.value.trim() || r.fundusze[0].isin; }));
+    root.querySelectorAll("[data-rr]").forEach(el => el.addEventListener("change", () => { W.role[+el.dataset.rr].rdzen = el.checked; drawWizard(); }));
+    root.querySelectorAll("[data-rdel]").forEach(b => b.onclick = () => { W.role.splice(+b.dataset.rdel, 1); drawWizard(); });
+    $("#r-add")?.addEventListener("click", () => { W.role.push({ key: "", nazwa: "", cel: "", rdzen: false, pasmo: 3, fundusze: [] }); drawWizard(); });
+    root.querySelectorAll("[data-t]").forEach(el => el.addEventListener("input", () => { const k = el.dataset.t; W.tezy[k] ||= {}; W.tezy[k][el.dataset.tk] = el.dataset.tk === "co_obserwowac" ? el.value.split(",").map(s => s.trim()).filter(Boolean) : el.value; }));
+    root.querySelectorAll("[data-o]").forEach(el => el.addEventListener("change", () => { W.otwarcie[+el.dataset.o][el.dataset.ok] = el.value; }));
+    $("#o-add2")?.addEventListener("click", () => { W.otwarcie.push({ isin: "", konto: "zwykle", wartosc: "", koszt: "" }); drawWizard(); });
+    $("#sheet-bg").addEventListener("click", e => { if (e.target.id === "sheet-bg") closeWizard(); });
+    $("#w-x").onclick = closeWizard;
+    $("#w-back")?.addEventListener("click", () => { wStep--; drawWizard(); $(".sheet").scrollTop = 0; });
+    $("#w-next")?.addEventListener("click", () => {
+      if (W_STEPS[wStep] === "Podział") { const ww = wWarnings(); if (!W.role.length) { $("#w-msg").textContent = "Dodaj przynajmniej jedną rolę."; return; } if (Math.abs(ww.sum - 100) > 0.01) { $("#w-msg").textContent = `Wagi muszą dać razem 100% (teraz ${nf(ww.sum, 1)}%).`; return; } if (W.role.some(r => !r.fundusze.length)) { $("#w-msg").textContent = "Każda rola potrzebuje funduszu."; return; } }
+      wStep++; drawWizard(); $(".sheet").scrollTop = 0;
+    });
+    $("#w-save")?.addEventListener("click", saveWizard);
+  }
+  function closeWizard() { W = null; closeSheet(); }
+  async function saveWizard() {
+    const btn = $("#w-save"); btn.disabled = true; $("#w-msg").textContent = "Zapisuję…";
+    const old = S.plan || {}, P = W.profil;
+    const used = new Set(), role = {}, notowania = { ...(old.notowania || {}) };
+    let coreTaken = false;
+    for (const r of W.role) {
+      let key = r.rdzen && !coreTaken ? "rdzen" : (r.key && r.key !== "rdzen" ? r.key : slug(r.nazwa));
+      if (key === "rdzen") coreTaken = true;
+      while (used.has(key)) key += "_2";
+      used.add(key);
+      const fundusze = Object.fromEntries(r.fundusze.map(f => [f.isin, f.nazwa]));
+      for (const i of W.nieDokup) if ((old.role?.[r.key]?.fundusze || {})[i]) fundusze[i] = old.role[r.key].fundusze[i]; // keep old positions visible in their role
+      role[key] = { nazwa: r.nazwa || "Rola", cel: +r.cel || 0, pasmo: +r.pasmo || 0, rdzen: !!r.rdzen, fundusze };
+      for (const f of r.fundusze) if (KAT[f.isin]) notowania[f.isin] ||= KAT[f.isin].yahoo;
+      if (r.key && r.key !== key && W.tezy[r.key]) { W.tezy[key] = W.tezy[r.key]; }
+    }
+    const tezy = {};
+    for (const [k, t] of Object.entries(W.tezy)) if (role[k] && !role[k].rdzen && (t.teza || t.kiedy_sie_myle)) tezy[k] = t;
+    const nowy = { ...old, opis: "Plan ustawiony w aplikacji. Wagi i tezy ustala właściciel.", ustalono: today(),
+      rdzen_satelity: `${nf(Object.values(role).filter(r => r.rdzen).reduce((s, r) => s + r.cel, 0), 0)}/${nf(Object.values(role).filter(r => !r.rdzen).reduce((s, r) => s + r.cel, 0), 0)}`,
+      role, nie_dokupujemy: W.nieDokup, notowania, wskazniki: old.wskazniki || DEFAULT_WSK, tezy,
+      profil: { ...P, wplata: +P.wplata || 0, cel_kwota: +P.cel_kwota || 0, cel_rok: +P.cel_rok || 0, wydatki: +W.wydatki || 0, bezpieczny: W.bezpieczny === "" ? "" : +W.bezpieczny } };
+    const ce = S.cele || {}, rok = new Date().getFullYear();
+    const cele = { ...ce, poduszka: { cel: +W.poduszka.cel || 0, zebrane: +W.poduszka.zebrane || 0 },
+      limity: ce.limity?.rok === rok ? ce.limity : { rok, ike: 28260, ikze: 11304, ike_wplacone: 0, ikze_wplacone: 0, ...(ce.limity?.rok === rok ? ce.limity : {}) },
+      obligacje: ce.obligacje || [] };
+    try {
+      await db.doc("app/plan").set(nowy);
+      await db.doc("app/cele").set(cele);
+      for (const o of W.otwarcie) {
+        if (!o.isin || !(+o.wartosc > 0)) continue;
+        const p = S.stan?.ceny?.[o.isin];
+        await db.collection("transakcje").add({ data: today(), konto: o.konto, isin: o.isin, ticker_xtb: "", typ: "kupno",
+          jednostki: p ? +(+o.wartosc / p.pln).toFixed(6) : null, cena: null, waluta: p?.waluta || "", kwota_pln: +o.koszt || +o.wartosc,
+          wartosc_otwarcia_pln: +o.wartosc, otwarcie: true, do_przeliczenia: !p, uwagi: "stan otwarcia z kreatora planu" });
+      }
+      if (+P.wplata) await saveCfg({ wplata: +P.wplata });
+      closeWizard(); show("start");
+    } catch (e) { $("#w-msg").textContent = writeErr(e); btn.disabled = false; }
+  }
 
   /* ---------- render and data ---------- */
   function renderAll() {
@@ -859,6 +1085,8 @@ ${JSON.stringify(data)}`;
     renderStart(c); renderBudzet(); renderPortfel(c); renderCele();
     if (!aiBusy) renderRaporty(c);
     maybeSnapshot(c);
+    // a new person without a plan gets the wizard once, right after their data has loaded
+    if (!wizShown && db && S.canWrite && S.loaded.plan && S.loaded.tx && !S.plan && !sheet) { wizShown = true; openWizard(); }
   }
   // one history point per price update, written by the owner's view when it first sees new prices
   async function maybeSnapshot(c) {
@@ -891,6 +1119,7 @@ ${JSON.stringify(data)}`;
     colSub(db.collection("analizy").orderBy("data", "desc").limit(30), "analizy");
     colSub(db.collection("historia"), "historia");
     colSub(db.collection("budzet").orderBy("data", "desc").limit(1000), "budzet");
+    colSub(db.collection("dzienne").orderBy("data", "desc").limit(30), "dzienne");
     sample = null;
     queue();
   })();
