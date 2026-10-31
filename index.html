@@ -181,6 +181,18 @@ button.link { background: none; border: 0; padding: 0; color: var(--down); font:
 .sheet-bg { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; }
 .sheet { background: var(--bg); width: 100%; max-width: 560px; border-radius: 18px 18px 0 0; padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 14px; max-height: 92vh; overflow-y: auto; }
 @media (min-width: 600px) { .sheet-bg { align-items: center; } .sheet { border-radius: 18px; } }
+/* glossary: a "?" next to a term opens its explanation above whatever is open */
+button.tip { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-left: 4px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--red); font: 800 0.72rem var(--f-body); cursor: pointer; vertical-align: middle; padding: 0; text-transform: none; letter-spacing: 0; }
+.learn { background: var(--surface); border-left: 3px solid var(--red); border-radius: 0 10px 10px 0; padding: 10px 12px; display: grid; gap: 6px; font-size: 0.9rem; }
+.learn strong.h { font-family: var(--f-display); }
+#tip-root .sheet-bg { z-index: 50; }
+.gloss { display: grid; gap: 4px; }
+.gloss button { text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 10px 2px; font: 600 0.95rem var(--f-body); color: var(--ink); cursor: pointer; display: flex; justify-content: space-between; gap: 10px; }
+.gloss button::after { content: "›"; color: var(--red); }
+.levels { display: grid; gap: 8px; }
+.levels button { text-align: left; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 12px; padding: 12px 14px; cursor: pointer; font: inherit; display: grid; gap: 2px; }
+.levels button[aria-pressed="true"] { border-color: var(--red); box-shadow: 0 0 0 1px var(--red) inset; }
+.levels button strong { font-family: var(--f-display); }
 .seg { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-radius: 10px; padding: 3px; gap: 3px; }
 .seg button { border: 0; background: none; padding: 9px 4px; border-radius: 8px; font: 700 0.82rem var(--f-body); color: var(--muted); cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--bg); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
@@ -225,10 +237,11 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   <button role="tab" id="t-raporty" data-view="raporty" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>Raporty</button>
 </nav></div>
 <div id="sheet-root"></div>
+<div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-10-31-4"></script>
-<script src="backend.js?v=2026-10-31-4"></script>
+<script src="config.js?v=2026-11-01-1"></script>
+<script src="backend.js?v=2026-11-01-1"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -425,6 +438,135 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     return false;
   }
 
+  /* ---------- experience level and glossary: beginners get explanations and simple starting points ---------- */
+  const POZIOMY = [
+    ["poczatkujacy", "Początkujący", "Pierwszy raz inwestuję. Chcę prostych kroków i wyjaśnień."],
+    ["sredni", "Średni", "Mam już konto u brokera i kupiłem pierwsze fundusze."],
+    ["zaawansowany", "Zaawansowany", "Znam ETF-y, IKE i rebalansowanie. Pokaż mi tylko liczby."]
+  ];
+  const poziom = () => CFG.poziom || (S.plan ? "zaawansowany" : "poczatkujacy");
+  // Static, trusted text. Limits and rules as of 2026; fees change, so entries point to the broker's own price list.
+  const SLOWNIK = {
+    etf: { t: "ETF", k: "Podstawy", d: [
+      "<strong>ETF to fundusz, który kupujesz na giełdzie jak akcję.</strong> Jedna jednostka to mały kawałek setek albo tysięcy spółek naraz.",
+      "Fundusz kopiuje indeks, np. MSCI World (ok. 1300 dużych spółek z krajów rozwiniętych). Nie ma zarządzającego, który zgaduje, co kupić, dlatego koszty są niskie.",
+      "Wartość ETF-u rośnie i spada razem z rynkiem. Pieniądze w funduszu są wydzielone: nawet gdyby firma, która go prowadzi, upadła, akcje w funduszu należą do inwestorów."] },
+    indeks: { t: "Indeks (np. MSCI World, S&P 500)", k: "Podstawy", d: [
+      "Indeks to lista spółek według stałych zasad. <strong>MSCI World</strong>: ok. 1300 spółek z 23 krajów rozwiniętych, z czego ok. 70% to USA. <strong>FTSE All-World</strong>: to samo plus rynki wschodzące. <strong>S&P 500</strong>: 500 największych spółek USA.",
+      "Fundusz na szeroki indeks to najprostszy sposób, żeby mieć „cały rynek” jednym zakupem."] },
+    broker: { t: "Broker i wybór brokera", k: "Konta", d: [
+      "<strong>Broker (dom maklerski) to firma, przez którą kupujesz ETF-y na giełdzie.</strong> Zakładasz u niego rachunek maklerski, wpłacasz przelewem pieniądze i składasz zlecenie kupna.",
+      "Kupione fundusze są zapisane na Ciebie, a nie na majątek brokera. Gotówkę na rachunku chroni dodatkowo system rekompensat do równowartości 22 000 euro.",
+      "Na co patrzeć przy wyborze: <strong>nadzór KNF</strong> (polski broker), <strong>prowizje</strong> od zakupu, <strong>koszt przewalutowania</strong> (fundusze są w EUR, USD lub GBP), czy jest <strong>IKE i IKZE</strong>, czy można kupować <strong>ułamki</strong> jednostek, i czy broker przysyła <strong>PIT-8C</strong> do rozliczenia podatku.",
+      "W Polsce popularne są m.in. XTB, mBank (eMakler) i BOSSA. Aktualne opłaty sprawdź zawsze w tabeli opłat na stronie brokera."] },
+    zakup: { t: "Jak kupić pierwszy ETF", k: "Konta", d: [
+      "1. Załóż rachunek u brokera przez internet i potwierdź tożsamość (dowód, czasem selfie).",
+      "2. Wpłać pieniądze zwykłym przelewem na numer rachunku podany w aplikacji brokera.",
+      "3. Wyszukaj fundusz po <strong>ISIN</strong> (np. IE00B4L5Y983) albo po nazwie i sprawdź, czy to ta sama giełda i waluta, co w Twoim planie.",
+      "4. Wpisz kwotę albo liczbę jednostek i kliknij Kupuj. Kupując w godzinach otwarcia giełdy (ok. 9:00–17:30), dostajesz cenę bliską bieżącej.",
+      "5. Zapisz zakup tutaj czerwonym <strong>+</strong> → ETF. Aplikacja policzy wagi i podzieli następną wpłatę."] },
+    konto_zwykle: { t: "Zwykłe konto i podatek Belki", k: "Konta", d: [
+      "Na zwykłym rachunku od <strong>zysku</strong> płacisz 19% podatku (tzw. podatek Belki), ale dopiero gdy sprzedasz fundusz z zyskiem. Dopóki trzymasz, nic nie płacisz.",
+      "Polski broker przysyła do końca lutego PIT-8C, a Ty do 30 kwietnia składasz PIT-38. Stratę możesz odliczać od zysków przez kolejne 5 lat.",
+      "Zaleta: brak limitów i wypłacasz kiedy chcesz."] },
+    ike: { t: "IKE: Indywidualne Konto Emerytalne", k: "Konta", d: [
+      "<strong>IKE to rachunek maklerski z ulgą podatkową.</strong> Kupujesz na nim te same ETF-y, ale gdy wypłacisz pieniądze na emeryturze, <strong>nie płacisz 19% podatku od zysku</strong>.",
+      "Warunki: wypłata po 60. urodzinach (albo po 55., gdy masz już prawo do emerytury) i wpłaty w co najmniej 5 różnych latach.",
+      "Limit wpłat w 2026: <strong>28 260 zł</strong> na rok. Niewykorzystany limit przepada 31 grudnia. Możesz mieć tylko jedno IKE.",
+      "Możesz wypłacić wcześniej, ale wtedy płacisz podatek od zysku jak na zwykłym koncie. Ulga jest więc „bonusem za cierpliwość”, a nie pułapką."] },
+    ikze: { t: "IKZE: Indywidualne Konto Zabezpieczenia Emerytalnego", k: "Konta", d: [
+      "<strong>IKZE daje ulgę od razu:</strong> wpłaty odliczasz od dochodu w zeznaniu rocznym, więc dostajesz zwrot podatku (12% lub 32% wpłaty przy skali, 19% przy podatku liniowym).",
+      "Przy wypłacie po 65. urodzinach (wpłaty w co najmniej 5 latach) płacisz 10% zryczałtowanego podatku od całej kwoty.",
+      "Limit wpłat w 2026: <strong>11 304 zł</strong> (dla prowadzących firmę 16 956 zł). Wcześniejsza wypłata oznacza doliczenie jej do dochodu i podatek."] },
+    poduszka: { t: "Poduszka finansowa", k: "Bezpieczeństwo", d: [
+      "<strong>Poduszka to pieniądze na nieprzewidziane wydatki:</strong> awaria auta, utrata pracy, dentysta. Zwykle 3–6 miesięcy Twoich wydatków.",
+      "Trzymasz ją tam, gdzie nie traci na spadkach giełdy: konto oszczędnościowe, lokata, krótkie obligacje skarbowe.",
+      "Dlaczego najpierw poduszka: bez niej przy pierwszym większym wydatku musiałbyś sprzedać ETF-y, być może akurat po spadku."] },
+    obligacje: { t: "Obligacje skarbowe (COI, EDO)", k: "Bezpieczeństwo", d: [
+      "To pożyczka dla państwa na ustalony procent. Kupujesz je w PKO BP lub Pekao (obligacjeskarbowe.pl), po 100 zł za sztukę.",
+      "<strong>COI</strong> (4 lata): odsetki co rok, od 2. roku inflacja + marża. <strong>EDO</strong> (10 lat): odsetki się kapitalizują. Wcześniejszy wykup kosztuje niewielką opłatę.",
+      "Ich wartość nie spada razem z giełdą, dlatego często są „częścią bezpieczną” majątku."] },
+    bezpieczna: { t: "Część bezpieczna majątku", k: "Bezpieczeństwo", d: [
+      "Ta część majątku, która nie spada z giełdą: obligacje, lokaty, konto oszczędnościowe. Im krótszy horyzont i im gorzej znosisz spadki, tym zwykle jest większa.",
+      "Przykład: przy 30% w części bezpiecznej i spadku akcji o 40% cały majątek spada o ok. 28%, a nie o 40%."] },
+    dywersyfikacja: { t: "Dywersyfikacja", k: "Podział", d: [
+      "Nie wkładaj wszystkiego w jedną spółkę, kraj czy branżę. Fundusz światowy ma już w sobie tysiące spółek, więc jest mocno zdywersyfikowany.",
+      "Dwa fundusze, które mają w środku prawie to samo (np. MSCI World i FTSE All-World), nie dają większej dywersyfikacji, tylko komplikują portfel."] },
+    rdzen: { t: "Rdzeń i satelity", k: "Podział", d: [
+      "<strong>Rdzeń</strong> to największa, nudna część portfela: szeroki rynek (np. cały świat). Rośnie razem z gospodarką.",
+      "<strong>Satelity</strong> to mniejsze pozycje na Twoje przekonania: branże (AI, zdrowie), kraje, surowce. Mogą dać więcej, ale mogą też dużo stracić.",
+      "Częsty podział to 70–90% rdzeń i 10–30% satelity. Początkujący często zaczynają od samego rdzenia."] },
+    pasmo: { t: "Pasmo tolerancji", k: "Podział", d: [
+      "Ceny się zmieniają, więc wagi nigdy nie są idealnie równe planowi. Pasmo mówi, jakie odchylenie Cię nie martwi.",
+      "Przykład: cel 60% ± 5 pkt. Dopóki rdzeń ma 55–65%, nic nie robisz. Gdy wyjdzie poza pasmo, aplikacja da znać."] },
+    rebalans: { t: "Rebalansowanie (wyrównywanie)", k: "Podział", d: [
+      "Przywracanie wag z planu. Najprościej <strong>nowymi wpłatami</strong>: dokupujesz to, czego jest najmniej względem celu. Bez sprzedawania i bez podatku.",
+      "Inne sposoby: gdy waga wyjdzie poza pasmo, albo raz w roku w stałym terminie."] },
+    ter: { t: "TER: roczny koszt funduszu", k: "Fundusze", d: [
+      "Procent, który fundusz pobiera co roku za zarządzanie. Nie płacisz go osobno, jest odejmowany od wartości automatycznie.",
+      "Przykład: TER 0,20% przy 10 000 zł to ok. 20 zł rocznie. Fundusze tematyczne kosztują zwykle 0,35–0,65%, szerokie 0,07–0,25%."] },
+    isin: { t: "ISIN", k: "Fundusze", d: [
+      "12-znakowy numer, który jednoznacznie wskazuje fundusz, np. <strong>IE00B4L5Y983</strong>. Nazwy i skróty giełdowe bywają mylące, ISIN nie.",
+      "Ten sam fundusz może być notowany na kilku giełdach i w kilku walutach. Wtedy ISIN jest ten sam, a skrót inny."] },
+    akumulujacy: { t: "Akumulujący czy dystrybuujący", k: "Fundusze", d: [
+      "<strong>Akumulujący (Acc)</strong> sam reinwestuje dywidendy. Na zwykłym koncie podatek płacisz dopiero przy sprzedaży, więc procent składany działa na większej kwocie.",
+      "<strong>Dystrybuujący (Dist)</strong> wypłaca dywidendy na rachunek. Od dywidendy z funduszu zagranicznego zwykle sam rozliczasz podatek w zeznaniu rocznym.",
+      "Przy długim horyzoncie wiele osób wybiera akumulujące."] },
+    waluta: { t: "Waluta i przewalutowanie", k: "Fundusze", d: [
+      "Większość ETF-ów jest w EUR, USD albo GBP. Płacąc złotymi, broker przewalutowuje pieniądze i zwykle pobiera za to niewielką opłatę.",
+      "Wartość w złotych zależy też od kursu walut: gdy złoty się umacnia, Twój portfel w PLN chwilowo spada, nawet jeśli rynek stoi. W długim okresie to się wyrównuje w obie strony."] },
+    zmiennosc: { t: "Spadki i wahania", k: "Spokój", d: [
+      "Akcje regularnie spadają. Rynek światowy tracił ok. połowy wartości w 2008–2009 i ok. jedną trzecią w kilka tygodni w 2020. Potem odrabiał straty, ale trwało to od miesięcy do kilku lat.",
+      "Największą stratę zwykle robi się, sprzedając w panice. Dlatego w planie zapisujesz zawczasu, co zrobisz przy spadku."] },
+    horyzont: { t: "Horyzont inwestycyjny", k: "Spokój", d: [
+      "Ile lat pieniądze mogą pracować, zanim będą potrzebne. Na akcje zwykle mówi się o minimum 5–10 latach.",
+      "Pieniądze potrzebne w ciągu 1–3 lat (wkład na mieszkanie, wesele) lepiej trzymać w części bezpiecznej."] },
+    procent: { t: "Procent składany", k: "Spokój", d: [
+      "Zysk zaczyna zarabiać na siebie. Przy 5% rocznie 10 000 zł po 10 latach to ok. 16 300 zł, po 20 latach ok. 26 500 zł, bez dopłat.",
+      "Dlatego najważniejsze są czas i regularne wpłaty, a nie trafienie w idealny moment."] },
+    teza: { t: "Teza inwestycyjna", k: "Spokój", d: [
+      "Krótko zapisany powód, dla którego masz daną pozycję, co obserwujesz i <strong>kiedy uznasz, że się mylisz</strong>.",
+      "Przy spadku sprawdzasz wtedy fakty z tezy, a nie tylko cenę. Raporty w aplikacji oceniają tezy co tydzień."] }
+  };
+  const PIERWSZE = [
+    { id: "poduszka", t: "Zacznij od poduszki finansowej" },
+    { id: "etf", t: "Czym jest ETF" },
+    { id: "broker", t: "Broker: gdzie się kupuje" },
+    { id: "ike", t: "IKE, IKZE i zwykłe konto" },
+    { id: "plan", t: "Ułóż swój plan", go: "plan" },
+    { id: "zakup", t: "Kup i zapisz pierwszy ETF" }
+  ];
+  const tip = (k, label = "") => `${label}<button class="tip" type="button" data-tip="${k}" aria-label="Co to jest: ${esc(SLOWNIK[k]?.t || k)}">?</button>`;
+  // explanation box: open for beginners, folded for the middle level, hidden for advanced users
+  function learn(title, html, keys = []) {
+    const lv = poziom();
+    if (lv === "zaawansowany") return "";
+    const more = keys.length ? `<p class="note">Więcej: ${keys.map(k => `<button class="link" type="button" data-tip="${k}">${esc(SLOWNIK[k].t)}</button>`).join(" · ")}</p>` : "";
+    return lv === "poczatkujacy" ? `<div class="learn"><strong class="h">${esc(title)}</strong><div>${html}</div>${more}</div>`
+      : `<details class="more learn"><summary>${esc(title)}</summary><div style="display:grid;gap:6px"><div>${html}</div>${more}</div></details>`;
+  }
+  let tipView = null;
+  function openTip(k) {
+    tipView = k;
+    if (k !== "lista" && SLOWNIK[k] && !CFG.lekcje?.[k]) saveCfg({ lekcje: { ...(CFG.lekcje || {}), [k]: true } });
+    const root = $("#tip-root");
+    const e = SLOWNIK[k];
+    const cats = [...new Set(Object.values(SLOWNIK).map(x => x.k))];
+    const body = k === "lista" || !e
+      ? `<header style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2>Słownik pojęć</h2><button class="btn ghost" type="button" id="tip-x">Zamknij</button></header>
+        ${cats.map(c => `<div><span class="label">${esc(c)}</span><div class="gloss">${Object.entries(SLOWNIK).filter(([, x]) => x.k === c).map(([kk, x]) => `<button type="button" data-tip="${kk}">${esc(x.t)}</button>`).join("")}</div></div>`).join("")}`
+      : `<header style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><span class="label">${esc(e.k)}</span><h2>${esc(e.t)}</h2></div><button class="btn ghost" type="button" id="tip-x">Zamknij</button></header>
+        ${e.d.map(p => `<p>${p}</p>`).join("")}
+        <div class="actions"><button class="btn ghost" type="button" data-tip="lista">Cały słownik</button></div>
+        <p class="note">To edukacja, nie porada inwestycyjna. Decyzje i podział portfela należą do Ciebie.</p>`;
+    root.innerHTML = `<div class="sheet-bg" id="tip-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(e?.t || "Słownik pojęć")}">${body}</div></div>`;
+    $("#tip-bg").addEventListener("click", ev => { if (ev.target.id === "tip-bg") closeTip(); });
+    $("#tip-x").onclick = closeTip;
+    $("#tip-x").focus();
+  }
+  function closeTip() { tipView = null; $("#tip-root").innerHTML = ""; }
+  document.addEventListener("click", e => { const t = e.target.closest("[data-tip]"); if (t) { e.preventDefault(); e.stopPropagation(); openTip(t.dataset.tip); } }, true);
+
   /* ---------- Start ---------- */
   function checks(c) {
     const out = [];
@@ -464,7 +606,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     }
     const last = S.raporty[0];
     const age = last ? (Date.now() - new Date(last.data + "T12:00:00")) / 86400000 : Infinity;
-    if (age > 8) out.push({ lvl: "todo", t: "Poproś Claude o raport tygodnia", s: "W czacie napisz: raport tygodnia.", go: "raporty" });
+    if (age > 8 && S.plan) out.push({ lvl: "info", t: "Raport tygodnia pojawia się w soboty rano", s: "Sam, bez Twojego udziału. Raport dzienny: pn–pt rano.", go: "raporty" });
     const red = last ? Object.entries(last.tezy || {}).filter(([, v]) => v === "czerwony").map(([k]) => S.plan?.role?.[k]?.nazwa || k) : [];
     if (red.length) out.push({ lvl: "warn", t: "Sygnał ostrzegawczy: " + red.join(", "), go: "raporty" });
     return out;
@@ -473,7 +615,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     { id: "wyplata", t: "Wpisz wypłatę i skopiuj stałe opłaty", go: "budzet" },
     { id: "budzet", t: "Przejrzyj wydatki i limity", go: "budzet" },
     { id: "odloz", t: "Odłóż na poduszkę lub obligacje", go: "cele" },
-    { id: "wplata", t: "Rozpisz wpłatę i kup ETF-y w XTB", go: "portfel" },
+    { id: "wplata", t: "Rozpisz wpłatę i kup ETF-y u brokera", go: "portfel" },
     { id: "zakupy", t: "Zapisz zakupy w aplikacji", go: "add:etf" },
     { id: "raport", t: "Przeczytaj raport lub poproś o analizę", go: "raporty" }
   ];
@@ -503,6 +645,16 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
           <div><h2>${todo ? (todo === 1 ? "Jedna rzecz do zrobienia" : `${todo} rzeczy do zrobienia`) : "Spokojnie. Wszystko według planu."}</h2><p class="note">Reszta poniżej jest w porządku albo tylko do wiadomości.</p></div></div>
         <ul class="checks">${ch.sort((a, b) => ["todo", "warn", "info", "ok"].indexOf(a.lvl) - ["todo", "warn", "info", "ok"].indexOf(b.lvl)).map(x => `<li><span class="ic ${x.lvl}">${x.lvl === "ok" ? "✓" : x.lvl === "todo" ? "!" : x.lvl === "warn" ? "!" : "i"}</span><div><div>${esc(x.t)}</div>${x.s ? `<div class="note">${esc(x.s)}</div>` : ""}</div><button class="go" type="button" data-go="${x.go}">${x.go === "plan" ? "Ustaw" : x.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button></li>`).join("")}</ul>
       </div>
+      ${(() => {
+        if (poziom() !== "poczatkujacy") return "";
+        const done = s => s.id === "plan" ? !!S.plan : s.id === "zakup" ? S.tx.some(t => !t.otwarcie) || !!CFG.lekcje?.zakup : s.id === "ike" ? !!(CFG.lekcje?.ike || CFG.lekcje?.ikze || CFG.lekcje?.konto_zwykle) : !!CFG.lekcje?.[s.id];
+        const n = PIERWSZE.filter(done).length;
+        if (n === PIERWSZE.length) return "";
+        return `<div class="card"><header><h2>Pierwsze kroki</h2><span class="note">${n} z ${PIERWSZE.length} · po 2–3 minuty</span></header>
+          <div class="progress"><div style="width:${n / PIERWSZE.length * 100}%"></div></div>
+          <ol class="steps">${PIERWSZE.map(s => `<li class="${done(s) ? "done" : ""}"><span class="ic ${done(s) ? "ok" : "info"}" aria-hidden="true">${done(s) ? "✓" : "·"}</span><span>${esc(s.t)}</span>${s.go ? `<button class="go" type="button" data-go="${s.go}">Ustaw</button>` : `<button class="go" type="button" data-tip="${s.id}">Czytaj</button>`}</li>`).join("")}</ol>
+          <div class="actions"><button class="btn ghost" type="button" data-tip="lista">Słownik pojęć</button><span class="note">Poziom zmienisz w ustawieniach.</span></div></div>`;
+      })()}
       ${(() => { const d = S.dzienne[0]; if (!d || (Date.now() - new Date(d.data + "T12:00:00")) / 86400000 > 4) return ""; return `<div class="card"><header><h2>Na rynkach</h2><span class="note">${esc(d.data)}</span></header><div class="md">${md(d.podsumowanie || d.tresc)}</div><div class="actions"><button class="go" type="button" data-go="raporty">Cały raport</button></div></div>`; })()}
       <div class="card">
         <header><h2>Przegląd: ${esc(monthName(curMonth()))}</h2><span class="note">${done} z ${STEPS.length} · ok. 20 minut</span></header>
@@ -651,17 +803,17 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
         return `<div class="card"><header><h2>Cel: ${esc({ emerytura: "emerytura", mieszkanie: "mieszkanie / duży zakup", pomnazanie: "pomnażanie" }[pr.cel] || "mój cel")}</h2><span class="note">${zl(+pr.cel_kwota)} do ${esc(pr.cel_rok)}</span></header>
           <div class="role"><div class="row"><span>Majątek ${zl(maj)}</span><span class="mono">${pct(maj / pr.cel_kwota * 100, 0, false)}</span></div>${bar(maj, +pr.cel_kwota, null, "red")}</div>
           ${yrs ? `<p class="note">Przy wpłatach ${zl(+pr.wplata)} miesięcznie i założonych 4% rocznie po inflacji byłoby ok. ${zl(est)} w ${esc(pr.cel_rok)}. To ilustracja, nie prognoza.</p>` : ""}</div>`; })()}
-      <div class="card"><header><h2>Poduszka finansowa</h2><span class="note">3–6 miesięcy wydatków</span></header>
+      <div class="card"><header><h2>Poduszka finansowa${tip("poduszka")}</h2><span class="note">3–6 miesięcy wydatków</span></header>
         ${+pod.cel ? `<div class="role"><div class="row"><span>${zl(+pod.zebrane || 0)} z ${zl(+pod.cel)}</span><span class="mono">${pct((+pod.zebrane || 0) / +pod.cel * 100, 0, false)}</span></div>${bar(+pod.zebrane || 0, +pod.cel, null)}</div>` : '<p class="note">Ustaw cel poniżej.</p>'}
         ${avg ? `<p class="note">Z budżetu: średnio ${zl(avg.avg)} miesięcznie, czyli ${zl(avg.avg * 3)}–${zl(avg.avg * 6)}.</p><div class="actions"><button class="btn ghost" type="button" id="p-3">Wpisz 3×</button><button class="btn ghost" type="button" id="p-6">Wpisz 6×</button></div>` : '<p class="note">Po miesiącu wpisywania wydatków podpowiem cel z Twoich prawdziwych kosztów.</p>'}
         <div class="fgrid"><div class="field"><label for="p-cel">Cel (zł)</label><input id="p-cel" type="number" min="0" step="100" inputmode="numeric" value="${esc(pod.cel || "")}"></div><div class="field"><label for="p-zeb">Zebrane (zł)</label><input id="p-zeb" type="number" min="0" step="10" inputmode="numeric" value="${esc(pod.zebrane || "")}"></div></div>
       </div>
-      <div class="card"><header><h2>IKE i IKZE ${esc(rok)}</h2><span class="note">${days} dni do końca roku</span></header>
+      <div class="card"><header><h2>IKE i IKZE ${esc(rok)}${tip("ike")}</h2><span class="note">${days} dni do końca roku</span></header>
         <div class="role"><div class="row"><span>IKE ${zl(ikeW)} z ${zl(+lim.ike || 0)}</span><span class="mono">zostało ${zl(Math.max(0, (+lim.ike || 0) - ikeW))}</span></div>${bar(ikeW, +lim.ike, null, "red")}</div>
         <div class="role"><div class="row"><span>IKZE ${zl(ikzeW)} z ${zl(+lim.ikze || 0)}</span><span class="mono">zostało ${zl(Math.max(0, (+lim.ikze || 0) - ikzeW))}</span></div>${bar(ikzeW, +lim.ikze, null, "red")}</div>
         <div class="fgrid"><div class="field"><label for="l-ike">Wpłacone na IKE w ${esc(rok)}</label><input id="l-ike" type="number" min="0" step="10" inputmode="numeric" value="${esc(lim.ike_wplacone ?? "")}"></div><div class="field"><label for="l-ikze">Wpłacone na IKZE w ${esc(rok)}</label><input id="l-ikze" type="number" min="0" step="10" inputmode="numeric" value="${esc(lim.ikze_wplacone ?? "")}"></div></div>
       </div>
-      <div class="card"><header><h2>Obligacje</h2><span class="note">${zl(obl.reduce((s, o) => s + bondNominal(o), 0))} nominalnie · ${zl(bondsValue(), 2)} z odsetkami</span></header>
+      <div class="card"><header><h2>Obligacje${tip("obligacje")}</h2><span class="note">${zl(obl.reduce((s, o) => s + bondNominal(o), 0))} nominalnie · ${zl(bondsValue(), 2)} z odsetkami</span></header>
         <div class="list">${obl.map(o => `<div class="item"><div class="t">${esc(o.seria || "Obligacje")} · ${esc(o.liczba)} szt.</div><div class="a">${zl(bondNow(o) ?? bondNominal(o), 2)}</div><div class="s">zakup ${esc(o.zakup || "–")} · wykup ${o.zakup ? esc(addYears(o.zakup, 4)) : "–"} · ${esc(o.opr1)}% w 1. roku, potem inflacja + ${esc(o.marza)}%${o.uwaga ? "<br>" + esc(o.uwaga) : ""}</div><div class="s" style="text-align:right">odsetki ${esc(bondNext(o) || "–")}</div></div>`).join("") || '<p class="note">Brak obligacji.</p>'}</div>
         <details class="more"><summary>Edytuj obligacje</summary>
           <div style="display:grid;gap:14px">${obl.map((o, i) => `<div class="fgrid"><div class="field"><label for="o-s-${i}">Seria</label><input id="o-s-${i}" value="${esc(o.seria)}" placeholder="COI1129"></div><div class="field"><label for="o-d-${i}">Data zakupu</label><input id="o-d-${i}" type="date" value="${esc(o.zakup)}"></div><div class="field"><label for="o-l-${i}">Sztuk</label><input id="o-l-${i}" type="number" min="0" step="1" value="${esc(o.liczba)}"></div><div class="field"><label for="o-r-${i}">Opr. 1. rok %</label><input id="o-r-${i}" type="number" min="0" step="0.01" value="${esc(o.opr1)}"></div><div class="field"><label for="o-m-${i}">Marża %</label><input id="o-m-${i}" type="number" min="0" step="0.01" value="${esc(o.marza)}"></div><div><button class="link" type="button" data-orm="${i}">Usuń</button></div></div>`).join("")}
@@ -832,15 +984,17 @@ ${JSON.stringify(data)}`;
     });
   }
   $("#fab").addEventListener("click", () => openSheet($("#v-portfel").hidden ? "wydatek" : "etf"));
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && sheet) closeSheet(); });
+  document.addEventListener("keydown", e => { if (e.key !== "Escape") return; if (tipView) closeTip(); else if (sheet) closeSheet(); });
 
   function openSettings() {
     sheet = { mode: "ustawienia" };
-    const seg = (key, opts, n) => `<div class="seg n${n}" role="group">${opts.map(([v, l]) => `<button type="button" data-cfg="${key}" data-val="${v}" aria-pressed="${String(CFG[key] === v)}">${l}</button>`).join("")}</div>`;
+    const seg = (key, opts, n) => `<div class="seg n${n}" role="group">${opts.map(([v, l]) => `<button type="button" data-cfg="${key}" data-val="${v}" aria-pressed="${String((key === "poziom" ? poziom() : CFG[key]) === v)}">${l}</button>`).join("")}</div>`;
     const draw = () => {
       $("#sheet-root").innerHTML = `<div class="sheet-bg" id="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="Ustawienia">
         <header style="display:flex;justify-content:space-between;align-items:center"><h2>Ustawienia</h2><button class="btn ghost" type="button" id="set-close">Gotowe</button></header>
         <div class="setrow"><span class="label">Mój plan</span><div class="actions"><button class="btn" type="button" id="cfg-plan">${S.plan ? "Zmień mój plan" : "Ustaw mój plan"}</button><span class="note">Cel, podział, pasma, tezy i zasady.</span></div></div>
+        <div class="setrow"><span class="label">Mój poziom</span>${seg("poziom", POZIOMY.map(([v, l]) => [v, l]), 3)}<span class="note">${esc(POZIOMY.find(p => p[0] === poziom())[2])} Początkujący widzą wyjaśnienia i pierwsze kroki.</span></div>
+        <div class="setrow"><span class="label">Nauka</span><div class="actions"><button class="btn ghost" type="button" data-tip="lista">Słownik pojęć</button><span class="note">ETF, broker, IKE, IKZE, podatki, pasma…</span></div></div>
         <div class="setrow"><span class="label">Motyw</span>${seg("motyw", [["system", "Jak w telefonie"], ["jasny", "Jasny"], ["ciemny", "Ciemny"]], 3)}</div>
         <div class="setrow"><span class="label">Wielkość tekstu</span>${seg("tekst", [["normalny", "Normalny"], ["duzy", "Duży"]], 2)}</div>
         <div class="setrow"><span class="label">Ekran po otwarciu</span>${seg("ekran", [["start", "Start"], ["budzet", "Budżet"], ["ostatnia", "Ostatni"]], 3)}</div>
@@ -888,6 +1042,7 @@ ${JSON.stringify(data)}`;
     ["IE00B5WHFQ43", "iShares MSCI Mexico Capped", "CMXC.L", .65, "Akcje: jeden kraj, Meksyk"]
   ].map(([isin, nazwa, yahoo, ter, opis]) => ({ isin, nazwa, yahoo, ter, opis }));
   const KAT = Object.fromEntries(KATALOG.map(k => [k.isin, k]));
+  const BROAD = ["IE00B4L5Y983", "IE00BK5BQT80", "IE00B5BMR087", "IE00BKM4GZ66"];
   const DEFAULT_WSK = { "^GSPC": "S&P 500", "^VIX": "VIX (strach na rynku)", "USDPLN=X": "USD/PLN", "EURPLN=X": "EUR/PLN", "GC=F": "Złoto (USD/uncja)", "NVDA": "NVIDIA" };
   const slug = s => (s || "rola").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 24) || "rola";
   const ISIN_RE = /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/;
@@ -901,6 +1056,7 @@ ${JSON.stringify(data)}`;
       fundusze: Object.entries(d.fundusze || {}).filter(([i]) => !(p.nie_dokupujemy || []).includes(i)).map(([isin, nazwa]) => ({ isin, nazwa })) }));
     const held = calc().list.map(x => x.isin);
     return {
+      poziom: CFG.poziom || (S.plan ? poziom() : ""),
       profil: { cel: prof.cel || "pomnazanie", cel_kwota: prof.cel_kwota || "", cel_rok: prof.cel_rok || new Date().getFullYear() + 10, konta: prof.konta || ["zwykle"], broker: prof.broker || "XTB",
         wplata: prof.wplata || CFG.wplata || 1000, spadek: prof.spadek || "czekam", rebalans: prof.rebalans || "wplaty", przy_spadku: prof.przy_spadku || "", zmiana_planu: prof.zmiana_planu || "", przeglad: prof.przeglad || addYears(today(), 1) },
       wydatki: prof.wydatki || "", poduszka: { cel: ce.poduszka?.cel || "", zebrane: ce.poduszka?.zebrane || "" }, bezpieczny: prof.bezpieczny ?? "",
@@ -909,7 +1065,7 @@ ${JSON.stringify(data)}`;
       otwarcie: S.tx.length ? [] : [{ isin: "", konto: "zwykle", wartosc: "", koszt: "" }]
     };
   }
-  const W_STEPS = ["Cel", "Bezpieczeństwo", "Podział", "Tezy", "Zasady", "Obecny stan", "Podsumowanie"];
+  const W_STEPS = ["Twój poziom", "Cel", "Bezpieczeństwo", "Podział", "Tezy", "Zasady", "Obecny stan", "Podsumowanie"];
   function openWizard() {
     if (!db || !S.canWrite) { $("#notice").textContent = "Plan można zapisać po zalogowaniu."; $("#notice").hidden = false; return; }
     W = wizardState(); wStep = 0; sheet = { mode: "plan" }; drawWizard();
@@ -934,52 +1090,64 @@ ${JSON.stringify(data)}`;
   function drawWizard() {
     const root = $("#sheet-root"), P = W.profil;
     const step = W_STEPS[wStep];
-    const fundOpts = sel => `<option value="">Wybierz fundusz…</option>${KATALOG.map(k => `<option value="${k.isin}" ${k.isin === sel ? "selected" : ""}>${esc(k.nazwa)} · TER ${nf(k.ter, 2)}%</option>`).join("")}<option value="inny" ${sel && !KAT[sel] ? "selected" : ""}>Inny fundusz (wpisz ISIN)</option>`;
+    const opt = sel => k => `<option value="${k.isin}" ${k.isin === sel ? "selected" : ""}>${esc(k.nazwa)} · TER ${nf(k.ter, 2)}%</option>`;
+    const fundOpts = sel => `<option value="">Wybierz fundusz…</option><optgroup label="Szeroki rynek (rdzeń)">${KATALOG.filter(k => BROAD.includes(k.isin)).map(opt(sel)).join("")}</optgroup><optgroup label="Branże, kraje, surowce (większe ryzyko)">${KATALOG.filter(k => !BROAD.includes(k.isin)).map(opt(sel)).join("")}</optgroup><option value="inny" ${sel && !KAT[sel] ? "selected" : ""}>Inny fundusz (wpisz ISIN)</option>`;
     let body = "";
-    if (step === "Cel") body = `
+    if (step === "Twój poziom") body = `
+      <p class="note">Od tego zależy, ile aplikacja tłumaczy i od czego zaczniesz. Zmienisz to w każdej chwili w ustawieniach.</p>
+      <div class="levels" role="group" aria-label="Poziom">${POZIOMY.map(([v, l, d]) => `<button type="button" data-lv="${v}" aria-pressed="${W.poziom === v}"><strong>${l}</strong><span class="note">${d}</span></button>`).join("")}</div>
+      ${W.poziom === "poczatkujacy" ? `<div class="learn"><strong class="h">Jak to działa w skrócie</strong><div>Odkładasz najpierw poduszkę na nieprzewidziane wydatki. Potem co miesiąc kupujesz u brokera fundusz ETF, czyli kawałek tysięcy spółek naraz, i trzymasz go latami. Aplikacja pilnuje planu i co tydzień pisze Ci raport. W każdym kroku znajdziesz wyjaśnienia, a przy trudnych słowach znak <button class="tip" type="button" data-tip="etf" aria-label="Przykład wyjaśnienia">?</button>.</div></div>` : ""}`;
+    else if (step === "Cel") body = `
+      ${learn("Dlaczego zaczynamy od celu", "Cel i rok mówią, ile lat pieniądze mogą pracować. Im dłużej, tym łatwiej przeczekać spadki. Pieniądze potrzebne za 1–3 lata lepiej trzymać w części bezpiecznej.", ["horyzont", "zmiennosc"])}
       <p class="note">Plan zaczyna się od celu, a nie od funduszy. Na podstawie celu i horyzontu łatwiej ustalić, ile wahań ma sens.</p>
       <div class="setrow"><span class="label">Po co inwestujesz</span><div class="seg n3" role="group">${[["emerytura", "Emerytura"], ["mieszkanie", "Mieszkanie / duży zakup"], ["pomnazanie", "Pomnażanie"]].map(([v, l]) => `<button type="button" data-p="cel" data-v="${v}" aria-pressed="${P.cel === v}">${l}</button>`).join("")}</div></div>
       <div class="fgrid"><div class="field"><label for="w-ck">Kwota celu (zł, opcjonalnie)</label><input id="w-ck" data-f="cel_kwota" type="number" min="0" step="1000" inputmode="numeric" value="${esc(P.cel_kwota)}"></div>
         <div class="field"><label for="w-cr">Rok celu</label><input id="w-cr" data-f="cel_rok" type="number" min="${new Date().getFullYear()}" max="2100" inputmode="numeric" value="${esc(P.cel_rok)}"></div>
         <div class="field"><label for="w-wp">Miesięczna wpłata (zł)</label><input id="w-wp" data-f="wplata" type="number" min="0" step="100" inputmode="numeric" value="${esc(P.wplata)}"></div>
-        <div class="field"><label for="w-br">Broker</label><input id="w-br" data-f="broker" value="${esc(P.broker)}"></div></div>
-      <div class="setrow"><span class="label">Konta</span><div class="catchips">${[["zwykle", "Zwykłe"], ["IKE", "IKE"], ["IKZE", "IKZE"]].map(([v, l]) => `<button type="button" data-konto="${v}" aria-pressed="${P.konta.includes(v)}">${l}</button>`).join("")}</div></div>
-      <div class="setrow"><span class="label">Gdyby portfel spadł o 30% w kilka miesięcy</span><div class="seg n3" role="group">${[["sprzedaje", "Sprzedałbym"], ["czekam", "Czekam"], ["dokupuje", "Dokupuję"]].map(([v, l]) => `<button type="button" data-p="spadek" data-v="${v}" aria-pressed="${P.spadek === v}">${l}</button>`).join("")}</div>
+        <div class="field"><label for="w-br">Broker ${tip("broker")}</label><input id="w-br" data-f="broker" value="${esc(P.broker)}"></div></div>
+      ${learn("Konta: zwykłe, IKE, IKZE", "<strong>Zwykłe</strong>: bez limitów, 19% podatku od zysku przy sprzedaży. <strong>IKE</strong>: limit 28 260 zł rocznie, bez podatku od zysku przy wypłacie po 60. roku życia. <strong>IKZE</strong>: limit 11 304 zł, zwrot podatku co roku, 10% podatku przy wypłacie po 65. Możesz mieć wszystkie trzy u jednego brokera.", ["konto_zwykle", "ike", "ikze", "broker"])}
+      <div class="setrow"><span class="label">Konta ${tip("ike")}</span><div class="catchips">${[["zwykle", "Zwykłe"], ["IKE", "IKE"], ["IKZE", "IKZE"]].map(([v, l]) => `<button type="button" data-konto="${v}" aria-pressed="${P.konta.includes(v)}">${l}</button>`).join("")}</div></div>
+      <div class="setrow"><span class="label">Gdyby portfel spadł o 30% w kilka miesięcy ${tip("zmiennosc")}</span><div class="seg n3" role="group">${[["sprzedaje", "Sprzedałbym"], ["czekam", "Czekam"], ["dokupuje", "Dokupuję"]].map(([v, l]) => `<button type="button" data-p="spadek" data-v="${v}" aria-pressed="${P.spadek === v}">${l}</button>`).join("")}</div>
         ${P.spadek === "sprzedaje" ? '<p class="note">To ważna informacja: przy takiej reakcji większa część bezpieczna (obligacje) zwykle pomaga trzymać się planu.</p>' : ""}</div>`;
     else if (step === "Bezpieczeństwo") { const wy = +W.wydatki || 0; body = `
+      ${learn("Najpierw poduszka", "Poduszka finansowa to 3–6 miesięcy wydatków na koncie oszczędnościowym, lokacie albo w obligacjach. Dzięki niej przy awarii czy utracie pracy nie sprzedajesz ETF-ów, być może akurat po spadku. Wielu początkujących zaczyna inwestować dopiero, gdy poduszka jest gotowa.", ["poduszka", "obligacje", "bezpieczna"])}
       <p class="note">Najpierw rezerwa na nieprzewidziane wydatki, potem inwestowanie. Dzięki temu nie musisz sprzedawać w złym momencie.</p>
       <div class="fgrid"><div class="field"><label for="w-wy">Miesięczne wydatki (zł)</label><input id="w-wy" data-w="wydatki" type="number" min="0" step="100" inputmode="numeric" value="${esc(W.wydatki)}"></div>
         <div class="field"><label for="w-pc">Cel poduszki (zł)</label><input id="w-pc" data-pod="cel" type="number" min="0" step="500" inputmode="numeric" value="${esc(W.poduszka.cel)}"></div>
         <div class="field"><label for="w-pz">Już odłożone (zł)</label><input id="w-pz" data-pod="zebrane" type="number" min="0" step="100" inputmode="numeric" value="${esc(W.poduszka.zebrane)}"></div>
-        <div class="field"><label for="w-bz">Część bezpieczna majątku (%)</label><input id="w-bz" data-w="bezpieczny" type="number" min="0" max="100" step="5" inputmode="numeric" value="${esc(W.bezpieczny)}"></div></div>
+        <div class="field"><label for="w-bz">Część bezpieczna majątku (%) ${tip("bezpieczna")}</label><input id="w-bz" data-w="bezpieczny" type="number" min="0" max="100" step="5" inputmode="numeric" value="${esc(W.bezpieczny)}"></div></div>
       ${wy ? `<div class="actions"><span class="note">Poduszka 3–6 miesięcy: ${zl(wy * 3)}–${zl(wy * 6)}</span><button class="btn ghost" type="button" data-podx="3">3×</button><button class="btn ghost" type="button" data-podx="6">6×</button></div>` : ""}
       <p class="note">Część bezpieczna to obligacje, lokaty i konto oszczędnościowe poza portfelem ETF. Obligacje wpiszesz potem w zakładce Cele.</p>`; }
     else if (step === "Podział") { const ww = wWarnings(); body = `
+      ${learn("Jak czytać ten krok", "<strong>Rola</strong> to część portfela z jednym zadaniem, np. „cały świat”. <strong>Waga</strong> to jej udział w procentach (razem 100%). <strong>Fundusz</strong> to ETF, który tę rolę wypełnia. Najprostszy plan to jedna rola i jeden fundusz na cały świat: tyle wystarczy na start, a resztę dodasz, gdy poczujesz się pewniej. Grupa „Szeroki rynek” na liście to fundusze na tysiące spółek; „Branże, kraje, surowce” są węższe i bardziej zmienne.", ["etf", "indeks", "rdzen", "pasmo", "ter", "dywersyfikacja"])}
       <p class="note">Ustal role, ich wagi i fundusz w każdej roli. Pasmo to tolerancja: dopóki waga mieści się w celu ± pasmo, nic nie robisz.</p>
       ${!W.role.length ? `<div class="setrow"><span class="label">Zacznij od szkieletu (wagi ustawiasz sam)</span><div class="actions">
         <button class="btn ghost" type="button" data-tpl="jeden">Jeden fundusz na świat</button><button class="btn ghost" type="button" data-tpl="rdzen">Rdzeń + satelity</button><button class="btn ghost" type="button" data-tpl="obl">Rdzeń + część bezpieczna</button></div></div>` : ""}
       <div style="display:grid;gap:12px">${W.role.map((r, i) => `<div class="card" style="background:var(--bg);border:1px solid var(--line)">
         <div class="fgrid"><div class="field"><label for="r-n-${i}">Rola</label><input id="r-n-${i}" data-r="${i}" data-k="nazwa" value="${esc(r.nazwa)}" placeholder="np. Rdzeń: świat"></div>
           <div class="field"><label for="r-c-${i}">Waga (%)</label><input id="r-c-${i}" data-r="${i}" data-k="cel" type="number" min="0" max="100" step="1" inputmode="numeric" value="${esc(r.cel)}"></div>
-          <div class="field"><label for="r-p-${i}">Pasmo ± pkt</label><input id="r-p-${i}" data-r="${i}" data-k="pasmo" type="number" min="0" max="20" step="1" inputmode="numeric" value="${esc(r.pasmo)}"></div></div>
-        <div class="field"><label for="r-f-${i}">Fundusz</label><select id="r-f-${i}" data-rf="${i}">${fundOpts(r.fundusze[0]?.isin)}</select></div>
-        ${r.fundusze[0] && !KAT[r.fundusze[0].isin] || r._inny ? `<div class="fgrid"><div class="field"><label for="r-i-${i}">ISIN</label><input id="r-i-${i}" data-ri="${i}" value="${esc(r.fundusze[0]?.isin || "")}" placeholder="IE00…" style="text-transform:uppercase"></div><div class="field"><label for="r-in-${i}">Nazwa funduszu</label><input id="r-in-${i}" data-rn="${i}" value="${esc(r.fundusze[0]?.nazwa || "")}"></div></div><p class="note">Kursy tego funduszu pojawią się po nocnej aktualizacji.</p>` : r.fundusze[0] ? `<p class="note">${esc(KAT[r.fundusze[0].isin]?.opis || "")}</p>` : ""}
-        <div class="actions"><label class="switch" style="gap:8px"><input type="checkbox" data-rr="${i}" ${r.rdzen ? "checked" : ""}> to rdzeń (szeroki rynek)</label><button class="link" type="button" data-rdel="${i}">Usuń rolę</button></div></div>`).join("")}</div>
+          <div class="field"><label for="r-p-${i}">Pasmo ± pkt ${tip("pasmo")}</label><input id="r-p-${i}" data-r="${i}" data-k="pasmo" type="number" min="0" max="20" step="1" inputmode="numeric" value="${esc(r.pasmo)}"></div></div>
+        <div class="field"><label for="r-f-${i}">Fundusz ${tip("etf")}</label><select id="r-f-${i}" data-rf="${i}">${fundOpts(r.fundusze[0]?.isin)}</select></div>
+        ${r.fundusze[0] && !KAT[r.fundusze[0].isin] || r._inny ? `<div class="fgrid"><div class="field"><label for="r-i-${i}">ISIN ${tip("isin")}</label><input id="r-i-${i}" data-ri="${i}" value="${esc(r.fundusze[0]?.isin || "")}" placeholder="IE00…" style="text-transform:uppercase"></div><div class="field"><label for="r-in-${i}">Nazwa funduszu</label><input id="r-in-${i}" data-rn="${i}" value="${esc(r.fundusze[0]?.nazwa || "")}"></div></div><p class="note">Kursy tego funduszu pojawią się po nocnej aktualizacji.</p>` : r.fundusze[0] ? `<p class="note">${esc(KAT[r.fundusze[0].isin]?.opis || "")}</p>` : ""}
+        <div class="actions"><label class="switch" style="gap:8px"><input type="checkbox" data-rr="${i}" ${r.rdzen ? "checked" : ""}> to rdzeń (szeroki rynek)</label>${tip("rdzen")}<button class="link" type="button" data-rdel="${i}">Usuń rolę</button></div></div>`).join("")}</div>
       <div class="actions"><button class="btn ghost" type="button" id="r-add">Dodaj rolę</button><span class="mono">Suma ${nf(ww.sum, 1)}% · TER ok. ${nf(ww.ter, 2)}%</span></div>
       ${ww.list.length ? `<ul class="checks">${ww.list.map(t => `<li><span class="ic warn">!</span><div>${esc(t)}</div><span></span></li>`).join("")}</ul>` : '<p class="note up">Podział wygląda spójnie.</p>'}`; }
     else if (step === "Tezy") { const sats = W.role.filter(r => !r.rdzen); body = `
+      ${sats.length ? learn("Po co tezy", "Satelita to zakład na konkretny temat. Zapisz go teraz, na spokojnie: dlaczego, co będziesz obserwować i jaki fakt oznaczałby, że się mylisz (np. „spółki z branży przez 2 lata nie zwiększają zysków”). Raport tygodniowy sprawdza te punkty za Ciebie.", ["teza"]) : ""}
       <p class="note">Dla każdej pozycji poza rdzeniem zapisz, dlaczego ją masz i kiedy uznasz, że się mylisz. Dzięki temu przy spadku sprawdzasz fakty, a nie emocje.</p>
       ${sats.length ? sats.map(r => { const k = r.key || slug(r.nazwa); const t = W.tezy[k] || {}; return `<div class="card" style="background:var(--bg);border:1px solid var(--line)"><h3>${esc(r.nazwa)}</h3>
         <div class="field"><label for="t-a-${k}">Dlaczego to mam</label><textarea id="t-a-${k}" data-t="${k}" data-tk="teza" rows="2">${esc(t.teza || "")}</textarea></div>
         <div class="field"><label for="t-b-${k}">Co obserwuję (po przecinku)</label><input id="t-b-${k}" data-t="${k}" data-tk="co_obserwowac" value="${esc((t.co_obserwowac || []).join(", "))}"></div>
         <div class="field"><label for="t-c-${k}">Kiedy uznam, że się mylę</label><textarea id="t-c-${k}" data-t="${k}" data-tk="kiedy_sie_myle" rows="2">${esc((t.kiedy_sie_myle || "").replace(/^SZKIC do zatwierdzenia:\s*/, ""))}</textarea></div></div>`; }).join("") : '<p class="note">Nie masz satelitów, więc nie ma tez do opisania. Rdzeń to po prostu cały rynek.</p>'}`; }
     else if (step === "Zasady") body = `
-      <div class="setrow"><span class="label">Jak wyrównujesz portfel</span><div class="seg n3" role="group">${[["wplaty", "Dokupuję to, co poniżej celu"], ["pasmo", "Gdy wyjdzie poza pasmo"], ["rok", "Raz w roku"]].map(([v, l]) => `<button type="button" data-p="rebalans" data-v="${v}" aria-pressed="${P.rebalans === v}">${l}</button>`).join("")}</div></div>
+      ${learn("Zasady piszesz dla siebie z przyszłości", "Przy dużym spadku emocje podpowiadają „sprzedaj”. Zasady zapisane dziś pomagają wtedy nic nie psuć. Najprostsza i najtańsza zasada wyrównywania: co miesiąc dokupuj to, czego masz najmniej względem planu. Aplikacja liczy to sama.", ["rebalans", "zmiennosc", "procent"])}
+      <div class="setrow"><span class="label">Jak wyrównujesz portfel ${tip("rebalans")}</span><div class="seg n3" role="group">${[["wplaty", "Dokupuję to, co poniżej celu"], ["pasmo", "Gdy wyjdzie poza pasmo"], ["rok", "Raz w roku"]].map(([v, l]) => `<button type="button" data-p="rebalans" data-v="${v}" aria-pressed="${P.rebalans === v}">${l}</button>`).join("")}</div></div>
       <div class="field"><label for="w-ps">Co robię przy dużym spadku (zapisz teraz, na spokojnie)</label><textarea id="w-ps" data-f="przy_spadku" rows="2" placeholder="np. Nie sprzedaję. Wpłacam dalej według planu. Sprawdzam tylko, czy tezy są aktualne.">${esc(P.przy_spadku)}</textarea></div>
       <div class="field"><label for="w-zp">Kiedy zmieniam plan</label><textarea id="w-zp" data-f="zmiana_planu" rows="2" placeholder="np. Tylko przy zmianie celu, horyzontu albo gdy teza spełni warunek „kiedy się mylę”.">${esc(P.zmiana_planu)}</textarea></div>
       <div class="field" style="max-width:220px"><label for="w-pr">Przegląd planu (data)</label><input id="w-pr" data-f="przeglad" type="date" value="${esc(P.przeglad)}"></div>
       ${W.nieDokup.length ? `<div class="setrow"><span class="label">Stare pozycje, których nie dokupuję</span><p class="note">${W.nieDokup.map(i => esc(KAT[i]?.nazwa || fundIndex().name[i] || i)).join(", ")}</p></div>` : ""}`;
     else if (step === "Obecny stan") { const funds = [...W.role.flatMap(r => r.fundusze), ...W.nieDokup.map(i => ({ isin: i, nazwa: KAT[i]?.nazwa || i }))].filter(f => f.isin); body = `
+      ${S.tx.length ? "" : learn("Skąd wziąć te liczby", "Otwórz aplikację brokera i wejdź w portfel albo pozycje. „Wartość teraz” to bieżąca wartość funduszu w złotych, a „Zapłaciłem” to łączna kwota zakupu (u niektórych brokerów: cena otwarcia × liczba jednostek). Jeśli jeszcze nic nie masz, po prostu kliknij Dalej.", ["zakup"])}
       ${S.tx.length ? `<p class="note">Masz już ${S.tx.length} transakcji w aplikacji, więc ten krok możesz pominąć. Nowe zakupy dodasz czerwonym plusem.</p>` : `<p class="note">Wpisz fundusze, które już masz: obecną wartość i ile za nie zapłaciłeś (z aplikacji brokera). Jeśli zaczynasz od zera, pomiń ten krok.</p>`}
       ${W.otwarcie.map((o, i) => `<div class="fgrid"><div class="field" style="grid-column:span 2"><label for="o-f-${i}">Fundusz</label><select id="o-f-${i}" data-o="${i}" data-ok="isin"><option value="">—</option>${funds.map(f => `<option value="${esc(f.isin)}" ${f.isin === o.isin ? "selected" : ""}>${esc(f.nazwa)}</option>`).join("")}</select></div>
         <div class="field"><label for="o-k-${i}">Konto</label><select id="o-k-${i}" data-o="${i}" data-ok="konto">${["zwykle", "IKE", "IKZE"].map(k => `<option ${k === o.konto ? "selected" : ""}>${k}</option>`).join("")}</select></div>
@@ -1009,11 +1177,15 @@ ${JSON.stringify(data)}`;
     root.querySelectorAll("[data-w]").forEach(el => el.addEventListener("input", () => { W[el.dataset.w] = el.value; }));
     root.querySelectorAll("[data-pod]").forEach(el => el.addEventListener("input", () => { W.poduszka[el.dataset.pod] = el.value; }));
     root.querySelectorAll("[data-podx]").forEach(b => b.onclick = () => { W.poduszka.cel = Math.round(+W.wydatki * +b.dataset.podx / 100) * 100; drawWizard(); });
-    root.querySelectorAll("[data-tpl]").forEach(b => b.onclick = () => {
-      const t = b.dataset.tpl;
-      W.role = t === "jeden" ? [{ key: "rdzen", nazwa: "Rdzeń: cały świat", cel: 100, rdzen: true, pasmo: 5, fundusze: [] }]
-        : t === "rdzen" ? [{ key: "rdzen", nazwa: "Rdzeń: świat", cel: "", rdzen: true, pasmo: 5, fundusze: [] }, { key: "", nazwa: "Satelita 1", cel: "", rdzen: false, pasmo: 3, fundusze: [] }, { key: "", nazwa: "Satelita 2", cel: "", rdzen: false, pasmo: 3, fundusze: [] }]
-        : [{ key: "rdzen", nazwa: "Rdzeń: świat", cel: "", rdzen: true, pasmo: 5, fundusze: [] }, { key: "", nazwa: "Złoto", cel: "", rdzen: false, pasmo: 3, fundusze: [] }];
+    root.querySelectorAll("[data-tpl]").forEach(b => b.onclick = () => { applyTpl(b.dataset.tpl); drawWizard(); });
+    root.querySelectorAll("[data-lv]").forEach(b => b.onclick = () => {
+      W.poziom = b.dataset.lv; saveCfg({ poziom: W.poziom });
+      // starting points by level, only while the plan is still empty; weights and funds stay the user's choice
+      if (!W.role.length || W._tplAuto) { W._tplAuto = true; applyTpl(W.poziom === "poczatkujacy" ? "jeden" : W.poziom === "sredni" ? "obl" : null); }
+      if (W.poziom === "poczatkujacy") {
+        P.przy_spadku ||= "Nie sprzedaję. Wpłacam dalej według planu. Sprawdzam, czy poduszka jest cała.";
+        P.zmiana_planu ||= "Tylko gdy zmieni się mój cel, horyzont albo sytuacja życiowa. Nie z powodu wiadomości czy spadku.";
+      }
       drawWizard();
     });
     root.querySelectorAll("[data-r]").forEach(el => el.addEventListener("change", () => { const r = W.role[+el.dataset.r]; r[el.dataset.k] = el.dataset.k === "nazwa" ? el.value : (el.value === "" ? "" : +el.value); drawWizard(); }));
@@ -1030,10 +1202,17 @@ ${JSON.stringify(data)}`;
     $("#w-x").onclick = closeWizard;
     $("#w-back")?.addEventListener("click", () => { wStep--; drawWizard(); $(".sheet").scrollTop = 0; });
     $("#w-next")?.addEventListener("click", () => {
-      if (W_STEPS[wStep] === "Podział") { const ww = wWarnings(); if (!W.role.length) { $("#w-msg").textContent = "Dodaj przynajmniej jedną rolę."; return; } if (Math.abs(ww.sum - 100) > 0.01) { $("#w-msg").textContent = `Wagi muszą dać razem 100% (teraz ${nf(ww.sum, 1)}%).`; return; } if (W.role.some(r => !r.fundusze.length)) { $("#w-msg").textContent = "Każda rola potrzebuje funduszu."; return; } }
+      if (W_STEPS[wStep] === "Twój poziom" && !W.poziom) { $("#w-msg").textContent = "Wybierz poziom, żeby przejść dalej."; return; }
+      if (W_STEPS[wStep] === "Podział") { const ww = wWarnings(); if (!W.role.length) { $("#w-msg").textContent = "Dodaj przynajmniej jedną rolę."; return; } if (Math.abs(ww.sum - 100) > 0.01) { $("#w-msg").textContent = `Wagi muszą dać razem 100% (teraz ${nf(ww.sum, 1)}%).`; return; } if (W.role.some(r => !r.fundusze.length)) { $("#w-msg").textContent = "Każda rola potrzebuje funduszu."; return; } W._tplAuto = false; }
       wStep++; drawWizard(); $(".sheet").scrollTop = 0;
     });
     $("#w-save")?.addEventListener("click", saveWizard);
+  }
+  function applyTpl(t) {
+    W.role = t === "jeden" ? [{ key: "rdzen", nazwa: "Rdzeń: cały świat", cel: 100, rdzen: true, pasmo: 5, fundusze: [] }]
+      : t === "rdzen" ? [{ key: "rdzen", nazwa: "Rdzeń: świat", cel: "", rdzen: true, pasmo: 5, fundusze: [] }, { key: "", nazwa: "Satelita 1", cel: "", rdzen: false, pasmo: 3, fundusze: [] }, { key: "", nazwa: "Satelita 2", cel: "", rdzen: false, pasmo: 3, fundusze: [] }]
+      : t === "obl" ? [{ key: "rdzen", nazwa: "Rdzeń: świat", cel: "", rdzen: true, pasmo: 5, fundusze: [] }, { key: "", nazwa: "Złoto", cel: "", rdzen: false, pasmo: 3, fundusze: [] }]
+      : [];
   }
   function closeWizard() { W = null; closeSheet(); }
   async function saveWizard() {
