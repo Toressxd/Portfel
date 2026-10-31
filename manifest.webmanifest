@@ -1,7 +1,7 @@
 {
-  "name": "Portfel 60/40",
-  "short_name": "Portfel",
-  "description": "Mój majątek, budżet, portfel ETF 60/40, cele i raporty.",
+  "name": "NKU",
+  "short_name": "NKU",
+  "description": "Mój majątek, budżet, portfel ETF, cele i raporty.",
   "lang": "pl",
   "start_url": "./",
   "scope": "./",

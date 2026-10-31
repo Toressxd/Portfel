@@ -1,4 +1,4 @@
-// Supabase backend for Portfel 60/40. It offers the same small document API the page used inside
+// Supabase backend for NKU (Portfel 60/40). It offers the same small document API the page used inside
 // Claude (doc / collection / onSnapshot / set / update / delete / add), so the page code stays the same.
 // All of the owner's documents are loaded at once (a few hundred rows), kept in memory, refreshed
 // every 30 s and when the app comes back to the foreground.
@@ -72,7 +72,7 @@
       const box = document.createElement("div");
       box.className = "sheet-bg";
       box.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Logowanie" style="max-width:420px">
-        <h2>Portfel 60/40</h2><p class="note">Zaloguj się do swojego portfela. Dane widzisz tylko Ty.</p>
+        <h2>NKU</h2><p class="note">Zaloguj się do swojego portfela. Dane widzisz tylko Ty.</p>
         <form id="lg" style="display:grid;gap:12px">
           <div class="field"><label for="lg-mail">E-mail</label><input id="lg-mail" type="email" autocomplete="email" required></div>
           <div class="field"><label for="lg-pass">Hasło</label><input id="lg-pass" type="password" autocomplete="current-password" minlength="8" required></div>
