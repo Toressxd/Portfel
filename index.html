@@ -241,12 +241,12 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-02-2"></script>
-<script src="backend.js?v=2026-11-02-2"></script>
+<script src="config.js?v=2026-11-02-3"></script>
+<script src="backend.js?v=2026-11-02-3"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
-  const S = { plan: null, stan: null, cele: null, tx: [], raporty: [], dzienne: [], analizy: [], historia: [], budzet: [], budzetCfg: null, przeglad: null, loaded: {}, canWrite: true };
+  const S = { dzien: null, plan: null, stan: null, cele: null, tx: [], raporty: [], dzienne: [], analizy: [], historia: [], budzet: [], budzetCfg: null, przeglad: null, loaded: {}, canWrite: true };
   let wizShown = false;
   let db = null, sample = null, snapWritten = false, aiCtl = null, aiText = "", aiBusy = false, aiErr = "";
   let bMonth = new Date().toISOString().slice(0, 7);
@@ -550,6 +550,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   function openTip(k) {
     tipView = k;
     if (k !== "lista" && SLOWNIK[k] && !CFG.lekcje?.[k]) saveCfg({ lekcje: { ...(CFG.lekcje || {}), [k]: true } });
+    if (k === lessonOfDay()) markDay("lekcja");
     const root = $("#tip-root");
     const e = SLOWNIK[k];
     const cats = [...new Set(Object.values(SLOWNIK).map(x => x.k))];
@@ -620,6 +621,30 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     { id: "zakupy", t: "Zapisz zakupy w aplikacji", go: "add:etf" },
     { id: "raport", t: "Przeczytaj raport lub poproś o analizę", go: "raporty" }
   ];
+  // the daily card: a few minutes, different on weekdays (daily report), Saturday (weekly report) and Sunday
+  function lessonOfDay() {
+    const keys = Object.keys(SLOWNIK), d = new Date(), doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+    return keys[doy % keys.length];
+  }
+  function dayItems() {
+    const wd = new Date().getDay(), out = [];
+    if (wd >= 1 && wd <= 5) out.push({ id: "raport", t: "Przeczytaj raport dnia", go: "raporty" });
+    else if (wd === 6) out.push({ id: "raport", t: "Przeczytaj raport tygodnia", go: "raporty" });
+    else out.push({ id: "budzet", t: "Rzuć okiem na budżet tygodnia", go: "budzet" });
+    out.push({ id: "wydatki", t: "Wpisz dzisiejsze wydatki", go: "add:wydatek" });
+    if (poziom() !== "zaawansowany") { const k = lessonOfDay(); out.push({ id: "lekcja", t: "Pojęcie dnia: " + SLOWNIK[k].t, tip: k }); }
+    return out;
+  }
+  function dayDone(s) {
+    if (S.dzien?.data === today() && S.dzien.kroki?.[s.id]) return true;
+    if (s.id === "wydatki") return S.budzet.some(b => b.data === today());
+    return false;
+  }
+  async function markDay(id, val = true) {
+    S.dzien = { data: today(), kroki: { ...(S.dzien?.data === today() ? S.dzien.kroki : {}), [id]: val } };
+    queue();
+    if (db && S.canWrite) { try { await db.doc("app/dzien").set(S.dzien); } catch (e) { $("#notice").textContent = writeErr(e); $("#notice").hidden = false; } }
+  }
   function stepDone(id) {
     const m = monthSum(curMonth());
     if (S.przeglad?.kroki?.[id]) return true;
@@ -657,14 +682,23 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
           <div class="actions"><button class="btn ghost" type="button" data-tip="lista">Słownik pojęć</button><span class="note">Poziom zmienisz w ustawieniach.</span></div></div>`;
       })()}
       ${(() => { const d = S.dzienne[0]; if (!d || (Date.now() - new Date(d.data + "T12:00:00")) / 86400000 > 4) return ""; return `<div class="card"><header><h2>Na rynkach</h2><span class="note">${esc(d.data)}</span></header><div class="md">${md(d.podsumowanie || d.tresc)}</div><div class="actions"><button class="go" type="button" data-go="raporty">Cały raport</button></div></div>`; })()}
-      <div class="card">
-        <header><h2>Przegląd: ${esc(monthName(curMonth()))}</h2><span class="note">${done} z ${STEPS.length} · ok. 20 minut</span></header>
-        <div class="progress"><div style="width:${done / STEPS.length * 100}%"></div></div>
-        <ol class="steps">${STEPS.map(s => { const d = stepDone(s.id); return `<li class="${d ? "done" : ""}"><input type="checkbox" id="st-${s.id}" ${d ? "checked" : ""} ${S.canWrite && db ? "" : "disabled"} aria-label="${esc(s.t)}"><span>${esc(s.t)}</span><button class="go" type="button" data-go="${s.go}">${s.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button></li>`; }).join("")}</ol>
-      </div>
+      ${(() => { const items = dayItems(), n = items.filter(dayDone).length; return `<div class="card">
+        <header><h2>Dziś: ${esc(new Date().toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" }))}</h2><span class="note">${n} z ${items.length} · ok. 5 minut</span></header>
+        <div class="progress"><div style="width:${n / items.length * 100}%"></div></div>
+        <ol class="steps" id="day-steps">${items.map(s => { const d = dayDone(s); return `<li class="${d ? "done" : ""}"><input type="checkbox" id="dz-${s.id}" ${d ? "checked" : ""} ${S.canWrite && db ? "" : "disabled"} aria-label="${esc(s.t)}"><span>${esc(s.t)}</span>${s.tip ? `<button class="go" type="button" data-tip="${s.tip}">Czytaj</button>` : `<button class="go" type="button" data-go="${s.go}" data-day="${s.id}">${s.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button>`}</li>`; }).join("")}</ol>
+        ${n === items.length ? '<p class="note">Na dziś wszystko. Przy horyzoncie 10 lat więcej nie trzeba.</p>' : ""}
+      </div>`; })()}
+      ${(() => { const list = `<ol class="steps" id="month-steps">${STEPS.map(s => { const d = stepDone(s.id); return `<li class="${d ? "done" : ""}"><input type="checkbox" id="st-${s.id}" ${d ? "checked" : ""} ${S.canWrite && db ? "" : "disabled"} aria-label="${esc(s.t)}"><span>${esc(s.t)}</span><button class="go" type="button" data-go="${s.go}">${s.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button></li>`; }).join("")}</ol>`;
+        // a finished monthly review folds into one line, so the daily card stays the main thing
+        return done === STEPS.length ? `<details class="more card"><summary><span>Przegląd: ${esc(monthName(curMonth()))} <span class="up">✓ zrobiony</span></span></summary>${list}</details>`
+          : `<div class="card"><header><h2>Przegląd: ${esc(monthName(curMonth()))}</h2><span class="note">${done} z ${STEPS.length} · raz w miesiącu, ok. 20 minut</span></header>
+          <div class="progress"><div style="width:${done / STEPS.length * 100}%"></div></div>${list}</div>`; })()}
       ${c.roles.length ? `<div class="card"><header><h2>Plan ${esc(S.plan?.rdzen_satelity || "")}</h2><span class="note">czerwona kreska = cel</span></header><div class="roles">${c.roles.map(r => `<div class="role"><div class="row"><span>${esc(r.nazwa)}</span><span class="mono">${c.list.length ? nf(r.waga, 1) + "% / " : ""}${r.cel}%</span></div>${bar(c.list.length ? r.waga : 0, 100, r.cel, r.rola === "rdzen" ? "" : "red")}</div>`).join("")}</div></div>` : ""}
     </div>`;
-    el.querySelectorAll("ol.steps input").forEach(inp => inp.addEventListener("change", async () => {
+    el.querySelectorAll("#day-steps input").forEach(inp => inp.addEventListener("change", () => markDay(inp.id.slice(3), inp.checked)));
+    // opening the report from the daily card counts as reading it; expenses are ticked by the entry itself
+    el.querySelectorAll("#day-steps [data-day]").forEach(b => { if (!b.dataset.go.startsWith("add")) b.addEventListener("click", () => markDay(b.dataset.day)); });
+    el.querySelectorAll("#month-steps input").forEach(inp => inp.addEventListener("change", async () => {
       const id = inp.id.slice(3), kroki = { ...(S.przeglad?.kroki || {}), [id]: inp.checked };
       S.przeglad = { miesiac: curMonth(), kroki };
       queue();
@@ -1292,7 +1326,7 @@ ${JSON.stringify(data)}`;
     const fail = () => { clearTimeout(timer); const n = $("#notice"); n.textContent = "Nie udało się wczytać danych. Odśwież stronę później."; n.hidden = false; };
     const docSub = (path, key) => db.doc(path).onSnapshot(s => { S[key] = s.exists ? s.data() : null; if (!s.metadata.fromCache) { S.loaded[key] = true; ok(); } queue(); }, fail);
     db.doc("app/ustawienia").onSnapshot(s => { if (s.exists) { CFG = { ...DEFAULT_CFG, ...s.data() }; applyCfg(); queue(); } }, () => {});
-    docSub("app/plan", "plan"); docSub("app/stan", "stan"); docSub("app/cele", "cele"); docSub("app/budzet", "budzetCfg"); docSub("przeglad/" + curMonth(), "przeglad");
+    docSub("app/plan", "plan"); docSub("app/dzien", "dzien"); docSub("app/stan", "stan"); docSub("app/cele", "cele"); docSub("app/budzet", "budzetCfg"); docSub("przeglad/" + curMonth(), "przeglad");
     const colSub = (q, key) => q.onSnapshot(s => { S[key] = s.docs.map(d => ({ _id: d.id, ...d.data() })); if (!s.metadata.fromCache) S.loaded[key] = true; queue(); }, fail);
     colSub(db.collection("transakcje"), "tx");
     colSub(db.collection("raporty").orderBy("data", "desc").limit(60), "raporty");
