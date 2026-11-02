@@ -58,7 +58,7 @@
 }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--f-body); }
-.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px calc(var(--nav-h) + 32px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 18px; }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px calc(var(--nav-h) + 90px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 18px; }
 h1, h2, h3 { font-family: var(--f-display); margin: 0; line-height: 1.15; text-wrap: balance; }
 h2 { font-size: 1.15rem; font-weight: 700; }
 h3 { font-size: 1rem; font-weight: 700; }
@@ -75,9 +75,9 @@ header.top { display: flex; justify-content: space-between; align-items: center;
 .brand svg { width: 28px; height: 28px; flex: none; }
 #asof { font-size: 0.8rem; color: var(--muted); text-align: right; }
 
-/* navigation: one bottom bar at every width, like a phone app; the "+" owns its own cell, so nothing overlaps */
+/* navigation: five equal tabs at the bottom, kept compact on wide screens; the red "+" floats just above the bar on the right */
 .navwrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--bg); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
-nav.tabbar { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: center; }
+nav.tabbar { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; }
 nav.tabbar button[role=tab] { background: none; border: 0; height: var(--nav-h); min-width: 0; display: grid; place-items: center; align-content: center; gap: 3px; padding: 6px 2px; color: var(--muted); font: 600 0.7rem var(--f-body); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 nav.tabbar button[role=tab] svg { width: 22px; height: 22px; }
 nav.tabbar button[aria-selected="true"] { color: var(--red); }
@@ -176,11 +176,9 @@ button.link { background: none; border: 0; padding: 0; color: var(--down); font:
 .monthnav strong { font-family: var(--f-display); font-size: 1.05rem; min-width: 150px; text-align: center; text-transform: capitalize; }
 
 /* the red "+" and the quick-add sheet */
-/* the "+" is a tab like the others (icon above a label), only its icon is a red square */
-.fab { background: none; border: 0; height: var(--nav-h); min-width: 0; display: grid; place-items: center; align-content: center; gap: 3px; padding: 6px 2px; color: var(--muted); font: 600 0.7rem var(--f-body); cursor: pointer; }
-.fab .plus { width: 30px; height: 30px; margin-block: -4px; border-radius: 9px; background: var(--red); color: var(--on-red); display: grid; place-items: center; }
-.fab .plus svg { width: 18px; height: 18px; }
-.fab:active .plus { transform: scale(.94); }
+.fab { position: fixed; z-index: 21; right: max(16px, env(safe-area-inset-right, 0px), calc(50% - 364px)); bottom: calc(var(--nav-h) + 14px + env(safe-area-inset-bottom, 0px)); width: 56px; height: 56px; border-radius: 16px; border: 0; background: var(--red); color: var(--on-red); display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.28); }
+.fab svg { width: 24px; height: 24px; }
+.fab:active { transform: scale(.95); }
 .sheet-bg { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; }
 .sheet { background: var(--bg); width: 100%; max-width: 560px; border-radius: 18px 18px 0 0; padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 14px; max-height: 92vh; overflow-y: auto; }
 @media (min-width: 600px) { .sheet-bg { align-items: center; } .sheet { border-radius: 18px; } }
@@ -234,17 +232,17 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div class="navwrap"><nav class="tabbar" role="tablist" aria-label="Sekcje">
   <button role="tab" id="t-start" data-view="start" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Start</button>
   <button role="tab" id="t-budzet" data-view="budzet" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg>Budżet</button>
-  <button class="fab" type="button" id="fab" aria-label="Dodaj wpis"><span class="plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>Dodaj</button>
   <button role="tab" id="t-portfel" data-view="portfel" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg>Portfel</button>
   <button role="tab" id="t-cele" data-view="cele" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg>Cele</button>
   <button role="tab" id="t-raporty" data-view="raporty" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>Raporty</button>
 </nav></div>
+<button class="fab" type="button" id="fab" aria-label="Dodaj wpis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
 <div id="sheet-root"></div>
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-02-1"></script>
-<script src="backend.js?v=2026-11-02-1"></script>
+<script src="config.js?v=2026-11-02-2"></script>
+<script src="backend.js?v=2026-11-02-2"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
