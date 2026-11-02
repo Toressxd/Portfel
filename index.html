@@ -176,8 +176,11 @@ button.link { background: none; border: 0; padding: 0; color: var(--down); font:
 .monthnav strong { font-family: var(--f-display); font-size: 1.05rem; min-width: 150px; text-align: center; text-transform: capitalize; }
 
 /* the red "+" and the quick-add sheet */
-.fab { justify-self: center; width: 48px; height: 48px; border-radius: 14px; border: 0; background: var(--red); color: var(--on-red); font-size: 1.8rem; font-weight: 500; line-height: 1; cursor: pointer; display: grid; place-items: center; }
-.fab:active { transform: scale(.96); }
+/* the "+" is a tab like the others (icon above a label), only its icon is a red square */
+.fab { background: none; border: 0; height: var(--nav-h); min-width: 0; display: grid; place-items: center; align-content: center; gap: 3px; padding: 6px 2px; color: var(--muted); font: 600 0.7rem var(--f-body); cursor: pointer; }
+.fab .plus { width: 30px; height: 30px; margin-block: -4px; border-radius: 9px; background: var(--red); color: var(--on-red); display: grid; place-items: center; }
+.fab .plus svg { width: 18px; height: 18px; }
+.fab:active .plus { transform: scale(.94); }
 .sheet-bg { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; }
 .sheet { background: var(--bg); width: 100%; max-width: 560px; border-radius: 18px 18px 0 0; padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 14px; max-height: 92vh; overflow-y: auto; }
 @media (min-width: 600px) { .sheet-bg { align-items: center; } .sheet { border-radius: 18px; } }
@@ -231,7 +234,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div class="navwrap"><nav class="tabbar" role="tablist" aria-label="Sekcje">
   <button role="tab" id="t-start" data-view="start" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Start</button>
   <button role="tab" id="t-budzet" data-view="budzet" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg>Budżet</button>
-  <button class="fab" type="button" id="fab" aria-label="Dodaj wpis">+</button>
+  <button class="fab" type="button" id="fab" aria-label="Dodaj wpis"><span class="plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>Dodaj</button>
   <button role="tab" id="t-portfel" data-view="portfel" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg>Portfel</button>
   <button role="tab" id="t-cele" data-view="cele" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg>Cele</button>
   <button role="tab" id="t-raporty" data-view="raporty" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>Raporty</button>
@@ -240,8 +243,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-01-2"></script>
-<script src="backend.js?v=2026-11-01-2"></script>
+<script src="config.js?v=2026-11-02-1"></script>
+<script src="backend.js?v=2026-11-02-1"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
