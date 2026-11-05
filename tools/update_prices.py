@@ -314,6 +314,16 @@ def main():
             print(f"  nowe notowania: {found}, nie znaleziono: {[i for i in missing if i not in found]}")
         stan = build(plan, fxd)
         stan["kryzysy"] = crisis_test(plan)
+        # Yahoo's holdings need a session and fail now and then: keep the last known breakdown instead of dropping it
+        old = supa("GET", f"/rest/v1/docs?select=data&user_id=eq.{uid}&path=eq.app/stan")
+        old = (old[0]["data"] if old else {}) or {}
+        for isin, c in stan["ceny"].items():
+            prev = (old.get("ceny") or {}).get(isin) or {}
+            for k in ("sklad", "ryzyko"):
+                if k not in c and k in prev:
+                    c[k] = prev[k]
+        if not stan["kryzysy"] and old.get("kryzysy"):
+            stan["kryzysy"] = old["kryzysy"]
         upsert(uid, "app/stan", stan)
         # opening positions saved before their fund had a price: turn the value into units now
         todo = supa("GET", f"/rest/v1/docs?select=path,data&user_id=eq.{uid}&path=like.transakcje/*&data->>do_przeliczenia=eq.true")
