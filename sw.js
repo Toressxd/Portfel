@@ -1,6 +1,6 @@
 // Keeps the app shell on the phone so it opens instantly and works offline; the data itself
 // always comes from Supabase. A new VERSION (set by build.py) replaces the old cache.
-const VERSION = "2026-11-05-6";
+const VERSION = "2026-11-05-7";
 const SHELL = ["./", "index.html", "config.js?v=" + VERSION, "backend.js?v=" + VERSION, "manifest.webmanifest",
   "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png"];
 
@@ -17,4 +17,20 @@ self.addEventListener("fetch", e => {
   } else {
     e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request)));
   }
+});
+
+// push notifications (reports ready, bond interest, IKE limit): show them and open the app on tap
+self.addEventListener("push", e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || "NKU", { body: d.body || "", icon: "icon-192.png", badge: "icon-192.png", tag: d.tag || undefined, data: { url: d.url || "./" } }));
+});
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const url = new URL(e.notification.data?.url || "./", self.registration.scope).href;
+  e.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+    const open = list.find(c => c.url.startsWith(self.registration.scope));
+    if (open) { open.navigate(url).catch(() => {}); return open.focus(); }
+    return clients.openWindow(url);
+  }));
 });

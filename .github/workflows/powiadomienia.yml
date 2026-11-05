@@ -1,0 +1,28 @@
+name: Powiadomienia
+
+# Mornings (UTC 7:10 and 9:10 = 8:10 and 10:10 in Poland in winter): reports ready, bond interest, IKE limit.
+# The report task on the owner's PC also sends them right after saving a report; each message goes out once.
+on:
+  schedule:
+    - cron: "10 7,9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  powiadomienia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pywebpush==2.5.0
+      - name: Wyślij powiadomienia
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+        run: python tools/notify.py
