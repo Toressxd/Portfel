@@ -246,8 +246,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-05-5"></script>
-<script src="backend.js?v=2026-11-05-5"></script>
+<script src="config.js?v=2026-11-05-6"></script>
+<script src="backend.js?v=2026-11-05-6"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -367,8 +367,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     return (lo + hi) / 2 * 100;
   }
   function ikeLeft() {
-    const lim = S.cele?.limity || {}, rok = String(lim.rok || new Date().getFullYear());
-    if (rok !== today().slice(0, 4)) return 0;
+    const lim = yearLimits(), rok = String(lim.rok);
     const paid = Math.max(+(lim.ike_wplacone || 0), S.tx.filter(t => t.konto === "IKE" && (t.data || "").startsWith(rok) && !isSell(t) && !t.otwarcie).reduce((s, t) => s + (+t.kwota_pln || 0), 0));
     return Math.max(0, (+lim.ike || 0) - paid);
   }
@@ -613,7 +612,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       if (out_.length) out.push({ lvl: "info", t: `Poza pasmem: ${out_[0].nazwa} ${pct(out_[0].odch, 1)} pkt od celu${out_.length > 1 ? ` (i ${out_.length - 1} inne)` : ""}`, s: S.plan?.profil?.rebalans === "rok" ? "Według Twoich zasad wyrównujesz raz w roku." : "Wyrównujesz to wpłatami, bez sprzedawania.", go: "portfel" });
       else out.push({ lvl: "ok", t: "Portfel mieści się w pasmach planu", go: "portfel" });
     }
-    const lim2 = S.cele?.limity || {};
+    if (S.cele && !yearLimits().ike && ((S.plan?.profil?.konta || []).some(k => k !== "zwykle") || S.tx.some(t => t.konto !== "zwykle"))) out.push({ lvl: "todo", t: `Wpisz limity IKE i IKZE na ${new Date().getFullYear()}`, s: "Zmieniają się co roku. Bez nich nie policzę, ile zostało.", go: "cele" });
+    const lim2 = yearLimits();
     const rok = String(lim2.rok || new Date().getFullYear());
     if (rok === today().slice(0, 4)) {
       const left = ikeLeft(), days = Math.ceil((new Date(rok + "-12-31T23:59:59") - new Date()) / 86400000);
@@ -1010,10 +1010,43 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   }
 
   /* ---------- Cele ---------- */
+  /* ---------- PIT-38 helper: sales on the ordinary account, cost by FIFO (the oldest units are sold first) ---------- */
+  function taxYear(year) {
+    const lots = {}, sales = [];
+    for (const t of [...S.tx].filter(t => t.konto === "zwykle").sort((a, b) => (a.data || "").localeCompare(b.data || ""))) {
+      const q = lots[t.isin] ||= [], u = +t.jednostki || 0, pln = +t.kwota_pln || 0;
+      if (!isSell(t)) { if (u > 0) q.push({ u, c: pln / u }); continue; }
+      let left = u, cost = 0;
+      while (left > 1e-9 && q.length) { const take = Math.min(left, q[0].u); cost += take * q[0].c; q[0].u -= take; left -= take; if (q[0].u <= 1e-9) q.shift(); }
+      if ((t.data || "").startsWith(String(year))) sales.push({ t, cost, gain: pln - cost, missing: left > 1e-6 });
+    }
+    const przychod = sales.reduce((s, x) => s + (+x.t.kwota_pln || 0), 0), koszty = sales.reduce((s, x) => s + x.cost, 0), dochod = przychod - koszty;
+    return { sales, przychod, koszty, dochod, podatek: dochod > 0 ? Math.round(Math.round(dochod) * 0.19) : 0, missing: sales.some(x => x.missing) };
+  }
+  function taxCard() {
+    const now = new Date(), y = now.getFullYear(), prev = taxYear(y - 1), cur = taxYear(y);
+    const show = now.getMonth() < 4 && prev.sales.length ? [y - 1, prev] : [y, cur]; // until 30 April the previous year matters
+    const [yr, t] = show, { name } = fundIndex();
+    return `<div class="card"><header><h2>Podatki: PIT-38 za ${yr}${tip("konto_zwykle")}</h2><span class="note">zwykłe konto</span></header>
+      ${t.sales.length ? `<div class="list">${t.sales.map(x => `<div class="item"><div class="t">${esc(name[x.t.isin] || x.t.isin)}</div><div class="a ${cls(x.gain)}">${szl(x.gain)}</div><div class="s">${esc(x.t.data)} · sprzedaż ${nf(+x.t.jednostki, 4)} jedn. za ${zl(+x.t.kwota_pln, 2)}, koszt ${zl(x.cost, 2)}</div><div></div></div>`).join("")}</div>
+        <ul class="checks"><li><span class="ic info">i</span><div>Przychód <strong>${zl(t.przychod, 2)}</strong> · koszty <strong>${zl(t.koszty, 2)}</strong></div><span></span></li>
+          <li><span class="ic ${t.dochod > 0 ? "warn" : "ok"}">${t.dochod > 0 ? "!" : "✓"}</span><div>${t.dochod >= 0 ? `Dochód <strong>${zl(t.dochod, 2)}</strong> · podatek 19% ok. <strong>${zl(t.podatek)}</strong>` : `Strata <strong>${zl(-t.dochod, 2)}</strong>: możesz ją odliczać od zysków przez kolejne 5 lat`}</div><span></span></li></ul>
+        ${t.missing ? '<p class="note down">Część sprzedanych jednostek nie ma zakupu w aplikacji, więc koszt jest zaniżony. Dopisz brakujące zakupy.</p>' : ""}
+        <p class="note">Koszt liczony metodą FIFO (najpierw sprzedajesz najstarsze jednostki), z kwot w złotych zapisanych w aplikacji. Urząd liczy waluty po kursie NBP z dnia przed transakcją, więc wynik może się różnić o kilka złotych: porównaj go z PIT-8C, który XTB przysyła do końca lutego. PIT-38 składasz do 30 kwietnia. IKE i IKZE nie wchodzą do PIT-38.</p>`
+      : `<p class="note">W ${yr} nie zapisałeś sprzedaży na zwykłym koncie. Samo kupowanie i trzymanie nie wymaga podatku${yr < y ? "" : "; sprzedaż zapiszesz przez plus → ETF → Sprzedaż"}. Jeśli XTB przyśle PIT-8C z przychodem (np. z dywidend albo sprzedaży), PIT-38 i tak trzeba złożyć do 30 kwietnia.</p>`}
+    </div>`;
+  }
+  // IKE/IKZE limits change every year (3x and 1.2x the forecast average wage); a new year starts from zero paid in
+  const LIMITY = { 2026: { ike: 28260, ikze: 11304 } };
+  function yearLimits() {
+    const y = new Date().getFullYear(), l = S.cele?.limity || {};
+    if (+l.rok === y) return { ...l, ike: +l.ike || LIMITY[y]?.ike || "", ikze: +l.ikze || LIMITY[y]?.ikze || "" };
+    return { rok: y, ike: LIMITY[y]?.ike || "", ikze: LIMITY[y]?.ikze || "", ike_wplacone: 0, ikze_wplacone: 0 };
+  }
   function renderCele() {
     const el = $("#v-cele");
-    const ce = S.cele || {}, pod = ce.poduszka || {}, lim = ce.limity || {};
-    const rok = String(lim.rok || new Date().getFullYear());
+    const ce = S.cele || {}, pod = ce.poduszka || {}, lim = yearLimits();
+    const rok = String(lim.rok);
     const fromTx = konto => S.tx.filter(t => t.konto === konto && (t.data || "").startsWith(rok) && !isSell(t) && !t.otwarcie).reduce((s, t) => s + (+t.kwota_pln || 0), 0);
     const ikeW = Math.max(+(lim.ike_wplacone || 0), fromTx("IKE")), ikzeW = Math.max(+(lim.ikze_wplacone || 0), fromTx("IKZE"));
     const days = Math.max(0, Math.ceil((new Date(rok + "-12-31T23:59:59") - new Date()) / 86400000));
@@ -1035,6 +1068,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
           <div style="display:grid;gap:14px">${goalsRaw.map((g, i) => `<div class="fgrid"><div class="field"><label for="g-n-${i}">Nazwa</label><input id="g-n-${i}" value="${esc(g.nazwa)}" placeholder="np. Wakacje"></div><div class="field"><label for="g-k-${i}">Kwota (zł)</label><input id="g-k-${i}" type="number" min="0" step="100" inputmode="numeric" value="${esc(g.kwota)}"></div><div class="field"><label for="g-z-${i}">Już mam (zł)</label><input id="g-z-${i}" type="number" min="0" step="10" inputmode="numeric" value="${esc(g.zebrane)}"></div><div class="field"><label for="g-t-${i}">Termin</label><input id="g-t-${i}" type="month" value="${esc(g.termin)}"></div><div><button class="link" type="button" data-grm="${i}">Usuń</button></div></div>`).join("")}
           <div class="actions"><button class="btn ghost" type="button" id="g-add">Dodaj cel</button></div></div></details>
       </div>
+      ${taxCard()}
       <div class="card"><header><h2>Kalkulator: co jeśli</h2><span class="note">ilustracja, nie prognoza</span></header>
         <div class="fgrid"><div class="field"><label for="k-s">Na start (zł)</label><input id="k-s" type="number" min="0" step="1000" inputmode="numeric" value="${Math.round(calc().total)}"></div>
           <div class="field"><label for="k-m">Co miesiąc (zł)</label><input id="k-m" type="number" min="0" step="100" inputmode="numeric" value="${esc(+(S.plan?.profil?.wplata || CFG.wplata) || 1000)}"></div>
@@ -1051,6 +1085,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       <div class="card"><header><h2>IKE i IKZE ${esc(rok)}${tip("ike")}</h2><span class="note">${days} dni do końca roku</span></header>
         <div class="role"><div class="row"><span>IKE ${zl(ikeW)} z ${zl(+lim.ike || 0)}</span><span class="mono">zostało ${zl(Math.max(0, (+lim.ike || 0) - ikeW))}</span></div>${bar(ikeW, +lim.ike, null, "red")}</div>
         <div class="role"><div class="row"><span>IKZE ${zl(ikzeW)} z ${zl(+lim.ikze || 0)}</span><span class="mono">zostało ${zl(Math.max(0, (+lim.ikze || 0) - ikzeW))}</span></div>${bar(ikzeW, +lim.ikze, null, "red")}</div>
+        ${!LIMITY[rok] ? `<div class="fgrid"><div class="field"><label for="l-ikel">Limit IKE na ${esc(rok)} (zł)</label><input id="l-ikel" type="number" min="0" step="1" inputmode="numeric" value="${esc(lim.ike)}"></div><div class="field"><label for="l-ikzel">Limit IKZE na ${esc(rok)} (zł)</label><input id="l-ikzel" type="number" min="0" step="1" inputmode="numeric" value="${esc(lim.ikze)}"></div></div><p class="note">Limity ogłasza co roku Ministerstwo Rodziny (zwykle w grudniu). Sprawdź je u brokera albo na gov.pl. Raport tygodniowy w styczniu je przypomni.</p>` : ""}
         <div class="fgrid"><div class="field"><label for="l-ike">Wpłacone na IKE w ${esc(rok)}</label><input id="l-ike" type="number" min="0" step="10" inputmode="numeric" value="${esc(lim.ike_wplacone ?? "")}"></div><div class="field"><label for="l-ikze">Wpłacone na IKZE w ${esc(rok)}</label><input id="l-ikze" type="number" min="0" step="10" inputmode="numeric" value="${esc(lim.ikze_wplacone ?? "")}"></div></div>
       </div>
       <div class="card"><header><h2>Obligacje${tip("obligacje")}</h2><span class="note">${zl(obl.reduce((s, o) => s + bondNominal(o), 0))} nominalnie · ${zl(bondsValue(), 2)} z odsetkami</span></header>
@@ -1066,7 +1101,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       ...ce,
       oszczednosci: goalsRaw.map((g, i) => ({ nazwa: $("#g-n-" + i).value.trim(), kwota: +$("#g-k-" + i).value || 0, zebrane: +$("#g-z-" + i).value || 0, termin: $("#g-t-" + i).value || "" })),
       poduszka: { cel: +$("#p-cel").value || 0, zebrane: +$("#p-zeb").value || 0 },
-      limity: { ...lim, ike_wplacone: +$("#l-ike").value || 0, ikze_wplacone: +$("#l-ikze").value || 0 },
+      limity: { ...lim, ike: +($("#l-ikel")?.value ?? lim.ike) || 0, ikze: +($("#l-ikzel")?.value ?? lim.ikze) || 0, ike_wplacone: +$("#l-ike").value || 0, ikze_wplacone: +$("#l-ikze").value || 0 },
       obligacje: obl.map((o, i) => { const liczba = +$("#o-l-" + i).value || 0, zakup = $("#o-d-" + i).value || ""; return { seria: $("#o-s-" + i).value.trim().toUpperCase(), zakup, liczba, kwota: liczba * 100, opr1: +$("#o-r-" + i).value || 0, marza: +$("#o-m-" + i).value || 0, wykup: zakup ? addYears(zakup, 4) : "", uwaga: o.uwaga }; })
     });
     $("#g-add").onclick = () => { S.cele = collect(); S.cele.oszczednosci.push({ nazwa: "", kwota: "", zebrane: "", termin: "" }); renderCele(); $("#g-add").closest("details").open = true; };
@@ -1229,7 +1264,8 @@ ${JSON.stringify(data)}`;
     const { name } = fundIndex();
     const skip = new Set(S.plan?.nie_dokupujemy || []);
     const funds = Object.keys(name).sort((a, b) => skip.has(a) - skip.has(b));
-    const modes = { wydatek: "Wydatek", przychod: "Przychód", odlozone: "Odłożone", etf: "Zakup ETF" };
+    const modes = { wydatek: "Wydatek", przychod: "Przychód", odlozone: "Odłożone", etf: "ETF" };
+    const sell = mode === "etf" && sheet.typ === "sprzedaz";
     const k = cats(mode === "etf" ? "wydatek" : mode);
     if (mode !== "etf" && !k.includes(sheet.kat)) sheet.kat = mode === "przychod" ? k[0] : null;
     root.innerHTML = `<div class="sheet-bg" id="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="Dodaj wpis">
@@ -1237,10 +1273,11 @@ ${JSON.stringify(data)}`;
       <form id="qf" style="display:grid;gap:14px">
         <input class="amount" id="q-kw" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0 zł" required value="${esc(pre.kwota ?? "")}" aria-label="Kwota w złotych">
         ${mode === "etf" ? `
+          <div class="seg n2" role="group" aria-label="Kupno czy sprzedaż" style="grid-template-columns:1fr 1fr"><button type="button" data-etyp="kupno" aria-pressed="${!sell}">Kupno</button><button type="button" data-etyp="sprzedaz" aria-pressed="${sell}">Sprzedaż</button></div>
           <div class="field"><label for="q-isin">Fundusz</label><select id="q-isin">${funds.map(i => `<option value="${esc(i)}" ${i === pre.isin ? "selected" : ""}>${esc(name[i])}${skip.has(i) ? " (nie dokupuję)" : ""}</option>`).join("")}</select></div>
           <div class="fgrid"><div class="field"><label for="q-j">Jednostki (z XTB)</label><input id="q-j" type="number" step="any" min="0" inputmode="decimal" required value="${esc(pre.jednostki ?? "")}"></div>
           <div class="field"><label for="q-konto">Konto</label><select id="q-konto"><option value="zwykle">Zwykłe</option><option value="IKE">IKE</option><option value="IKZE">IKZE</option></select></div></div>
-          <p class="note">Kwota w PLN, która zeszła z konta (z przewalutowaniem), i liczba jednostek z potwierdzenia w XTB.</p>
+          <p class="note">${sell ? "Kwota w PLN, która wpłynęła na konto po sprzedaży (po przewalutowaniu), i liczba sprzedanych jednostek. Na zwykłym koncie to wchodzi do PIT-38." : "Kwota w PLN, która zeszła z konta (z przewalutowaniem), i liczba jednostek z potwierdzenia w XTB."}</p>
           <div class="field"><label for="q-why">Dlaczego? (opcjonalnie, trafi do dziennika decyzji)</label><input id="q-why" placeholder="np. zgodnie z planem, EM najbardziej poniżej celu"></div>` : `
           <div class="catchips" role="group" aria-label="Kategoria">${k.map(x => `<button type="button" data-kat="${esc(x)}" aria-pressed="${x === sheet.kat}">${esc(x)}</button>`).join("")}</div>
           <div class="fgrid"><div class="field"><label for="q-opis">Opis (opcjonalnie)</label><input id="q-opis" placeholder="np. Biedronka"></div>
@@ -1252,6 +1289,7 @@ ${JSON.stringify(data)}`;
     $("#sheet-bg").addEventListener("click", e => { if (e.target.id === "sheet-bg") closeSheet(); });
     $("#q-close").onclick = closeSheet;
     root.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { sheet.mode = b.dataset.mode; sheet.pre = { kwota: $("#q-kw").value }; drawSheet(); });
+    root.querySelectorAll("[data-etyp]").forEach(b => b.onclick = () => { sheet.typ = b.dataset.etyp; sheet.pre = { kwota: $("#q-kw").value, isin: $("#q-isin").value }; drawSheet(); });
     root.querySelectorAll("[data-kat]").forEach(b => b.onclick = () => { sheet.kat = b.dataset.kat; root.querySelectorAll("[data-kat]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
     setTimeout(() => $("#q-kw")?.focus(), 30);
     $("#qf").addEventListener("submit", async e => {
@@ -1262,8 +1300,10 @@ ${JSON.stringify(data)}`;
       if (sheet.mode === "etf") {
         const isin = $("#q-isin").value, j = +$("#q-j").value, p = S.stan?.ceny?.[isin];
         if (!(j > 0)) { $("#q-msg").textContent = "Wpisz liczbę jednostek z XTB."; return; }
+        const held = calc().list.find(x => x.isin === isin)?.konta?.[$("#q-konto").value] || 0;
+        if (sell && j > held + 1e-6) { $("#q-msg").textContent = `Na tym koncie masz ${nf(held, 4)} jedn. tego funduszu.`; return; }
         col = "transakcje";
-        doc = { data: d, konto: $("#q-konto").value, isin, ticker_xtb: "", typ: "kupno", jednostki: j, cena: p ? +(kw / j / (p.pln / p.cena)).toFixed(4) : null, waluta: p?.waluta || "", kwota_pln: kw, uwagi: "dodane w aplikacji" };
+        doc = { data: d, konto: $("#q-konto").value, isin, ticker_xtb: "", typ: sell ? "sprzedaz" : "kupno", jednostki: j, cena: p ? +(kw / j / (p.pln / p.cena)).toFixed(4) : null, waluta: p?.waluta || "", kwota_pln: kw, uwagi: "dodane w aplikacji" };
       } else {
         if (!sheet.kat) { $("#q-msg").textContent = "Wybierz kategorię."; return; }
         col = "budzet";
@@ -1273,7 +1313,7 @@ ${JSON.stringify(data)}`;
       try {
         await db.collection(col).add(doc);
         const why = $("#q-why")?.value.trim();
-        if (col === "transakcje" && why) await db.collection("dziennik").add({ data: d, typ: "kupno", isin: doc.isin, emocja: "spokoj", tekst: why, wartosc_portfela: Math.round(calc().total) });
+        if (col === "transakcje" && why) await db.collection("dziennik").add({ data: d, typ: doc.typ, isin: doc.isin, emocja: "spokoj", tekst: why, wartosc_portfela: Math.round(calc().total) });
         closeSheet();
       }
       catch (err) { $("#q-msg").textContent = writeErr(err); $("#q-save").disabled = false; }
