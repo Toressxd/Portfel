@@ -24,10 +24,10 @@
    Bottom bar on phones, top bar on wide screens, one red "+" for anything you need to write down. */
 :root {
   --bg: #ffffff;
-  --surface: #f6f5f4;
+  --surface: #f4f2f0;
   --ink: #111111;
   --muted: #6b6866;
-  --line: #e4e1df;
+  --line: #dedad6;
   --red: #d4151f;          /* brand: actions, the active tab, the "+" */
   --red-soft: #fbe6e6;
   --on-red: #ffffff;
@@ -83,7 +83,7 @@ nav.tabbar button[role=tab] svg { width: 22px; height: 22px; }
 nav.tabbar button[aria-selected="true"] { color: var(--red); }
 
 /* cards and blocks */
-.card { background: var(--surface); border-radius: 14px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
 .card > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
 .hero { padding: 6px 0 2px; display: grid; gap: 6px; }
 .hero .big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2.2rem, 9vw, 3rem); letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -156,7 +156,11 @@ details.more[open] > summary { margin-bottom: 10px; }
 .empty strong { color: var(--ink); }
 .md { display: grid; gap: 8px; max-width: 70ch; font-size: 0.95rem; }
 .md ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
-.md h3 { margin-top: 6px; }
+.md h3 { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.md > h3:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.md strong { font-weight: 700; }
+/* several reports in one card: a clear line between them */
+.card > details.more + details.more { border-top: 1px solid var(--line); padding-top: 12px; }
 
 /* forms */
 .field { display: grid; gap: 4px; min-width: 0; }
@@ -241,8 +245,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-05-2"></script>
-<script src="backend.js?v=2026-11-05-2"></script>
+<script src="config.js?v=2026-11-05-3"></script>
+<script src="backend.js?v=2026-11-05-3"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -793,7 +797,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   function chart() {
     const h = [...S.historia].sort((a, b) => a.data.localeCompare(b.data));
     if (h.length < 2) return `<p class="note">Wykres wartości i wpłat pojawi się po drugiej aktualizacji kursów${h.length ? " (pierwszy punkt: " + esc(h[0].data) + ")" : ""}.</p>`;
-    const W = 520, H = 200, L = 56, R = 10, T = 10, B = 26;
+    const W = 520, H = 200, L = 72, R = 10, T = 10, B = 26;
     const ys = h.flatMap(p => [p.wartosc, p.wplacono]);
     let lo = Math.min(...ys), hi = Math.max(...ys); const pad = (hi - lo) * 0.1 || hi * 0.05 || 1; lo = Math.max(0, lo - pad); hi += pad;
     const x = i => L + i * (W - L - R) / (h.length - 1), y = v => T + (hi - v) * (H - T - B) / (hi - lo);
@@ -802,7 +806,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     const lab = v => new Intl.NumberFormat("pl-PL", { notation: "compact", maximumFractionDigits: 1 }).format(v);
     const xi = [0, h.length - 1];
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Wartość portfela i suma wpłat">
-      ${ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${lab(v)}</text>`).join("")}
+      ${ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="0" y="${y(v) + 4}" text-anchor="start">${lab(v)}</text>`).join("")}
       <path d="${line("wplacono")}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/>
       <path d="${line("wartosc")}" fill="none" stroke="var(--red)" stroke-width="2.5"/>
       <circle cx="${x(h.length - 1)}" cy="${y(h[h.length - 1].wartosc)}" r="4" fill="var(--red)"/>
@@ -847,13 +851,13 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   function netChart() {
     const h = [...S.historia].filter(p => p.majatek != null).sort((a, b) => a.data.localeCompare(b.data));
     if (h.length < 2) return `<p class="note">Wykres całego majątku zacznie się rysować od najbliższych aktualizacji kursów${h.length ? " (pierwszy punkt: " + esc(h[0].data) + ")" : ""}. Wcześniejsze punkty miały tylko ETF-y.</p>`;
-    const W = 520, H = 180, L = 56, R = 10, T = 10, B = 26;
+    const W = 520, H = 180, L = 72, R = 10, T = 10, B = 26;
     let lo = Math.min(...h.map(p => p.majatek)), hi = Math.max(...h.map(p => p.majatek)); const pad = (hi - lo) * 0.1 || hi * 0.05 || 1; lo = Math.max(0, lo - pad); hi += pad;
     const x = i => L + i * (W - L - R) / (h.length - 1), y = v => T + (hi - v) * (H - T - B) / (hi - lo);
     const lab = v => new Intl.NumberFormat("pl-PL", { notation: "compact", maximumFractionDigits: 1 }).format(v);
     const first = h[0].majatek, last = h[h.length - 1].majatek;
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Majątek w czasie">
-      ${[0, 1, 2].map(i => lo + (hi - lo) * i / 2).map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${lab(v)}</text>`).join("")}
+      ${[0, 1, 2].map(i => lo + (hi - lo) * i / 2).map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="0" y="${y(v) + 4}" text-anchor="start">${lab(v)}</text>`).join("")}
       <path d="${h.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.majatek).toFixed(1)}`).join("")}" fill="none" stroke="var(--red)" stroke-width="2.5"/>
       <circle cx="${x(h.length - 1)}" cy="${y(last)}" r="4" fill="var(--red)"/>
       ${[0, h.length - 1].map(i => `<text x="${x(i)}" y="${H - 6}" text-anchor="${i ? "end" : "start"}">${esc(h[i].data.slice(5))}</text>`).join("")}
