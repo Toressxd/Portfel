@@ -161,6 +161,34 @@ def crisis_test(plan):
     return {"wyniki": out, "zamienniki": used, "uwaga": "W złotych, z dywidendami, według wag z planu. Zamienniki z USA o tym samym indeksie lub temacie."}
 
 
+_yh = {}
+
+
+def holdings(sym):
+    """Top 10 companies and sector split of a fund (Yahoo quoteSummary, needs a session cookie and crumb).
+    Commodity ETCs have none; any failure just leaves the fund without a breakdown."""
+    try:
+        if "op" not in _yh:
+            import http.cookiejar
+            op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+            op.addheaders = [("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36")]
+            try:
+                op.open("https://fc.yahoo.com", timeout=20)  # answers 404 but sets the cookie
+            except urllib.error.URLError:
+                pass
+            _yh["op"], _yh["crumb"] = op, op.open("https://query2.finance.yahoo.com/v1/test/getcrumb", timeout=20).read().decode()
+        url = (f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{urllib.parse.quote(sym)}"
+               f"?modules=topHoldings&crumb={urllib.parse.quote(_yh['crumb'])}")
+        th = json.load(_yh["op"].open(url, timeout=20))["quoteSummary"]["result"][0]["topHoldings"]
+    except (urllib.error.URLError, KeyError, IndexError, TypeError, ValueError):
+        return None
+    top = [{"s": h.get("symbol"), "n": h.get("holdingName") or h.get("symbol"), "p": round(h["holdingPercent"]["raw"] * 100, 2)}
+           for h in th.get("holdings", []) if h.get("holdingPercent", {}).get("raw")]
+    sek = {k: round(v["raw"] * 100, 2) for d in th.get("sectorWeightings", []) for k, v in d.items() if v.get("raw")}
+    time.sleep(0.3)
+    return {"top": top, "sektory": sek} if top or sek else None
+
+
 def fund_risk(sym, rate):
     """For the fund card: worst fall from a peak and yearly volatility, in PLN, over up to 10 years of this listing."""
     q = fetch(sym, "10y")
@@ -211,6 +239,9 @@ def build(plan, fxd):
         risk = fund_risk(sym, rate)
         if risk:
             ceny[isin]["ryzyko"] = risk
+        sk = holdings(sym)
+        if sk:
+            ceny[isin]["sklad"] = sk
     wsk = []
     for sym, label in plan.get("wskazniki", {}).items():
         q = fetch(sym)

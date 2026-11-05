@@ -246,8 +246,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-05-4"></script>
-<script src="backend.js?v=2026-11-05-4"></script>
+<script src="config.js?v=2026-11-05-5"></script>
+<script src="backend.js?v=2026-11-05-5"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -646,6 +646,49 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     const keys = Object.keys(SLOWNIK), d = new Date(), doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
     return keys[doy % keys.length];
   }
+  /* ---------- weekly quiz: three questions, the same all week, chosen for the level ---------- */
+  // [level: p = basics, z = advanced, question, correct answer, wrong answers, glossary key]
+  const QUIZ = [
+    ["p", "Czym jest ETF?", "Funduszem notowanym na giełdzie: kupujesz kawałek wielu spółek naraz", ["Akcją jednej dużej firmy", "Lokatą bankową z gwarancją zysku"], "etf"],
+    ["p", "Co dzieje się z niewykorzystanym limitem IKE 31 grudnia?", "Przepada", ["Przechodzi na następny rok", "Wraca jako zwrot podatku"], "ike"],
+    ["p", "Ile zwykle wynosi poduszka finansowa?", "3–6 miesięcy wydatków", ["Jeden tydzień wydatków", "Tyle, ile mam w akcjach"], "poduszka"],
+    ["p", "Kiedy na zwykłym koncie płacisz podatek Belki?", "Gdy sprzedasz fundusz z zyskiem, od samego zysku", ["Co roku od wartości portfela", "Od każdej wpłaty"], "konto_zwykle"],
+    ["p", "Co oznacza TER 0,20%?", "Roczny koszt funduszu: ok. 20 zł od 10 000 zł", ["Jednorazową prowizję przy zakupie", "Gwarantowany zysk roczny"], "ter"],
+    ["p", "Co robi fundusz akumulujący z dywidendami?", "Sam je reinwestuje", ["Wypłaca je na Twoje konto", "Oddaje je zarządzającemu"], "akumulujacy"],
+    ["p", "Rynek spadł o 25% w miesiąc. Co mówi większość długoterminowych planów?", "Trzymam się zasad, które zapisałem na spokojnie", ["Sprzedaję wszystko i czekam", "Biorę kredyt i dokupuję"], "zmiennosc"],
+    ["p", "Czym jest ISIN?", "12-znakowym numerem, który jednoznacznie wskazuje fundusz", ["Nazwą giełdy", "Numerem mojego rachunku"], "isin"],
+    ["p", "Co daje fundusz na cały świat zamiast jednej spółki?", "Tysiące spółek naraz: upadek jednej prawie nic nie zmienia", ["Gwarancję, że nie spadnie", "Wyższy zysk każdego roku"], "dywersyfikacja"],
+    ["z", "Jak opodatkowana jest wypłata z IKZE po 65. roku życia?", "10% ryczałtem od całej kwoty", ["19% od zysku", "Wcale"], "ikze"],
+    ["z", "Najtańszy sposób powrotu do wag z planu przy regularnych wpłatach?", "Dokupywać to, co najbardziej poniżej celu", ["Co miesiąc sprzedawać to, co urosło", "Zmieniać plan pod rynek"], "rebalans"],
+    ["z", "MSCI World i FTSE All-World w jednym portfelu…", "w dużej mierze dublują te same spółki", ["dają dwa razy większą dywersyfikację", "wzajemnie się znoszą"], "dywersyfikacja"],
+    ["z", "Złoty mocno się umacnia, a rynek w USD stoi. Twój portfel ETF w złotych…", "chwilowo spada", ["rośnie", "się nie zmienia"], "waluta"],
+    ["z", "Co ze stratą ze sprzedaży ETF na zwykłym koncie?", "Możesz ją odliczać od zysków przez kolejne 5 lat", ["Przepada", "Urząd zwraca ją od razu"], "konto_zwykle"],
+    ["z", "Przy 5% rocznie kwota podwaja się mniej więcej po…", "14 latach", ["5 latach", "30 latach"], "procent"],
+    ["z", "Co znaczy „cel 60% ± 5 pkt”?", "Między 55% a 65% nic nie robię", ["Rdzeń może stracić najwyżej 5%", "Zysk ma wynieść 5% rocznie"], "pasmo"],
+    ["z", "Satelita spadł o 40%, ale fakty z tezy się nie zmieniły. Co sprawdzasz najpierw?", "Warunek „kiedy się mylę” z mojej tezy", ["Prognozy cen w internecie", "Ile zarobili inni"], "teza"]
+  ];
+  const isoWeek = () => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7); const w1 = new Date(d.getFullYear(), 0, 4); return d.getFullYear() + "-" + (1 + Math.round(((d - w1) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7)); };
+  function quizOfWeek() {
+    const lv = poziom(), wk = isoWeek(), n = +wk.split("-")[1];
+    const pool = QUIZ.map((q, i) => ({ q, i })).filter(({ q }) => lv === "poczatkujacy" ? q[0] === "p" : lv === "zaawansowany" ? q[0] === "z" : true);
+    const pick = [], step = 5;
+    for (let k = 0; pick.length < 3 && k < pool.length * 2; k++) { const x = pool[(n * 3 + k * step) % pool.length]; if (!pick.includes(x)) pick.push(x); }
+    return { wk, items: pick.map(({ q, i }) => { const ans = [q[2], ...q[3]]; const rot = (n + i) % 3; const order = [...ans.slice(rot), ...ans.slice(0, rot)]; return { id: i, t: q[1], ans: order, ok: order.indexOf(q[2]), key: q[4] }; }) };
+  }
+  function quizCard() {
+    const qz = quizOfWeek(), got = CFG.quiz?.wk === qz.wk ? CFG.quiz.odp || {} : {};
+    const done = qz.items.every(x => got[x.id] != null), score = qz.items.filter(x => got[x.id] === x.ok).length;
+    const body = qz.items.map((x, n) => { const a = got[x.id]; return `<div style="display:grid;gap:6px${n ? ";border-top:1px solid var(--line);padding-top:12px" : ""}"><strong>${n + 1}. ${esc(x.t)}</strong>
+      <div class="levels">${x.ans.map((t, j) => `<button type="button" data-quiz="${x.id}:${j}" ${a != null ? "disabled" : ""} aria-pressed="${a === j}" style="${a != null && j === x.ok ? "border-color:var(--up);box-shadow:0 0 0 1px var(--up) inset" : ""}">${esc(t)}${a != null && j === x.ok ? " ✓" : a === j ? " ✗" : ""}</button>`).join("")}</div>
+      ${a != null ? `<p class="note">${a === x.ok ? "Dobrze." : "Prawidłowo: " + esc(x.ans[x.ok]) + "."} <button class="link" type="button" data-tip="${x.key}">Wyjaśnienie</button></p>` : ""}</div>`; }).join("");
+    return done ? `<details class="more card"><summary><span>Quiz tygodnia <span class="${score === 3 ? "up" : ""}">${score}/3</span></span></summary>${body}<p class="note">Nowe pytania w poniedziałek.</p></details>`
+      : `<div class="card"><header><h2>Quiz tygodnia</h2><span class="note">3 pytania · 1 minuta</span></header>${body}</div>`;
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-quiz]"); if (!b || b.disabled) return;
+    const [id, j] = b.dataset.quiz.split(":").map(Number), wk = isoWeek();
+    saveCfg({ quiz: { wk, odp: { ...(CFG.quiz?.wk === wk ? CFG.quiz.odp : {}), [id]: j } } });
+  });
   function dayItems() {
     const wd = new Date().getDay(), out = [];
     if (wd >= 1 && wd <= 5) out.push({ id: "raport", t: "Przeczytaj raport dnia", go: "raporty" });
@@ -708,6 +751,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
         <ol class="steps" id="day-steps">${items.map(s => { const d = dayDone(s); return `<li class="${d ? "done" : ""}"><input type="checkbox" id="dz-${s.id}" ${d ? "checked" : ""} ${S.canWrite && db ? "" : "disabled"} aria-label="${esc(s.t)}"><span>${esc(s.t)}</span>${s.tip ? `<button class="go" type="button" data-tip="${s.tip}">Czytaj</button>` : `<button class="go" type="button" data-go="${s.go}" data-day="${s.id}">${s.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button>`}</li>`; }).join("")}</ol>
         ${n === items.length ? '<p class="note">Na dziś wszystko. Przy horyzoncie 10 lat więcej nie trzeba.</p>' : ""}
       </div>`; })()}
+      ${quizCard()}
       ${(() => { const list = `<ol class="steps" id="month-steps">${STEPS.map(s => { const d = stepDone(s.id); return `<li class="${d ? "done" : ""}"><input type="checkbox" id="st-${s.id}" ${d ? "checked" : ""} ${S.canWrite && db ? "" : "disabled"} aria-label="${esc(s.t)}"><span>${esc(s.t)}</span><button class="go" type="button" data-go="${s.go}">${s.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button></li>`; }).join("")}</ol>`;
         // a finished monthly review folds into one line, so the daily card stays the main thing
         return done === STEPS.length ? `<details class="more card"><summary><span>Przegląd: ${esc(monthName(curMonth()))} <span class="up">✓ zrobiony</span></span></summary>${list}</details>`
@@ -833,8 +877,10 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       ${p ? `<div><span class="label">Twoja pozycja</span>${row("Wartość", `<strong>${zl(p.wartosc)}</strong> · ${nf((p.wartosc || 0) / (c.total || 1) * 100, 1)}% portfela`)}${row("Zapłacone", zl(p.koszt))}${row("Wynik", `<span class="${cls(w)}">${szl(w)} (${pct(p.koszt ? w / p.koszt * 100 : null)})</span>`)}${p.jednostki > 0 ? row("Jednostki", nf(p.jednostki, 4)) : ""}${row("Konta", esc(Object.keys(p.konta).filter(x => p.konta[x] > 0).join(", ") || "–"))}${r ? row("Cel roli w planie", `${nf(r.cel, 0)}% ± ${nf(r.pasmo ?? 5, 0)} pkt`) : ""}</div>` : ""}
       ${rk ? `<div><span class="label">Jak bardzo się waha${tip("zmiennosc")}</span>${row("Największy spadek", `<span class="down">${pct(rk.maks_spadek_proc)}</span> · ${dt(rk.maks_spadek_od)} → ${dt(rk.maks_spadek_do)}`)}${row("Typowe wahania w roku", `ok. ±${nf(rk.zmiennosc_proc, 0)}%`)}
         <p class="note">W złotych, od ${dt(rk.od)} (tyle historii ma to notowanie). ${rk.zmiennosc_proc >= 25 ? "To fundusz o dużych wahaniach: kilkudziesięcioprocentowe spadki są dla niego normalne." : rk.zmiennosc_proc >= 18 ? "Wahania większe niż rynek światowy." : "Wahania podobne do szerokiego rynku."}</p></div>` : ""}
+      ${cena?.sklad?.top?.length ? `<div><span class="label">10 największych spółek w funduszu</span>${cena.sklad.top.map(h => row(esc(h.n), `${nf(h.p, 1)}%${p ? ` · ${zl((p.wartosc || 0) * h.p / 100)}` : ""}`)).join("")}
+        <p class="note">Razem ${nf(cena.sklad.top.reduce((a, h) => a + h.p, 0), 0)}% funduszu. Branże: ${Object.entries(cena.sklad.sektory || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${esc(SEKTORY[k] || k)} ${nf(v, 0)}%`).join(", ")}.</p></div>` : ""}
       ${teza?.teza ? `<div><span class="label">Twoja teza${tip("teza")}</span><p>${esc(teza.teza)}</p>${teza.kiedy_sie_myle ? `<p class="note">Kiedy się mylę: ${esc(teza.kiedy_sie_myle.replace(/^SZKIC do zatwierdzenia:\s*/, ""))}</p>` : ""}</div>` : ""}
-      <p class="note">Największe spółki w środku pokażę w kolejnym etapie („Co mam w środku”). To informacja, nie rekomendacja.</p></div></div>`;
+      <p class="note">To informacja, nie rekomendacja.</p></div></div>`;
     tipView = "fund";
     $("#tip-bg").addEventListener("click", ev => { if (ev.target.id === "tip-bg") closeTip(); });
     $("#tip-x").onclick = closeTip; $("#tip-x").focus();
@@ -868,6 +914,37 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       ${[0, h.length - 1].map(i => `<text x="${x(i)}" y="${H - 6}" text-anchor="${i ? "end" : "start"}">${esc(h[i].data.slice(5))}</text>`).join("")}
     </svg><p class="note">Od ${esc(h[0].data)}: <span class="${cls(last - first)}">${szl(last - first)}</span> (razem z nowymi wpłatami i oszczędnościami).</p>`;
   }
+  /* ---------- look-through: the companies and sectors inside all funds together, weighted by what you hold ---------- */
+  const SEKTORY = { technology: "Technologia", financial_services: "Finanse", healthcare: "Zdrowie", industrials: "Przemysł", consumer_cyclical: "Dobra luksusowe i handel",
+    communication_services: "Komunikacja i media", consumer_defensive: "Dobra codzienne", basic_materials: "Surowce i materiały", energy: "Energia", utilities: "Usługi komunalne", realestate: "Nieruchomości" };
+  function lookThrough(c) {
+    const firms = {}, sect = {}; let covered = 0, noData = 0;
+    for (const p of c.list) {
+      const v = p.wartosc || 0, sk = S.stan?.ceny?.[p.isin]?.sklad;
+      if (!sk) { noData += v; continue; }
+      for (const h of sk.top || []) { const k = h.s || h.n; const f = firms[k] ||= { n: h.n, v: 0, from: new Set() }; f.v += v * h.p / 100; f.from.add(p.isin); covered += v * h.p / 100; }
+      const ss = Object.values(sk.sektory || {}).reduce((a, b) => a + b, 0) || 100;
+      for (const [k, w] of Object.entries(sk.sektory || {})) sect[k] = (sect[k] || 0) + v * w / ss;
+    }
+    if (noData) sect._inne = noData;
+    return { firms: Object.values(firms).sort((a, b) => b.v - a.v), sect: Object.entries(sect).sort((a, b) => b[1] - a[1]), covered, noData };
+  }
+  function insideCard(c) {
+    if (!c.total) return "";
+    const lt = lookThrough(c);
+    if (!lt.firms.length) return S.plan ? `<div class="card"><header><h2>Co mam w środku</h2></header><p class="note">Skład funduszy pobierze się przy najbliższej nocnej aktualizacji.</p></div>` : "";
+    const sym = i => xtbTicker(S.stan?.ceny?.[i]?.symbol || "").split(".")[0] || i;
+    const multi = lt.firms.filter(f => f.from.size > 1);
+    const top = lt.firms[0];
+    return `<div class="card"><header><h2>Co mam w środku${tip("dywersyfikacja")}</h2><span class="note">wszystkie fundusze razem</span></header>
+      ${learn("Jak to czytać", "Każdy ETF to koszyk spółek. Tu zsumowane są największe spółki ze wszystkich Twoich funduszy, w złotych, według tego, ile każdego funduszu masz. Widać, na kim naprawdę zależy Twój portfel.")}
+      <span class="label">Największe spółki</span>
+      <div class="list">${lt.firms.slice(0, 10).map(f => `<div class="item"><div class="t">${esc(f.n)}</div><div class="a">${zl(f.v)}</div><div class="s">${pct(f.v / c.total * 100, 1, false)} portfela · z: ${[...f.from].map(sym).join(", ")}</div><div></div></div>`).join("")}</div>
+      <p class="note">${top ? `Największa pojedyncza spółka to ${esc(top.n)}: ${pct(top.v / c.total * 100, 1, false)} całego portfela. ` : ""}${multi.length ? `${multi.length} ${multi.length === 1 ? "spółka jest" : multi.length < 5 ? "spółki są" : "spółek jest"} w kilku Twoich funduszach naraz (np. ${esc(multi[0].n)}). ` : ""}Pokazane spółki to ${pct(lt.covered / c.total * 100, 0, false)} portfela; reszta to setki mniejszych.</p>
+      <span class="label">Branże</span>
+      <div class="roles">${lt.sect.map(([k, v]) => `<div class="role"><div class="row"><span>${k === "_inne" ? "Surowce bez danych o składzie" : esc(SEKTORY[k] || k)}</span><span class="mono">${pct(v / c.total * 100, 1, false)}</span></div>${bar(v, c.total, null, k === "technology" ? "red" : "")}</div>`).join("")}</div>
+      <p class="note">Dane: Yahoo Finance, 10 największych spółek każdego funduszu i jego podział na branże. Kraje i pełna lista spółek nie są dostępne bezpłatnie.</p></div>`;
+  }
   // the yearly rate needs a month of history; tell when it appears instead of a vague "later"
   function firstYearly() {
     const d = S.tx.map(t => t.data).filter(Boolean).sort()[0];
@@ -894,6 +971,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       <div class="card"><header><h2>Pozycje</h2><span class="note">${c.list.length}</span></header>
         ${c.list.length ? `<div class="list">${c.list.map(p => { const w = (p.wartosc || 0) - p.koszt; return `<div class="item" data-fund="${esc(p.isin)}" role="button" tabindex="0" style="cursor:pointer"><div class="t">${esc(p.nazwa)} <span class="go">›</span>${skip.has(p.isin) ? ' <span class="pill plain">nie dokupuję</span>' : ""}</div><div class="a">${zl(p.wartosc)}</div><div class="s">${Object.keys(p.konta).filter(k => p.konta[k] > 0).join(", ")} · ${c.total ? nf((p.wartosc || 0) / c.total * 100, 1) : 0}% portfela</div><div class="a ${cls(w)}" style="font-size:.84rem">${szl(w)} (${pct(p.koszt ? w / p.koszt * 100 : null)})</div></div>`; }).join("")}</div>` : '<div class="empty"><strong>Brak pozycji.</strong><span>Dodaj zakup czerwonym plusem albo wyślij Claude zrzut z XTB.</span></div>'}
       </div>
+      ${insideCard(c)}
       <div class="card"><header><h2>Wartość w czasie</h2></header>${chart()}</div>
       ${crisisCard(c)}
       <details class="more card"><summary>Rynek w tym tygodniu</summary>
