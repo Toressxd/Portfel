@@ -241,12 +241,12 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-05-1"></script>
-<script src="backend.js?v=2026-11-05-1"></script>
+<script src="config.js?v=2026-11-05-2"></script>
+<script src="backend.js?v=2026-11-05-2"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
-  const S = { dzien: null, plan: null, stan: null, cele: null, tx: [], raporty: [], dzienne: [], analizy: [], historia: [], budzet: [], budzetCfg: null, przeglad: null, loaded: {}, canWrite: true };
+  const S = { dzien: null, dziennik: [], plan: null, stan: null, cele: null, tx: [], raporty: [], dzienne: [], analizy: [], historia: [], budzet: [], budzetCfg: null, przeglad: null, loaded: {}, canWrite: true };
   let wizShown = false;
   let db = null, sample = null, snapWritten = false, aiCtl = null, aiText = "", aiBusy = false, aiErr = "";
   let bMonth = new Date().toISOString().slice(0, 7);
@@ -398,7 +398,9 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     odlozone: ["Inwestycje (ETF)", "IKE / IKZE", "Poduszka", "Obligacje"]
   };
   const TYP = { wydatek: "Wydatek", przychod: "Przychód", odlozone: "Odłożone" };
-  const cats = typ => S.budzetCfg?.kategorie?.[typ] || DEFAULT_CATS[typ];
+  // each savings goal gets its own "odłożone" category, so money put aside in the budget fills the goal by itself
+  const goalCat = g => "Cel: " + g.nazwa;
+  const cats = typ => { const base = S.budzetCfg?.kategorie?.[typ] || DEFAULT_CATS[typ]; return typ === "odlozone" ? [...base, ...(S.cele?.oszczednosci || []).filter(g => g.nazwa).map(goalCat)] : base; };
   const limits = () => S.budzetCfg?.limity || {};
   const monthOf = d => (d || "").slice(0, 7);
   const shiftMonth = (m, k) => { const [y, mo] = m.split("-").map(Number); const d = new Date(y, mo - 1 + k, 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); };
@@ -576,6 +578,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   }
   function closeTip() { tipView = null; $("#tip-root").innerHTML = ""; }
   document.addEventListener("click", e => { const t = e.target.closest("[data-tip]"); if (t) { e.preventDefault(); e.stopPropagation(); openTip(t.dataset.tip); } }, true);
+  document.addEventListener("click", e => { const f = e.target.closest("[data-fund]"); if (f && !e.target.closest("button")) openFund(f.dataset.fund); });
+  document.addEventListener("keydown", e => { const f = e.target.closest?.("[data-fund]"); if (f && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openFund(f.dataset.fund); } });
 
   /* ---------- Start ---------- */
   function checks(c) {
@@ -734,6 +738,22 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       <div class="card"><header><h2>Wydatki</h2><span class="note">kategoria · limit</span></header>
         ${rows.length ? `<div class="roles">${rows.map(r => { const st = !r.l ? "" : r.v > r.l ? "red" : r.v > r.l * 0.85 ? "warn" : ""; return `<div class="role"><div class="row"><span>${esc(r.k)}${r.pv ? ` <span class="note">poprz. ${zl(r.pv)}</span>` : ""}</span><span class="mono">${zl(r.v)}${r.l ? " / " + zl(r.l) : ""}</span></div>${r.l ? bar(r.v, r.l, null, st) : ""}</div>`; }).join("")}</div>` : '<div class="empty"><strong>Brak wydatków w tym miesiącu.</strong><span>Dodaj je czerwonym plusem. Stałe opłaty zaznacz jako „co miesiąc”, a w następnym miesiącu skopiujesz je jednym przyciskiem.</span></div>'}
       </div>
+      ${(() => { // fixed costs add up quietly: show them per year
+        const src = m.e.some(x => x.typ === "wydatek" && (x.stale || x.kategoria === "Subskrypcje")) ? m : p;
+        const fixed = src.e.filter(x => x.typ === "wydatek" && (x.stale || x.kategoria === "Subskrypcje")).sort((a, b) => b.kwota - a.kwota);
+        if (!fixed.length) return "";
+        const sum = fixed.reduce((s, x) => s + (+x.kwota || 0), 0);
+        return `<details class="more card"><summary><span>Stałe opłaty: ${zl(sum)} / mies. · <strong>${zl(sum * 12)} rocznie</strong></span></summary>
+          <div class="list">${fixed.map(x => `<div class="item"><div class="t">${esc(x.opis || x.kategoria)}</div><div class="a">${zl(+x.kwota, 2)}</div><div class="s">${esc(x.kategoria)}</div><div class="s" style="text-align:right">${zl(+x.kwota * 12)} rocznie</div></div>`).join("")}</div>
+          <p class="note">Wpisy oznaczone „co miesiąc” i subskrypcje${src === p ? `, z ${esc(monthName(shiftMonth(bMonth, -1)))}` : ""}. Raz na kwartał warto sprawdzić, czy wszystkich nadal używasz.</p></details>`; })()}
+      ${(() => { // the last six months side by side
+        const ms = [...Array(6)].map((_, i) => shiftMonth(bMonth, i - 5)).map(k => ({ k, ...monthSum(k) })).filter(x => x.e.length);
+        if (ms.length < 2) return "";
+        const top = Math.max(...ms.map(x => Math.max(x.przychod, x.wydatek + x.odlozone))) || 1;
+        return `<details class="more card"><summary>Ostatnie miesiące</summary>
+          <div class="roles">${ms.map(x => `<div class="role"><div class="row"><span>${esc(monthName(x.k))}</span><span class="mono">${x.przychod ? `oszczędzasz ${pct(x.odlozone / x.przychod * 100, 0, false)}` : ""}</span></div>
+            <div class="note">przychody ${zl(x.przychod)} · wydatki ${zl(x.wydatek)} · odłożone ${zl(x.odlozone)}</div>${bar(x.wydatek, top, x.przychod ? x.przychod / top * 100 : null, "red")}</div>`).join("")}</div>
+          <p class="note">Pasek: wydatki. Kreska: przychody.</p></details>`; })()}
       <div class="card"><header><h2>Wpisy</h2><span class="note">${entries.length}</span></header>
         ${entries.length ? `<div class="list">${entries.map(x => `<div class="item"><div class="t">${esc(x.kategoria)}${x.stale ? ' <span class="pill plain">co miesiąc</span>' : ""}</div><div class="a ${x.typ === "przychod" ? "up" : ""}">${x.typ === "przychod" ? "+" : x.typ === "odlozone" ? "→ " : "−"}${zl(+x.kwota, 2)}</div><div class="s">${esc((x.data || "").slice(8, 10) + "." + (x.data || "").slice(5, 7))} · ${esc(TYP[x.typ] || x.typ)}${x.opis ? " · " + esc(x.opis) : ""}</div><div>${S.canWrite ? `<button class="link" type="button" data-bdel="${esc(x._id)}">Usuń</button>` : ""}</div></div>`).join("")}</div>` : '<p class="note">Nic jeszcze nie wpisano.</p>'}
       </div>
@@ -789,6 +809,27 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       ${xi.map(i => `<text x="${x(i)}" y="${H - 6}" text-anchor="${i ? "end" : "start"}">${esc(h[i].data.slice(5))}</text>`).join("")}
     </svg><p class="note"><span style="color:var(--red)">━</span> wartość &nbsp; ┅ suma wpłat</p>`;
   }
+  /* ---------- fund card: what a fund is, what it did to its holders and what role it plays in the plan ---------- */
+  function openFund(isin) {
+    const c = calc(), p = c.list.find(x => x.isin === isin), cena = S.stan?.ceny?.[isin], k = KAT[isin], { name, role } = fundIndex();
+    const r = role[isin] ? S.plan.role[role[isin]] : null, teza = S.plan?.tezy?.[role[isin]], rk = cena?.ryzyko;
+    const dt = d => d ? d.split("-").reverse().join(".") : "";
+    const row = (l, v) => `<div class="row" style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line)"><span class="note">${l}</span><span style="text-align:right">${v}</span></div>`;
+    const w = p ? (p.wartosc || 0) - p.koszt : 0;
+    $("#tip-root").innerHTML = `<div class="sheet-bg" id="tip-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(name[isin] || isin)}">
+      <header style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><span class="label">${r ? esc(r.nazwa) + (r.rdzen || role[isin] === "rdzen" ? " · rdzeń" : " · satelita") : "fundusz"}</span><h2>${esc(name[isin] || k?.nazwa || isin)}</h2></div><button class="btn ghost" type="button" id="tip-x">Zamknij</button></header>
+      ${k ? `<p>${esc(k.opis)}.</p>` : ""}
+      <div>${row(`ISIN${tip("isin")}`, `<span class="mono">${esc(isin)}</span>`)}${cena ? row("W XTB", `<span class="mono">${esc(xtbTicker(cena.symbol))}</span> · ${esc(cena.waluta)}`) : ""}${k ? row(`Koszt roczny (TER)${tip("ter")}`, `${nf(k.ter, 2)}% · ok. ${zl((p?.wartosc || 10000) * k.ter / 100)} rocznie${p ? "" : " od 10 000 zł"}`) : ""}
+        ${cena ? row("Cena", `${zl(cena.pln, 2)} (${nf(cena.cena, 2)} ${esc(cena.waluta)}) · ${dt(cena.data)}`) + row("Tydzień / miesiąc w PLN", `<span class="${cls(cena.tydz_pln_proc)}">${pct(cena.tydz_pln_proc)}</span> / <span class="${cls(cena.mies_pln_proc)}">${pct(cena.mies_pln_proc)}</span>`) : ""}</div>
+      ${p ? `<div><span class="label">Twoja pozycja</span>${row("Wartość", `<strong>${zl(p.wartosc)}</strong> · ${nf((p.wartosc || 0) / (c.total || 1) * 100, 1)}% portfela`)}${row("Zapłacone", zl(p.koszt))}${row("Wynik", `<span class="${cls(w)}">${szl(w)} (${pct(p.koszt ? w / p.koszt * 100 : null)})</span>`)}${p.jednostki > 0 ? row("Jednostki", nf(p.jednostki, 4)) : ""}${row("Konta", esc(Object.keys(p.konta).filter(x => p.konta[x] > 0).join(", ") || "–"))}${r ? row("Cel roli w planie", `${nf(r.cel, 0)}% ± ${nf(r.pasmo ?? 5, 0)} pkt`) : ""}</div>` : ""}
+      ${rk ? `<div><span class="label">Jak bardzo się waha${tip("zmiennosc")}</span>${row("Największy spadek", `<span class="down">${pct(rk.maks_spadek_proc)}</span> · ${dt(rk.maks_spadek_od)} → ${dt(rk.maks_spadek_do)}`)}${row("Typowe wahania w roku", `ok. ±${nf(rk.zmiennosc_proc, 0)}%`)}
+        <p class="note">W złotych, od ${dt(rk.od)} (tyle historii ma to notowanie). ${rk.zmiennosc_proc >= 25 ? "To fundusz o dużych wahaniach: kilkudziesięcioprocentowe spadki są dla niego normalne." : rk.zmiennosc_proc >= 18 ? "Wahania większe niż rynek światowy." : "Wahania podobne do szerokiego rynku."}</p></div>` : ""}
+      ${teza?.teza ? `<div><span class="label">Twoja teza${tip("teza")}</span><p>${esc(teza.teza)}</p>${teza.kiedy_sie_myle ? `<p class="note">Kiedy się mylę: ${esc(teza.kiedy_sie_myle.replace(/^SZKIC do zatwierdzenia:\s*/, ""))}</p>` : ""}</div>` : ""}
+      <p class="note">Największe spółki w środku pokażę w kolejnym etapie („Co mam w środku”). To informacja, nie rekomendacja.</p></div></div>`;
+    tipView = "fund";
+    $("#tip-bg").addEventListener("click", ev => { if (ev.target.id === "tip-bg") closeTip(); });
+    $("#tip-x").onclick = closeTip; $("#tip-x").focus();
+  }
   // the plan's weights replayed through real crashes (computed nightly with the prices); turns "a 30% drop" into złoty
   function crisisCard(c) {
     const k = S.stan?.kryzysy;
@@ -801,6 +842,22 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
         <div class="s">${pct(w.spadek_proc)} w ${w.miesiace_spadku <= 1 ? "ok. miesiąc" : `${w.miesiace_spadku} mies.`}, odrobione ${mies(w.miesiace_powrotu)}${w.swiat_proc != null ? ` · sam świat: ${pct(w.swiat_proc)}` : ""}</div>
         <div class="s">${maj > base && base ? `cały majątek ${pct(loss / maj * 100)}` : ""}</div></div>`; }).join("")}</div>
       <p class="note">${esc(k.uwaga)} Przeszłość nie powtórzy się tak samo; to skala, a nie prognoza.</p></div>`;
+  }
+  // net worth over time: the history points written since bonds and the cushion were added to them
+  function netChart() {
+    const h = [...S.historia].filter(p => p.majatek != null).sort((a, b) => a.data.localeCompare(b.data));
+    if (h.length < 2) return `<p class="note">Wykres całego majątku zacznie się rysować od najbliższych aktualizacji kursów${h.length ? " (pierwszy punkt: " + esc(h[0].data) + ")" : ""}. Wcześniejsze punkty miały tylko ETF-y.</p>`;
+    const W = 520, H = 180, L = 56, R = 10, T = 10, B = 26;
+    let lo = Math.min(...h.map(p => p.majatek)), hi = Math.max(...h.map(p => p.majatek)); const pad = (hi - lo) * 0.1 || hi * 0.05 || 1; lo = Math.max(0, lo - pad); hi += pad;
+    const x = i => L + i * (W - L - R) / (h.length - 1), y = v => T + (hi - v) * (H - T - B) / (hi - lo);
+    const lab = v => new Intl.NumberFormat("pl-PL", { notation: "compact", maximumFractionDigits: 1 }).format(v);
+    const first = h[0].majatek, last = h[h.length - 1].majatek;
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Majątek w czasie">
+      ${[0, 1, 2].map(i => lo + (hi - lo) * i / 2).map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${lab(v)}</text>`).join("")}
+      <path d="${h.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.majatek).toFixed(1)}`).join("")}" fill="none" stroke="var(--red)" stroke-width="2.5"/>
+      <circle cx="${x(h.length - 1)}" cy="${y(last)}" r="4" fill="var(--red)"/>
+      ${[0, h.length - 1].map(i => `<text x="${x(i)}" y="${H - 6}" text-anchor="${i ? "end" : "start"}">${esc(h[i].data.slice(5))}</text>`).join("")}
+    </svg><p class="note">Od ${esc(h[0].data)}: <span class="${cls(last - first)}">${szl(last - first)}</span> (razem z nowymi wpłatami i oszczędnościami).</p>`;
   }
   function renderPortfel(c) {
     const el = $("#v-portfel");
@@ -819,12 +876,12 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
         <div id="wpl-out" class="list"></div>
         <p class="note">To Twoja zasada policzona na cenach z ostatniej aktualizacji, nie rekomendacja.</p></div>
       <div class="card"><header><h2>Pozycje</h2><span class="note">${c.list.length}</span></header>
-        ${c.list.length ? `<div class="list">${c.list.map(p => { const w = (p.wartosc || 0) - p.koszt; return `<div class="item"><div class="t">${esc(p.nazwa)}${skip.has(p.isin) ? ' <span class="pill plain">nie dokupuję</span>' : ""}</div><div class="a">${zl(p.wartosc)}</div><div class="s">${Object.keys(p.konta).filter(k => p.konta[k] > 0).join(", ")} · ${c.total ? nf((p.wartosc || 0) / c.total * 100, 1) : 0}% portfela</div><div class="a ${cls(w)}" style="font-size:.84rem">${szl(w)} (${pct(p.koszt ? w / p.koszt * 100 : null)})</div></div>`; }).join("")}</div>` : '<div class="empty"><strong>Brak pozycji.</strong><span>Dodaj zakup czerwonym plusem albo wyślij Claude zrzut z XTB.</span></div>'}
+        ${c.list.length ? `<div class="list">${c.list.map(p => { const w = (p.wartosc || 0) - p.koszt; return `<div class="item" data-fund="${esc(p.isin)}" role="button" tabindex="0" style="cursor:pointer"><div class="t">${esc(p.nazwa)} <span class="go">›</span>${skip.has(p.isin) ? ' <span class="pill plain">nie dokupuję</span>' : ""}</div><div class="a">${zl(p.wartosc)}</div><div class="s">${Object.keys(p.konta).filter(k => p.konta[k] > 0).join(", ")} · ${c.total ? nf((p.wartosc || 0) / c.total * 100, 1) : 0}% portfela</div><div class="a ${cls(w)}" style="font-size:.84rem">${szl(w)} (${pct(p.koszt ? w / p.koszt * 100 : null)})</div></div>`; }).join("")}</div>` : '<div class="empty"><strong>Brak pozycji.</strong><span>Dodaj zakup czerwonym plusem albo wyślij Claude zrzut z XTB.</span></div>'}
       </div>
       <div class="card"><header><h2>Wartość w czasie</h2></header>${chart()}</div>
       ${crisisCard(c)}
       <details class="more card"><summary>Rynek w tym tygodniu</summary>
-        <div class="tablebox"><table><thead><tr><th>Fundusz</th><th class="n">Tydzień PLN</th><th class="n">Miesiąc PLN</th></tr></thead><tbody>${etf.map(([isin, p]) => `<tr><td>${esc(name[isin] || isin)}<div class="note">${c.list.some(x => x.isin === isin) ? "masz" : "w planie"} · ${esc(p.symbol)} · ${pct(p.tydz_proc, 2)} ${esc(p.waluta)}</div></td><td class="n ${cls(p.tydz_pln_proc)}">${pct(p.tydz_pln_proc, 2)}</td><td class="n ${cls(p.mies_pln_proc)}">${pct(p.mies_pln_proc, 2)}</td></tr>`).join("")}</tbody></table></div>
+        <div class="tablebox"><table><thead><tr><th>Fundusz</th><th class="n">Tydzień PLN</th><th class="n">Miesiąc PLN</th></tr></thead><tbody>${etf.map(([isin, p]) => `<tr data-fund="${esc(isin)}" style="cursor:pointer"><td>${esc(name[isin] || isin)}<div class="note">${c.list.some(x => x.isin === isin) ? "masz" : "w planie"} · ${esc(p.symbol)} · ${pct(p.tydz_proc, 2)} ${esc(p.waluta)}</div></td><td class="n ${cls(p.tydz_pln_proc)}">${pct(p.tydz_pln_proc, 2)}</td><td class="n ${cls(p.mies_pln_proc)}">${pct(p.mies_pln_proc, 2)}</td></tr>`).join("")}</tbody></table></div>
         <div class="tablebox"><table><thead><tr><th>Wskaźnik</th><th class="n">Ostatnio</th><th class="n">Tydzień</th></tr></thead><tbody>${(S.stan?.wskazniki || []).map(w => `<tr><td>${esc(w.nazwa)}</td><td class="n">${nf(w.wartosc, 2)}</td><td class="n ${cls(w.tydz_proc)}">${pct(w.tydz_proc, 2)}</td></tr>`).join("")}</tbody></table></div>
         <p class="note">Yahoo, ceny z opóźnieniem. Tydzień to szum przy horyzoncie 10 lat.</p></details>
       <details class="more card"><summary>Historia transakcji (${txs.length})</summary>
@@ -867,11 +924,31 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     const ikeW = Math.max(+(lim.ike_wplacone || 0), fromTx("IKE")), ikzeW = Math.max(+(lim.ikze_wplacone || 0), fromTx("IKZE"));
     const days = Math.max(0, Math.ceil((new Date(rok + "-12-31T23:59:59") - new Date()) / 86400000));
     const obl = bondList(), avg = avgMonthlyExpenses();
+    const goalsRaw = (ce.oszczednosci || []).map(g => ({ nazwa: g.nazwa || "", kwota: g.kwota ?? "", zebrane: g.zebrane ?? "", termin: g.termin || "" }));
+    const goals = goalsRaw.filter(g => g.nazwa).map(g => { const zB = S.budzet.filter(x => x.typ === "odlozone" && x.kategoria === goalCat(g)).reduce((s, x) => s + (+x.kwota || 0), 0); return { ...g, kwota: +g.kwota || 0, zBudzetu: zB, razem: (+g.zebrane || 0) + zB }; });
     el.innerHTML = `<div style="display:grid;gap:18px">
       ${(() => { const pr = S.plan?.profil || {}; if (!+pr.cel_kwota) return ""; const maj = calc().total + bondsValue() + (+(pod.zebrane || 0)); const yrs = Math.max(0, +pr.cel_rok - new Date().getFullYear()); const est = fv(maj, +pr.wplata || 0, .04, yrs);
         return `<div class="card"><header><h2>Cel: ${esc({ emerytura: "emerytura", mieszkanie: "mieszkanie / duży zakup", pomnazanie: "pomnażanie" }[pr.cel] || "mój cel")}</h2><span class="note">${zl(+pr.cel_kwota)} do ${esc(pr.cel_rok)}</span></header>
           <div class="role"><div class="row"><span>Majątek ${zl(maj)}</span><span class="mono">${pct(maj / pr.cel_kwota * 100, 0, false)}</span></div>${bar(maj, +pr.cel_kwota, null, "red")}</div>
           ${yrs ? `<p class="note">Przy wpłatach ${zl(+pr.wplata)} miesięcznie i założonych 4% rocznie po inflacji byłoby ok. ${zl(est)} w ${esc(pr.cel_rok)}. To ilustracja, nie prognoza.</p>` : ""}</div>`; })()}
+      <div class="card"><header><h2>Majątek w czasie</h2><span class="note">ETF + obligacje + poduszka</span></header>${netChart()}</div>
+      <div class="card"><header><h2>Cele oszczędnościowe</h2><span class="note">${goals.length ? goals.length + " " + (goals.length === 1 ? "cel" : goals.length < 5 ? "cele" : "celów") : "wakacje, auto, wkład…"}</span></header>
+        ${goals.length ? `<div class="roles">${goals.map(g => { const left = Math.max(0, g.kwota - g.razem), mies = g.termin ? Math.max(1, Math.round((new Date(g.termin + "-01T12:00:00") - new Date()) / 2629800000)) : 0;
+          return `<div class="role"><div class="row"><span><strong>${esc(g.nazwa)}</strong>${g.termin ? ` <span class="note">termin: ${esc(monthName(g.termin))}</span>` : ""}</span><span class="mono">${zl(g.razem)} / ${zl(g.kwota)}</span></div>${bar(g.razem, g.kwota || 1, null, g.razem >= g.kwota ? "" : "red")}
+          <p class="note">${g.razem >= g.kwota && g.kwota ? "Cel osiągnięty." : `Brakuje ${zl(left)}${mies ? `: ok. ${zl(left / mies)} miesięcznie przez ${mies} mies.` : ""}`}${g.zBudzetu ? ` · z budżetu ${zl(g.zBudzetu)}` : ""}</p></div>`; }).join("")}</div>
+          <p class="note">Odkładając w budżecie, wybierz kategorię „Cel: nazwa”, a kwota doliczy się tutaj sama.</p>` : '<p class="note">Dodaj cel poniżej. Wpłaty z budżetu w kategorii „Cel: nazwa” będą go same zapełniać.</p>'}
+        <details class="more"><summary>Edytuj cele</summary>
+          <div style="display:grid;gap:14px">${goalsRaw.map((g, i) => `<div class="fgrid"><div class="field"><label for="g-n-${i}">Nazwa</label><input id="g-n-${i}" value="${esc(g.nazwa)}" placeholder="np. Wakacje"></div><div class="field"><label for="g-k-${i}">Kwota (zł)</label><input id="g-k-${i}" type="number" min="0" step="100" inputmode="numeric" value="${esc(g.kwota)}"></div><div class="field"><label for="g-z-${i}">Już mam (zł)</label><input id="g-z-${i}" type="number" min="0" step="10" inputmode="numeric" value="${esc(g.zebrane)}"></div><div class="field"><label for="g-t-${i}">Termin</label><input id="g-t-${i}" type="month" value="${esc(g.termin)}"></div><div><button class="link" type="button" data-grm="${i}">Usuń</button></div></div>`).join("")}
+          <div class="actions"><button class="btn ghost" type="button" id="g-add">Dodaj cel</button></div></div></details>
+      </div>
+      <div class="card"><header><h2>Kalkulator: co jeśli</h2><span class="note">ilustracja, nie prognoza</span></header>
+        <div class="fgrid"><div class="field"><label for="k-s">Na start (zł)</label><input id="k-s" type="number" min="0" step="1000" inputmode="numeric" value="${Math.round(calc().total)}"></div>
+          <div class="field"><label for="k-m">Co miesiąc (zł)</label><input id="k-m" type="number" min="0" step="100" inputmode="numeric" value="${esc(+(S.plan?.profil?.wplata || CFG.wplata) || 1000)}"></div>
+          <div class="field"><label for="k-y">Lat</label><input id="k-y" type="number" min="1" max="50" step="1" inputmode="numeric" value="10"></div>
+          <div class="field"><label for="k-r">Wzrost rocznie (%)${tip("procent")}</label><input id="k-r" type="number" min="-5" max="15" step="0.5" inputmode="decimal" value="5"></div>
+          <div class="field"><label for="k-t">Koszt funduszu TER (%)${tip("ter")}</label><input id="k-t" type="number" min="0" max="3" step="0.05" inputmode="decimal" value="0.2"></div></div>
+        <div id="k-out"></div>
+        <p class="note">Stały wzrost co roku nie zdarza się naprawdę: wynik pokazuje skalę, a lata spadków są w średniej. Bez podatku Belki i inflacji.</p></div>
       <div class="card"><header><h2>Poduszka finansowa${tip("poduszka")}</h2><span class="note">3–6 miesięcy wydatków</span></header>
         ${+pod.cel ? `<div class="role"><div class="row"><span>${zl(+pod.zebrane || 0)} z ${zl(+pod.cel)}</span><span class="mono">${pct((+pod.zebrane || 0) / +pod.cel * 100, 0, false)}</span></div>${bar(+pod.zebrane || 0, +pod.cel, null)}</div>` : '<p class="note">Ustaw cel poniżej.</p>'}
         ${avg ? `<p class="note">Z budżetu: średnio ${zl(avg.avg)} miesięcznie, czyli ${zl(avg.avg * 3)}–${zl(avg.avg * 6)}.</p><div class="actions"><button class="btn ghost" type="button" id="p-3">Wpisz 3×</button><button class="btn ghost" type="button" id="p-6">Wpisz 6×</button></div>` : '<p class="note">Po miesiącu wpisywania wydatków podpowiem cel z Twoich prawdziwych kosztów.</p>'}
@@ -892,11 +969,27 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       ${S.canWrite ? `<div class="actions"><button class="btn" type="button" id="c-save">Zapisz cele</button><span class="note" id="c-msg" role="status"></span></div>` : ""}
     </div>`;
     const collect = () => ({
+      ...ce,
+      oszczednosci: goalsRaw.map((g, i) => ({ nazwa: $("#g-n-" + i).value.trim(), kwota: +$("#g-k-" + i).value || 0, zebrane: +$("#g-z-" + i).value || 0, termin: $("#g-t-" + i).value || "" })),
       poduszka: { cel: +$("#p-cel").value || 0, zebrane: +$("#p-zeb").value || 0 },
       limity: { ...lim, ike_wplacone: +$("#l-ike").value || 0, ikze_wplacone: +$("#l-ikze").value || 0 },
       obligacje: obl.map((o, i) => { const liczba = +$("#o-l-" + i).value || 0, zakup = $("#o-d-" + i).value || ""; return { seria: $("#o-s-" + i).value.trim().toUpperCase(), zakup, liczba, kwota: liczba * 100, opr1: +$("#o-r-" + i).value || 0, marza: +$("#o-m-" + i).value || 0, wykup: zakup ? addYears(zakup, 4) : "", uwaga: o.uwaga }; })
     });
-    $("#o-add").onclick = () => { S.cele = collect(); S.cele.obligacje.push({ seria: "", zakup: "", liczba: "", opr1: "", marza: "" }); renderCele(); $("details.more", el).open = true; };
+    $("#g-add").onclick = () => { S.cele = collect(); S.cele.oszczednosci.push({ nazwa: "", kwota: "", zebrane: "", termin: "" }); renderCele(); $("#g-add").closest("details").open = true; };
+    el.querySelectorAll("[data-grm]").forEach(b => b.addEventListener("click", () => { S.cele = collect(); S.cele.oszczednosci.splice(+b.dataset.grm, 1); renderCele(); $("#g-add").closest("details").open = true; }));
+    const kalk = () => {
+      const s = +$("#k-s").value || 0, m = +$("#k-m").value || 0, y = Math.max(1, +$("#k-y").value || 1), r = (+$("#k-r").value || 0) / 100, t = (+$("#k-t").value || 0) / 100;
+      const net = fv(s, m, r - t, y), paid = s + m * 12 * y;
+      $("#k-out").innerHTML = `<div class="hero" style="padding:0"><span class="label">Po ${y} latach</span><div class="big">${zl(net)}</div>
+        <div class="chips"><span class="chip">Wpłacone <b>${zl(paid)}</b></span><span class="chip">Zysk <b class="${cls(net - paid)}">${szl(net - paid)}</b></span></div></div>
+        <ul class="checks" style="margin-top:6px">
+          <li><span class="ic info">i</span><div>Koszt funduszu przez ${y} lat: <strong>${zl(fv(s, m, r, y) - net)}</strong>${t >= .003 ? ` · przy TER 0,20% byłoby ${zl(fv(s, m, r - .002, y) - net)} więcej` : ""}</div><span></span></li>
+          <li><span class="ic info">i</span><div>Start rok później: <strong>${szl(fv(s, m, r - t, y - 1) - net)}</strong> na koniec okresu</div><span></span></li>
+          <li><span class="ic info">i</span><div>+100 zł miesięcznie: <strong>${szl(fv(s, m + 100, r - t, y) - net)}</strong></div><span></span></li>
+        </ul>`;
+    };
+    el.querySelectorAll("#k-s,#k-m,#k-y,#k-r,#k-t").forEach(i => i.addEventListener("input", kalk)); kalk();
+    $("#o-add").onclick = () => { S.cele = collect(); S.cele.obligacje.push({ seria: "", zakup: "", liczba: "", opr1: "", marza: "" }); renderCele(); $("#o-add").closest("details").open = true; };
     el.querySelectorAll("[data-orm]").forEach(b => b.addEventListener("click", () => { S.cele = collect(); S.cele.obligacje.splice(+b.dataset.orm, 1); renderCele(); }));
     const setPod = k => { $("#p-cel").value = Math.round(avg.avg * k / 100) * 100; };
     $("#p-3")?.addEventListener("click", () => setPod(3));
@@ -926,8 +1019,10 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       <div class="card"><header><h2>Tezy</h2><span class="note">zmieniają się przez fakty, nie przez kurs</span></header>
         ${tezy.map(([k, t]) => { const hist = chrono.filter(r => r.tezy?.[k]).map(r => r.tezy[k]); const draft = /^SZKIC/.test(t.kiedy_sie_myle || ""); return `<details class="more"><summary><span>${esc(S.plan.role[k]?.nazwa || k)}</span>${statusPill(hist[hist.length - 1])}</summary>
           <div style="display:grid;gap:8px"><p>${esc(t.teza)}</p><div><span class="label">Co obserwuję</span><ul style="margin:4px 0 0;padding-left:18px">${(t.co_obserwowac || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul></div><div><span class="label">Kiedy się mylę</span> ${draft ? '<span class="pill warn">szkic</span>' : ""}<p>${esc((t.kiedy_sie_myle || "").replace(/^SZKIC do zatwierdzenia:\s*/, ""))}</p></div></div></details>`; }).join("") || '<p class="note">Brak tez.</p>'}</div>
+      ${journalCard()}
       ${S.analizy.length > 1 ? `<details class="more card"><summary>Wcześniejsze analizy (${S.analizy.length - 1})</summary>${S.analizy.slice(1).map(a => `<details class="more"><summary>${esc(a.data)}</summary><div class="md">${md(a.tresc)}</div></details>`).join("")}</details>` : ""}
     </div>`;
+    wireJournal();
     $("#ai-go")?.addEventListener("click", () => runAnalysis());
     $("#ai-stop")?.addEventListener("click", () => aiCtl?.abort());
     // outside Claude there is no built-in model: hand the same prompt to the Claude app instead
@@ -935,6 +1030,38 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       const text = promptFor(calc());
       try { await navigator.clipboard.writeText(text); $("#ai-msg").textContent = "Skopiowano. Otwórz Claude, wklej i wyślij."; }
       catch (e) { $("#ai-out").innerHTML = `<textarea readonly style="min-height:160px">${esc(text)}</textarea>`; $("#ai-out textarea").select(); $("#ai-msg").textContent = "Zaznaczone: skopiuj ręcznie."; }
+    });
+  }
+  /* ---------- decision journal: why I did it and how I felt, read back months later next to what happened ---------- */
+  const EMOCJE = [["spokoj", "Spokój"], ["pewnosc", "Pewność"], ["niepewnosc", "Niepewność"], ["strach", "Strach"], ["fomo", "Boję się, że coś mi ucieknie"], ["chciwosc", "Chęć szybkiego zysku"]];
+  const DZ_TYP = [["kupno", "Kupuję"], ["sprzedaz", "Sprzedaję"], ["plan", "Zmieniam plan"], ["nic", "Postanawiam nic nie robić"]];
+  let jEmo = "spokoj", jTyp = "kupno";
+  function journalCard() {
+    const valueAt = d => { const h = S.historia.filter(x => x.data <= d).sort((a, b) => b.data.localeCompare(a.data))[0]; return h?.wartosc; };
+    const now = calc().total;
+    return `<div class="card" id="journal"><header><h2>Dziennik decyzji</h2><span class="note">${S.dziennik.length} wpisów</span></header>
+      ${learn("Po co dziennik", "Zapisujesz jednym zdaniem, co robisz, dlaczego i co czujesz. Po kilku miesiącach widać, które decyzje podejmowałeś na spokojnie, a które w emocjach, i co z nich wyszło. To najszybszy sposób nauki na własnych błędach.")}
+      ${S.canWrite ? `<div class="seg n2" role="group" aria-label="Decyzja" style="grid-template-columns:repeat(2,1fr)">${DZ_TYP.map(([v, l]) => `<button type="button" data-jtyp="${v}" aria-pressed="${jTyp === v}">${l}</button>`).join("")}</div>
+      <div class="field"><label for="j-txt">Dlaczego? Jednym, dwoma zdaniami</label><textarea id="j-txt" rows="2" placeholder="np. Dokupuję rynki wschodzące, bo są najbardziej poniżej celu. Spadły o 8%, ale teza bez zmian."></textarea></div>
+      <div class="setrow"><span class="label">Co czuję</span><div class="catchips">${EMOCJE.map(([v, l]) => `<button type="button" data-jemo="${v}" aria-pressed="${jEmo === v}">${l}</button>`).join("")}</div></div>
+      <div class="actions"><button class="btn" type="button" id="j-save">Zapisz w dzienniku</button><span class="note" id="j-msg" role="status"></span></div>` : ""}
+      ${S.dziennik.length ? `<div class="list">${S.dziennik.slice(0, 30).map(j => { const then = j.wartosc_portfela ?? valueAt(j.data), days = (Date.now() - new Date(j.data + "T12:00:00")) / 86400000;
+        return `<div class="item" style="grid-template-columns:1fr auto"><div class="t">${esc((DZ_TYP.find(t => t[0] === j.typ) || [, j.typ])[1])}${j.isin ? " · " + esc(fundIndex().name[j.isin] || j.isin) : ""}</div><div class="s" style="text-align:right">${esc(j.data)}</div>
+          <div class="s" style="grid-column:1/-1;color:var(--ink)">${esc(j.tekst)}</div>
+          <div class="s" style="grid-column:1/-1">${esc((EMOCJE.find(e => e[0] === j.emocja) || [, ""])[1])}${days >= 90 && then && now ? ` · <strong>od tego czasu portfel ${szl(now - then)}</strong> (z wpłatami)` : ""}</div></div>`; }).join("")}</div>` : '<p class="note">Pierwszy wpis zrób przy najbliższym zakupie. Możesz też zapisać powód od razu w oknie „Zakup ETF”.</p>'}
+    </div>`;
+  }
+  function wireJournal() {
+    const el = $("#journal"); if (!el) return;
+    el.querySelectorAll("[data-jtyp]").forEach(b => b.onclick = () => { jTyp = b.dataset.jtyp; el.querySelectorAll("[data-jtyp]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
+    el.querySelectorAll("[data-jemo]").forEach(b => b.onclick = () => { jEmo = b.dataset.jemo; el.querySelectorAll("[data-jemo]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
+    $("#j-save")?.addEventListener("click", async () => {
+      const t = $("#j-txt").value.trim();
+      if (!t) { $("#j-msg").textContent = "Napisz choć jedno zdanie."; return; }
+      $("#j-save").disabled = true;
+      try { await db.collection("dziennik").add({ data: today(), typ: jTyp, emocja: jEmo, tekst: t, wartosc_portfela: Math.round(calc().total) }); $("#j-txt").value = ""; $("#j-msg").textContent = "Zapisano."; }
+      catch (err) { $("#j-msg").textContent = writeErr(err); }
+      $("#j-save").disabled = false;
     });
   }
   function promptFor(c) {
@@ -1019,7 +1146,8 @@ ${JSON.stringify(data)}`;
           <div class="field"><label for="q-isin">Fundusz</label><select id="q-isin">${funds.map(i => `<option value="${esc(i)}" ${i === pre.isin ? "selected" : ""}>${esc(name[i])}${skip.has(i) ? " (nie dokupuję)" : ""}</option>`).join("")}</select></div>
           <div class="fgrid"><div class="field"><label for="q-j">Jednostki (z XTB)</label><input id="q-j" type="number" step="any" min="0" inputmode="decimal" required value="${esc(pre.jednostki ?? "")}"></div>
           <div class="field"><label for="q-konto">Konto</label><select id="q-konto"><option value="zwykle">Zwykłe</option><option value="IKE">IKE</option><option value="IKZE">IKZE</option></select></div></div>
-          <p class="note">Kwota w PLN, która zeszła z konta (z przewalutowaniem), i liczba jednostek z potwierdzenia w XTB.</p>` : `
+          <p class="note">Kwota w PLN, która zeszła z konta (z przewalutowaniem), i liczba jednostek z potwierdzenia w XTB.</p>
+          <div class="field"><label for="q-why">Dlaczego? (opcjonalnie, trafi do dziennika decyzji)</label><input id="q-why" placeholder="np. zgodnie z planem, EM najbardziej poniżej celu"></div>` : `
           <div class="catchips" role="group" aria-label="Kategoria">${k.map(x => `<button type="button" data-kat="${esc(x)}" aria-pressed="${x === sheet.kat}">${esc(x)}</button>`).join("")}</div>
           <div class="fgrid"><div class="field"><label for="q-opis">Opis (opcjonalnie)</label><input id="q-opis" placeholder="np. Biedronka"></div>
           <div class="field"><label for="q-stale" style="display:flex;gap:8px;align-items:center;padding-top:22px"><input id="q-stale" type="checkbox" style="width:auto;accent-color:var(--red)"> co miesiąc</label></div></div>`}
@@ -1048,7 +1176,12 @@ ${JSON.stringify(data)}`;
         doc = { data: d, typ: sheet.mode, kategoria: sheet.kat, kwota: kw, opis: $("#q-opis").value.trim(), stale: $("#q-stale").checked };
       }
       $("#q-save").disabled = true; $("#q-msg").textContent = "Zapisuję…";
-      try { await db.collection(col).add(doc); closeSheet(); }
+      try {
+        await db.collection(col).add(doc);
+        const why = $("#q-why")?.value.trim();
+        if (col === "transakcje" && why) await db.collection("dziennik").add({ data: d, typ: "kupno", isin: doc.isin, emocja: "spokoj", tekst: why, wartosc_portfela: Math.round(calc().total) });
+        closeSheet();
+      }
       catch (err) { $("#q-msg").textContent = writeErr(err); $("#q-save").disabled = false; }
     });
   }
@@ -1358,8 +1491,8 @@ ${JSON.stringify(data)}`;
     if (snapWritten || !db || !S.canWrite || !S.loaded.historia || !S.loaded.tx || !S.stan?.asOf || !c.list.length) return;
     const id = S.stan.asOf.slice(0, 10);
     snapWritten = true;
-    if (S.historia.some(h => h._id === id)) return;
-    try { await db.doc("historia/" + id).set({ data: id, wartosc: Math.round(c.total), wplacono: Math.round(c.wplacono) }); } catch (e) {}
+    if (S.historia.some(h => h._id === id && h.majatek != null)) return;
+    try { await db.doc("historia/" + id).set({ data: id, wartosc: Math.round(c.total), wplacono: Math.round(c.wplacono), obligacje: Math.round(bondsValue()), poduszka: Math.round(+(S.cele?.poduszka?.zebrane || 0)), majatek: Math.round(c.total + bondsValue() + +(S.cele?.poduszka?.zebrane || 0)) }); } catch (e) {}
   }
   let rq = false;
   const queue = () => { if (rq) return; rq = true; requestAnimationFrame(() => { rq = false; if (!sheet) renderAll(); else pendingRender = true; }); };
@@ -1385,6 +1518,7 @@ ${JSON.stringify(data)}`;
     colSub(db.collection("historia"), "historia");
     colSub(db.collection("budzet").orderBy("data", "desc").limit(1000), "budzet");
     colSub(db.collection("dzienne").orderBy("data", "desc").limit(30), "dzienne");
+    colSub(db.collection("dziennik").orderBy("data", "desc").limit(200), "dziennik");
     sample = null;
     queue();
   })();

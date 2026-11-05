@@ -161,6 +161,26 @@ def crisis_test(plan):
     return {"wyniki": out, "zamienniki": used, "uwaga": "W złotych, z dywidendami, według wag z planu. Zamienniki z USA o tym samym indeksie lub temacie."}
 
 
+def fund_risk(sym, rate):
+    """For the fund card: worst fall from a peak and yearly volatility, in PLN, over up to 10 years of this listing."""
+    q = fetch(sym, "10y")
+    if not q or len(q["points"]) < 60:
+        return None
+    pts = [(d, c * rate(q["currency"], d)) for d, c in q["points"]]
+    peak, peak_d, worst = pts[0][1], pts[0][0], (0.0, None, None)
+    for d, v in pts:
+        if v > peak:
+            peak, peak_d = v, d
+        if v / peak - 1 < worst[0]:
+            worst = (v / peak - 1, peak_d, d)
+    weekly = [v for i, (d, v) in enumerate(pts) if i % 5 == 0]
+    rets = [b / a - 1 for a, b in zip(weekly, weekly[1:])]
+    mean = sum(rets) / len(rets)
+    vol = (sum((r - mean) ** 2 for r in rets) / (len(rets) - 1)) ** 0.5 * 52 ** 0.5
+    return {"od": str(pts[0][0]), "maks_spadek_proc": round(worst[0] * 100, 1), "maks_spadek_od": str(worst[1]),
+            "maks_spadek_do": str(worst[2]), "zmiennosc_proc": round(vol * 100, 1)}
+
+
 def back(points, n):
     return points[max(0, len(points) - 1 - n)]
 
@@ -188,6 +208,9 @@ def build(plan, fxd):
                       "tydz_proc": round((last / w - 1) * 100, 2),
                       "tydz_pln_proc": round((pln / (w * rate(q["currency"], wd)) - 1) * 100, 2),
                       "mies_pln_proc": round((pln / (m * rate(q["currency"], md)) - 1) * 100, 2)}
+        risk = fund_risk(sym, rate)
+        if risk:
+            ceny[isin]["ryzyko"] = risk
     wsk = []
     for sym, label in plan.get("wskazniki", {}).items():
         q = fetch(sym)
