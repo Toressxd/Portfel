@@ -31,7 +31,7 @@
   --red: #d4151f;          /* brand: actions, the active tab, the "+" */
   --red-soft: #fbe6e6;
   --on-red: #ffffff;
-  --up: #12804f;           /* gains */
+  --up: #0b6b40;           /* gains (darker for contrast on grey cards) */
   --up-soft: #e2f3ea;
   --down: #c2171f;         /* losses (always with a minus sign) */
   --warn: #9a6200;
@@ -88,8 +88,9 @@ nav.tabbar button[aria-selected="true"] { color: var(--red); }
 .hero { padding: 6px 0 2px; display: grid; gap: 6px; }
 .hero .big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2.2rem, 9vw, 3rem); letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { font-size: 0.82rem; padding: 4px 10px; border-radius: 999px; background: var(--surface); white-space: nowrap; }
-.chip b { font-weight: 600; font-family: var(--f-data); font-size: 0.8rem; }
+.chip { font-size: 0.82rem; padding: 4px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip b { font-weight: 700; font-family: var(--f-data); font-size: 0.8rem; color: var(--ink); }
+.chip b.up { color: var(--up); } .chip b.down { color: var(--down); }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .kpi { display: grid; gap: 2px; }
 .kpi .v { font-family: var(--f-data); font-size: 1.15rem; font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -245,8 +246,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-05-3"></script>
-<script src="backend.js?v=2026-11-05-3"></script>
+<script src="config.js?v=2026-11-05-4"></script>
+<script src="backend.js?v=2026-11-05-4"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -539,6 +540,10 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     procent: { t: "Procent składany", k: "Spokój", d: [
       "Zysk zaczyna zarabiać na siebie. Przy 5% rocznie 10 000 zł po 10 latach to ok. 16 300 zł, po 20 latach ok. 26 500 zł, bez dopłat.",
       "Dlatego najważniejsze są czas i regularne wpłaty, a nie trafienie w idealny moment."] },
+    benchmark: { t: "Porównanie z MSCI World", k: "Fundusze", d: [
+      "Aplikacja liczy, ile miałbyś, gdyby każdą złotówkę wpłaconą w tych samych dniach włożyć w jeden fundusz na świat (MSCI World).",
+      "<strong>Plus</strong> znaczy, że Twój podział (satelity, inne fundusze) wypadł lepiej niż sam świat, <strong>minus</strong>, że gorzej. Po kilku tygodniach to szum; sens ma dopiero porównanie z kilku lat.",
+      "To odpowiedź na pytanie: czy dodatki w moim planie są warte zachodu?"] },
     teza: { t: "Teza inwestycyjna", k: "Spokój", d: [
       "Krótko zapisany powód, dla którego masz daną pozycję, co obserwujesz i <strong>kiedy uznasz, że się mylisz</strong>.",
       "Przy spadku sprawdzasz wtedy fakty z tezy, a nie tylko cenę. Raporty w aplikacji oceniają tezy co tydzień."] }
@@ -863,6 +868,13 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       ${[0, h.length - 1].map(i => `<text x="${x(i)}" y="${H - 6}" text-anchor="${i ? "end" : "start"}">${esc(h[i].data.slice(5))}</text>`).join("")}
     </svg><p class="note">Od ${esc(h[0].data)}: <span class="${cls(last - first)}">${szl(last - first)}</span> (razem z nowymi wpłatami i oszczędnościami).</p>`;
   }
+  // the yearly rate needs a month of history; tell when it appears instead of a vague "later"
+  function firstYearly() {
+    const d = S.tx.map(t => t.data).filter(Boolean).sort()[0];
+    if (!d) return "pierwszego zakupu";
+    const x = new Date(d + "T12:00:00"); x.setDate(x.getDate() + 30);
+    return x.toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" });
+  }
   function renderPortfel(c) {
     const el = $("#v-portfel");
     const { name } = fundIndex();
@@ -873,7 +885,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     const txs = [...S.tx].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
     el.innerHTML = `<div style="display:grid;gap:18px">
       <div class="hero"><span class="label">ETF-y</span><div class="big">${zl(c.total)}</div>
-        <div class="chips"><span class="chip">Wynik <b class="${cls(wynik)}">${szl(wynik)}</b></span>${CFG.spokojny ? "" : `<span class="chip">Tydzień <b class="${cls(c.total - c.prevTotal)}">${szl(c.total - c.prevTotal)}</b></span>`}<span class="chip">Rocznie <b>${c.xirr == null ? "po miesiącu" : pct(c.xirr)}</b></span><span class="chip">vs MSCI World <b class="${cls(vs)}">${vs == null ? "–" : szl(vs)}</b></span></div>
+        <div class="chips"><span class="chip">Wynik <b class="${cls(wynik)}">${szl(wynik)}</b></span>${CFG.spokojny ? "" : `<span class="chip">Tydzień <b class="${cls(c.total - c.prevTotal)}">${szl(c.total - c.prevTotal)}</b></span>`}<span class="chip">Rocznie <b>${c.xirr == null ? "od " + firstYearly() : pct(c.xirr)}</b></span><span class="chip">vs sam MSCI World <b class="${cls(vs)}">${vs == null ? "–" : szl(vs)}</b>${tip("benchmark")}</span></div>
       </div>
       <div class="card"><header><h2>Następna wpłata</h2><span class="note">dokupuję to, co najbardziej poniżej celu</span></header>
         <div class="field" style="max-width:220px"><label for="wpl">Kwota (zł)</label><input id="wpl" type="number" min="0" step="100" inputmode="numeric" value="${amount}"></div>
