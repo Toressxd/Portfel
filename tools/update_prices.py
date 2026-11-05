@@ -75,6 +75,92 @@ def find_symbol(isin):
     return None
 
 
+"""Crisis test: how the plan's weights would have fared in three real crashes, in PLN.
+Most UCITS funds are younger than 2008, so each fund stands in for a US-listed fund on the same index or theme
+(prices with dividends). Unknown funds count as world equities."""
+PROXY = {
+    "IE00B4L5Y983": {"SPY": .7, "EFA": .3}, "IE00BK5BQT80": {"SPY": .6, "EFA": .3, "EEM": .1},
+    "IE00B5BMR087": {"SPY": 1}, "IE00BKM4GZ66": {"EEM": 1}, "IE00B53SZB19": {"QQQ": 1}, "IE00BMC38736": {"SOXX": 1},
+    "IE00BGV5VN51": {"QQQ": 1}, "IE00B43HR379": {"XLV": 1}, "IE000YYE6WK5": {"ITA": 1}, "IE00BJ5JPG56": {"FXI": 1},
+    "IE000YU9K6K2": {"ITA": 1}, "IE00063FT9K6": {"XME": 1}, "IE0003Z9E2Y3": {"XME": 1}, "IE00B4ND3602": {"GLD": 1},
+    "IE00B4NCWG09": {"SLV": 1}, "GB00B15KXQ89": {"HG=F": 1}, "IE00B5WHFQ43": {"EWW": 1},
+}
+WORLD = PROXY["IE00B4L5Y983"]
+CRISES = [("Kryzys finansowy 2008", "2007-10-01", "2014-12-31"), ("Pandemia 2020", "2020-01-15", "2021-12-31"),
+          ("Inflacja i stopy 2022", "2021-11-01", "2024-12-31")]
+_hist = {}
+
+
+def history(symbol):
+    """Daily closes with dividends since mid-2007, {date: price}."""
+    if symbol in _hist:
+        return _hist[symbol]
+    out = {}
+    url = (f"https://query2.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(symbol)}?period1=1185926400"
+           f"&period2={int(time.time())}&interval=1d")
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
+            res = json.load(r)["chart"]["result"][0]
+        closes = (res["indicators"].get("adjclose") or [{}])[0].get("adjclose") or res["indicators"]["quote"][0]["close"]
+        off = res["meta"].get("gmtoffset") or 0
+        out = {datetime.fromtimestamp(t + off, timezone.utc).date().isoformat(): c for t, c in zip(res.get("timestamp") or [], closes) if c}
+    except (urllib.error.URLError, KeyError, IndexError, TypeError, ValueError):
+        pass
+    _hist[symbol] = out
+    time.sleep(0.3)
+    return out
+
+
+def crisis_test(plan):
+    weights, used = {}, {}
+    for r in plan.get("role", {}).values():
+        funds = [i for i in r.get("fundusze", {}) if i not in plan.get("nie_dokupujemy", [])] or list(r.get("fundusze", {}))
+        if not funds or not r.get("cel"):
+            continue
+        mix = PROXY.get(funds[0], WORLD)
+        used[funds[0]] = "+".join(mix) + ("" if funds[0] in PROXY else " (brak historii: świat)")
+        for s, w in mix.items():
+            weights[s] = weights.get(s, 0) + r["cel"] / 100 * w
+    fx = history("USDPLN=X")
+    if not weights or not fx:
+        return None
+
+    def path(wts, start, end):
+        series = {s: history(s) for s in wts}
+        days = sorted(d for d in fx if start <= d <= end)
+        last, base, out = {}, {}, []
+        for d in days:  # carry the last known price over holidays
+            for s, h in series.items():
+                if d in h:
+                    last[s] = h[d] * fx[d]
+            if len(last) < len(wts):
+                continue
+            base = base or dict(last)
+            out.append((d, sum(w * last[s] / base[s] for s, w in wts.items())))
+        return out
+
+    def drawdown(p):
+        peak, peak_d, worst = p[0][1], p[0][0], (0, None, None, None)
+        for d, v in p:
+            if v > peak:
+                peak, peak_d = v, d
+            dd = v / peak - 1
+            if dd < worst[0]:
+                worst = (dd, peak_d, d, peak)
+        dd, top, bottom, level = worst
+        back = next((d for d, v in p if d > (bottom or "") and v >= level), None) if bottom else None
+        months = lambda a, b: round((datetime.fromisoformat(b) - datetime.fromisoformat(a)).days / 30.44)
+        return {"spadek_proc": round(dd * 100, 1), "szczyt": top, "dolek": bottom, "powrot": back,
+                "miesiace_spadku": months(top, bottom) if bottom else 0, "miesiace_powrotu": months(bottom, back) if back else None}
+
+    out = []
+    for name, start, end in CRISES:
+        p, w = path(weights, start, end), path(WORLD, start, end)
+        if len(p) > 20:
+            out.append({"nazwa": name, **drawdown(p), "swiat_proc": drawdown(w)["spadek_proc"] if len(w) > 20 else None})
+    return {"wyniki": out, "zamienniki": used, "uwaga": "W złotych, z dywidendami, według wag z planu. Zamienniki z USA o tym samym indeksie lub temacie."}
+
+
 def back(points, n):
     return points[max(0, len(points) - 1 - n)]
 
@@ -173,6 +259,7 @@ def main():
                 upsert(uid, "app/plan", plan)
             print(f"  nowe notowania: {found}, nie znaleziono: {[i for i in missing if i not in found]}")
         stan = build(plan, fxd)
+        stan["kryzysy"] = crisis_test(plan)
         upsert(uid, "app/stan", stan)
         # opening positions saved before their fund had a price: turn the value into units now
         todo = supa("GET", f"/rest/v1/docs?select=path,data&user_id=eq.{uid}&path=like.transakcje/*&data->>do_przeliczenia=eq.true")

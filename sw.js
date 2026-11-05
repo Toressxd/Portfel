@@ -1,6 +1,6 @@
 // Keeps the app shell on the phone so it opens instantly and works offline; the data itself
 // always comes from Supabase. A new VERSION (set by build.py) replaces the old cache.
-const VERSION = "2026-11-02-3";
+const VERSION = "2026-11-05-1";
 const SHELL = ["./", "index.html", "config.js?v=" + VERSION, "backend.js?v=" + VERSION, "manifest.webmanifest",
   "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png"];
 
