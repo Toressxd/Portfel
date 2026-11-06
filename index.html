@@ -76,7 +76,7 @@ header.top { display: flex; justify-content: space-between; align-items: center;
 #asof { font-size: 0.8rem; color: var(--muted); text-align: right; }
 
 /* navigation: five equal tabs at the bottom, kept compact on wide screens; the red "+" floats just above the bar on the right */
-.sidebrand { display: none; }
+.sidebrand, .sideadd { display: none; }
 .navwrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--bg); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
 nav.tabbar { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; }
 nav.tabbar button[role=tab] { background: none; border: 0; height: var(--nav-h); min-width: 0; display: grid; place-items: center; align-content: center; gap: 3px; padding: 6px 2px; color: var(--muted); font: 600 0.7rem var(--f-body); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -241,11 +241,15 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   .sidebrand { display: flex; align-items: center; gap: 10px; font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; padding: 2px 10px 26px; }
   .sidebrand svg { width: 32px; height: 32px; }
   header.top .brand { visibility: hidden; }
+  /* on a computer "add" lives at the top of the side menu, where the eye starts, instead of a far corner */
+  .sideadd { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 46px; margin: 0 0 18px; border: 0; border-radius: 12px; background: var(--red); color: var(--on-red); font: 700 0.98rem var(--f-body); cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+  .sideadd svg { width: 20px; height: 20px; }
+  .sideadd:hover { filter: brightness(1.08); }
+  .fab { display: none; }
   nav.tabbar { max-width: none; grid-template-columns: 1fr; gap: 4px; align-content: start; }
   nav.tabbar button[role=tab] { height: 46px; display: flex; justify-content: flex-start; align-items: center; gap: 12px; padding: 0 14px; border-radius: 10px; font-size: 0.95rem; color: var(--ink); }
   nav.tabbar button[role=tab]:hover { background: var(--bg); }
   nav.tabbar button[aria-selected="true"] { background: var(--red-soft); color: var(--red); }
-  .fab { right: 32px; bottom: 28px; }
   header.top { padding-bottom: 4px; }
   /* cards flow into two balanced columns; the headline number spans both */
   :is(#v-start, #v-budzet, #v-portfel, #v-cele) > div { display: block !important; columns: 2; column-gap: 20px; }
@@ -272,7 +276,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   <section id="v-raporty" hidden></section>
 </div>
 
-<div class="navwrap"><div class="sidebrand" aria-hidden="true"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="var(--red)"/><g transform="rotate(-90 32 32)" fill="none" stroke-width="9"><circle cx="32" cy="32" r="17" stroke="#ffffff" stroke-dasharray="61 46" stroke-dashoffset="-2"/><circle cx="32" cy="32" r="17" stroke="#111111" stroke-dasharray="38.8 68.2" stroke-dashoffset="-66"/></g></svg>NKU</div><nav class="tabbar" role="tablist" aria-label="Sekcje">
+<div class="navwrap"><div class="sidebrand" aria-hidden="true"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="var(--red)"/><g transform="rotate(-90 32 32)" fill="none" stroke-width="9"><circle cx="32" cy="32" r="17" stroke="#ffffff" stroke-dasharray="61 46" stroke-dashoffset="-2"/><circle cx="32" cy="32" r="17" stroke="#111111" stroke-dasharray="38.8 68.2" stroke-dashoffset="-66"/></g></svg>NKU</div><button class="sideadd" type="button" id="side-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Dodaj</button><nav class="tabbar" role="tablist" aria-label="Sekcje">
   <button role="tab" id="t-start" data-view="start" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Start</button>
   <button role="tab" id="t-budzet" data-view="budzet" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg>Budżet</button>
   <button role="tab" id="t-portfel" data-view="portfel" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg>Portfel</button>
@@ -284,8 +288,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-06-9"></script>
-<script src="backend.js?v=2026-11-06-9"></script>
+<script src="config.js?v=2026-11-06-10"></script>
+<script src="backend.js?v=2026-11-06-10"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -1403,7 +1407,7 @@ ${JSON.stringify(data)}`;
     sheet = { mode, kat: null, pre };
     drawSheet();
   }
-  function closeSheet() { sheet = null; $("#sheet-root").innerHTML = ""; $("#fab").focus(); }
+  function closeSheet() { sheet = null; $("#sheet-root").innerHTML = ""; (getComputedStyle($("#fab")).display === "none" ? $("#side-add") : $("#fab")).focus(); }
   function drawSheet() {
     const root = $("#sheet-root");
     if (!sheet) { root.innerHTML = ""; return; }
@@ -1529,6 +1533,7 @@ ${JSON.stringify(data)}`;
     };
   }
   $("#fab").addEventListener("click", () => openSheet($("#v-portfel").hidden ? "wydatek" : "etf"));
+  $("#side-add").addEventListener("click", () => openSheet($("#v-portfel").hidden ? "wydatek" : "etf"));
   let lastY = scrollY;
   addEventListener("scroll", () => { const y = scrollY; if (Math.abs(y - lastY) > 8) { $("#fab").classList.toggle("away", y > lastY && y > 120); lastY = y; } }, { passive: true });
   document.addEventListener("keydown", e => { if (e.key !== "Escape") return; if (tipView) closeTip(); else if (sheet) closeSheet(); });
