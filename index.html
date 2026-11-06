@@ -323,8 +323,8 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-06-11"></script>
-<script src="backend.js?v=2026-11-06-11"></script>
+<script src="config.js?v=2026-11-06-12"></script>
+<script src="backend.js?v=2026-11-06-12"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -1273,30 +1273,18 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
     });
   }
 
-  /* ---------- listening: reports read aloud. The MP3 is made by GitHub Actions (plays with the screen off, in the car);
-     until it is ready the phone's own voice reads the text, which needs the screen on ---------- */
+  /* ---------- listening: each report has a spoken version (audio_tekst, written to be heard, not read) recorded as an MP3
+     by GitHub Actions; it plays with the screen off and in the car. No robotic phone voice: until the file exists, the button says so ---------- */
   const PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
   const PAUSE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
   const HEAD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/></svg>';
   const RATES = [1, 1.15, 1.3, 1.5, 0.9];
-  const PL = { q: [], i: -1, tts: null, rate: 1, playing: false };
+  const PL = { q: [], i: -1, rate: 1, playing: false };
   let heard = {}, plDrag = false;
   try { PL.rate = +localStorage.getItem("nku-rate") || 1; heard = JSON.parse(localStorage.getItem("nku-heard") || "{}"); } catch (e) {}
   const aud = $("#aud");
   const mmss = s => { s = Math.max(0, Math.round(s || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
   const fileOf = r => { const a = r?.audio; return a?.url && (!a.wygasa || a.wygasa >= today()) ? a : null; };
-  function speechText(r, kind) {
-    const out = []; let skip = false;
-    for (const raw of String(r.tresc || "").split("\n")) {
-      const l = raw.trim();
-      if (/^#{1,4}\s/.test(l)) { const h = l.replace(/^#+\s*/, ""); skip = /^źródł/i.test(h); if (!skip) out.push(h.replace(/[.:]+$/, "") + "."); continue; }
-      if (skip || !l || /^\|?\s*:?-{3,}/.test(l)) continue;
-      let t = l.startsWith("|") ? l.replace(/^\||\|$/g, "").split("|").map(c => c.trim()).filter(Boolean).join(", ") : l;
-      t = t.replace(/^[-*•]\s+|^\d+\.\s+/, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/https?:\/\/\S+/g, "").replace(/[*_`>#]/g, "");
-      out.push(/[.!?:;]$/.test(t) ? t : t + ".");
-    }
-    return (kind === "dzienne" ? "Raport dnia. " : "Raport tygodnia. ") + out.join(" ");
-  }
   function itemOf(kind, r) {
     const f = fileOf(r);
     return { id: kind + "/" + r._id, title: (kind === "dzienne" ? "Raport dnia " : "Raport tygodnia ") + r.data.slice(8, 10) + "." + r.data.slice(5, 7), src: f?.url || null, sec: f?.sekundy || 0, kind, r };
@@ -1305,14 +1293,15 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
     const q = [], d = S.dzienne[0], w = S.raporty[0], age = x => (Date.now() - new Date(x.data + "T12:00:00")) / 86400000;
     if (d && age(d) <= 4) q.push(itemOf("dzienne", d));
     if (w && age(w) <= 8 && !heard["raporty/" + w._id]) q.push(itemOf("raporty", w));
-    return q;
+    return q.filter(x => x.src);
   }
   function listenBtn(kind, r) {
     const it = itemOf(kind, r);
+    if (!it.src) return (Date.now() - new Date(r.data + "T12:00:00")) / 86400000 <= 3 ? `<span class="note">Nagranie w przygotowaniu, zwykle gotowe do godziny po raporcie.</span>` : "";
     return `<button class="listen" type="button" data-listen="${kind}|${esc(r._id)}" aria-pressed="false">${HEAD_SVG}<span class="lb">Odsłuchaj</span>${it.sec ? " · " + Math.max(1, Math.round(it.sec / 60)) + " min" : ""}${heard[it.id] ? " · ✓" : ""}</button>`;
   }
   function listenAllBtn() {
-    const q = listenQueue(); if (!q.length) return "";
+    const q = listenQueue(); if (!q.length) { const d = S.dzienne[0]; return d && !fileOf(d) ? `<span class="note">Nagranie w przygotowaniu.</span>` : ""; }
     const min = q.reduce((a, x) => a + x.sec, 0) / 60;
     return `<button class="listen" type="button" data-listen="all">${HEAD_SVG}<span>Słuchaj${q.length > 1 ? " raportów (" + q.length + ")" : ""}</span>${min ? " · " + Math.max(1, Math.round(min)) + " min" : ""}</button>`;
   }
@@ -1333,26 +1322,25 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
     if (PL.q[PL.i]?.id === it.id) { togglePlay(); return; }
     stopAll(); PL.q = [it]; playAt(0);
   });
-  function stopAll() { aud.pause(); ttsHalt(); PL.tts = null; PL.playing = false; }
+  function stopAll() { aud.pause(); PL.playing = false; }
   function playAt(i) {
     stopAll();
     if (i < 0 || i >= PL.q.length) { closePlayer(); return; }
     PL.i = i; const it = PL.q[i];
     document.body.classList.add("playing"); $("#player").hidden = false;
     PL.playing = true;
-    if (it.src) { aud.src = it.src; aud.playbackRate = PL.rate; aud.play().catch(err => { if (err?.name !== "AbortError" && PL.q[PL.i] === it) { it.src = null; ttsStart(it); plUi(); } }); }
-    else ttsStart(it);
+    aud.src = it.src; aud.playbackRate = PL.rate;
+    aud.play().catch(err => { if (err?.name !== "AbortError" && PL.q[PL.i] === it) { PL.playing = false; plUi(); $("#pl-time").textContent = "Nie udało się odtworzyć. Sprawdź internet."; } });
     mediaMeta(it); plUi();
   }
   function closePlayer() { stopAll(); PL.q = []; PL.i = -1; $("#player").hidden = true; document.body.classList.remove("playing"); if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "none"; syncListen(); }
   function togglePlay() {
     if (!PL.q[PL.i]) return;
-    if (PL.playing) { PL.playing = false; if (PL.tts) ttsHalt(); else aud.pause(); }
-    else { PL.playing = true; if (PL.tts) ttsSpeak(); else aud.play().catch(() => {}); }
+    if (PL.playing) { PL.playing = false; aud.pause(); }
+    else { PL.playing = true; aud.play().catch(() => {}); }
     plUi();
   }
   function seek(sec) {
-    if (PL.tts) { const t = PL.tts; t.k = Math.max(0, Math.min(t.parts.length - 1, t.k + Math.sign(sec))); if (PL.playing) { ttsHalt(); ttsSpeak(); } plUi(); return; }
     if (isFinite(aud.duration)) aud.currentTime = Math.max(0, Math.min(aud.duration - 0.5, aud.currentTime + sec));
   }
   function onEnded() {
@@ -1360,35 +1348,14 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
     if (it) { heard[it.id] = today(); try { localStorage.setItem("nku-heard", JSON.stringify(heard)); } catch (e) {} }
     playAt(PL.i + 1);
   }
-  // the phone's own voice: short chunks (long ones get cut off on Android), restartable for pause and skip
-  function ttsVoice() { const v = speechSynthesis.getVoices(); return v.find(x => /^pl/i.test(x.lang) && /natural|online|neural/i.test(x.name)) || v.find(x => /^pl/i.test(x.lang)); }
-  function ttsStart(it) {
-    if (!("speechSynthesis" in window)) { PL.playing = false; $("#pl-time").textContent = "Nagranie jeszcze się robi. Spróbuj za kilkanaście minut."; return; }
-    const parts = []; let cur = "";
-    for (const s of speechText(it.r, it.kind).match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || []) { if ((cur + s).length > 220 && cur) { parts.push(cur); cur = ""; } cur += s; }
-    if (cur.trim()) parts.push(cur);
-    PL.tts = { parts, k: 0, token: {} };
-    if (PL.playing) ttsSpeak();
-  }
-  function ttsSpeak() {
-    const t = PL.tts; if (!t) return;
-    if (t.k >= t.parts.length) { onEnded(); return; }
-    const token = t.token = {};
-    const u = new SpeechSynthesisUtterance(t.parts[t.k]); u.lang = "pl-PL"; u.rate = PL.rate;
-    const v = ttsVoice(); if (v) u.voice = v;
-    u.onend = () => { if (PL.tts !== t || t.token !== token || !PL.playing) return; t.k++; plUi(); ttsSpeak(); };
-    speechSynthesis.speak(u);
-  }
-  function ttsHalt() { if (PL.tts) PL.tts.token = null; if ("speechSynthesis" in window) speechSynthesis.cancel(); }
   function plUi() {
     const it = PL.q[PL.i]; if (!it) return;
     $("#pl-title").textContent = it.title + (PL.q.length > 1 ? ` (${PL.i + 1} z ${PL.q.length})` : "");
     $("#pl-play").innerHTML = PL.playing ? PAUSE_SVG : PLAY_SVG; $("#pl-play").setAttribute("aria-label", PL.playing ? "Pauza" : "Odtwarzaj");
     $("#pl-rate").textContent = String(PL.rate).replace(".", ",") + "×";
     $("#pl-next").disabled = PL.i >= PL.q.length - 1;
-    let pos, dur;
-    if (PL.tts) { pos = PL.tts.k; dur = PL.tts.parts.length; $("#pl-time").textContent = `głos telefonu · ${Math.min(pos + 1, dur)}/${dur}`; }
-    else if (it.src) { pos = aud.currentTime || 0; dur = isFinite(aud.duration) ? aud.duration : it.sec; $("#pl-time").textContent = mmss(pos) + " / " + mmss(dur); }
+    const pos = aud.currentTime || 0, dur = isFinite(aud.duration) ? aud.duration : it.sec;
+    $("#pl-time").textContent = mmss(pos) + " / " + mmss(dur);
     if (!plDrag && dur) $("#pl-pos").value = Math.round(pos / dur * 1000);
     if ("mediaSession" in navigator) navigator.mediaSession.playbackState = PL.playing ? "playing" : "paused";
     syncListen();
@@ -1409,9 +1376,9 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
   aud.addEventListener("ended", onEnded);
   aud.addEventListener("timeupdate", plUi);
   aud.addEventListener("loadedmetadata", plUi);
-  aud.addEventListener("play", () => { if (!PL.tts && PL.q[PL.i]) { PL.playing = true; plUi(); } });
-  aud.addEventListener("pause", () => { if (!PL.tts && PL.q[PL.i] && !aud.ended) { PL.playing = false; plUi(); } });
-  aud.addEventListener("error", () => { const it = PL.q[PL.i]; if (it?.src && aud.getAttribute("src")) { it.src = null; aud.removeAttribute("src"); ttsStart(it); plUi(); } });
+  aud.addEventListener("play", () => { if (PL.q[PL.i]) { PL.playing = true; plUi(); } });
+  aud.addEventListener("pause", () => { if (PL.q[PL.i] && !aud.ended) { PL.playing = false; plUi(); } });
+  aud.addEventListener("error", () => { if (PL.q[PL.i] && aud.getAttribute("src")) { PL.playing = false; plUi(); $("#pl-time").textContent = "Nie udało się wczytać nagrania."; } });
   $("#pl-play").onclick = togglePlay;
   $("#pl-back").onclick = () => seek(-15);
   $("#pl-fwd").onclick = () => seek(30);
@@ -1420,14 +1387,12 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
   $("#pl-rate").onclick = () => {
     PL.rate = RATES[(RATES.indexOf(PL.rate) + 1) % RATES.length]; aud.playbackRate = PL.rate;
     try { localStorage.setItem("nku-rate", String(PL.rate)); } catch (e) {}
-    if (PL.tts && PL.playing) { ttsHalt(); ttsSpeak(); }
     plUi();
   };
   $("#pl-pos").addEventListener("input", () => { plDrag = true; });
   $("#pl-pos").addEventListener("change", e => {
     plDrag = false; const f = +e.target.value / 1000;
-    if (PL.tts) { PL.tts.k = Math.min(PL.tts.parts.length - 1, Math.floor(f * PL.tts.parts.length)); if (PL.playing) { ttsHalt(); ttsSpeak(); } plUi(); }
-    else if (isFinite(aud.duration)) aud.currentTime = f * aud.duration;
+    if (isFinite(aud.duration)) aud.currentTime = f * aud.duration;
   });
 
   /* ---------- Obserwatorium: things to watch, yours and Claude's, checked against MSCI World after 3, 6 and 12 months ---------- */

@@ -79,12 +79,29 @@ def spoken(doc, kind):
                  (r"\bUSD\b", "dolarów"), (r"\bEUR\b", "euro"), (r"→", ", potem "), (r"\s*/\s*", " na ")]:
         t = re.sub(a, b, t)
     outro = "\nTo wszystko na dziś. Jeden dzień to szum przy Twoim horyzoncie." if kind == "dzienne" else "\nTo wszystko w tym tygodniu. Do usłyszenia."
-    return intro + "\n" + re.sub(r"\n{3,}", "\n\n", t).strip() + outro
+    return say(intro + "\n" + re.sub(r"\n{3,}", "\n\n", t).strip() + outro)
+
+
+def say(t):
+    """Finance shorthand pronounced the way a Polish speaker says it; paragraphs kept (they give the voice a breath)."""
+    for a, b in [(r"S&P\s?500", "es-en-pi pięćset"), (r"\bMSCI\b", "M S C I"), (r"\bETF", "E T F"), (r"\bTSMC\b", "T S M C"),
+                 (r"\bEBC\b", "E B C"), (r"\bNBP\b", "N B P"), (r"\bRPP\b", "R P P"), (r"\bPKB\b", "P K B"), (r"\bXTB\b", "X T B"),
+                 (r"(?<=\d)[   ](?=\d{3}\b)", ""), (r"[ \t]+", " ")]:
+        t = re.sub(a, b, t)
+    return re.sub(r"\n\s*\n+", "\n\n", t).strip()
+
+
+def script(doc, kind):
+    """What the voice says: the spoken version Claude wrote for listening (audio_tekst: like a host talking,
+    not a page read aloud) or, for an older report without one, the Markdown turned into sentences."""
+    if (doc.get("audio_tekst") or "").strip():
+        return say(doc["audio_tekst"])
+    return spoken(doc, kind)
 
 
 async def speak(text, voice, path):
     import edge_tts
-    await edge_tts.Communicate(text, voice, rate="+4%").save(path)
+    await edge_tts.Communicate(text, voice, rate="+0%").save(path)
 
 
 def main():
@@ -103,7 +120,7 @@ def main():
         if doc.get("data", "") < recent or not doc.get("tresc"):
             continue
         voice = VOICES.get((ust.get(uid) or {}).get("glos"), VOICES["zofia"])
-        text = spoken(doc, kind)
+        text = script(doc, kind)
         h = hashlib.sha1((voice + text).encode()).hexdigest()[:12]
         if (doc.get("audio") or {}).get("hash") == h:
             continue
