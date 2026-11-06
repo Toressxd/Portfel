@@ -2,6 +2,7 @@
 Sends each message once (log in app/push_log) and only the kinds the user left on in app/ustawienia.powiadomienia:
   raporty  a new daily report today, a new weekly report
   terminy  bond interest within 3 days, IKE limit left in December, plan review date reached
+  wyplata  payday (app/ustawienia.dzien_wyplaty): split the contribution; again 3 days later if nothing was saved
 Run by GitHub Actions in the morning and by the report task on the owner's PC right after the reports are saved.
 Environment: SUPABASE_URL, SUPABASE_SERVICE_KEY, VAPID_PRIVATE_KEY (or the PORTFEL_* names on the owner's PC)."""
 import json, os, sys, urllib.error, urllib.request
@@ -88,6 +89,22 @@ def messages(docs, today):
         left = float(lim["ike"]) - max(paid, float(lim.get("ike_wplacone") or 0))
         if left > 0:
             out.append((f"ike:{today}", "terminy", "Limit IKE przepada 31 grudnia", f"Zostało {left:,.0f} zł limitu na {today.year}.".replace(",", " "), APP + "#cele"))
+    # payday: the contribution to split, and a second nudge three days later if nothing was saved this month
+    ust, plan = docs.get("app/ustawienia") or {}, docs.get("app/plan") or {}
+    pay_day = int(ust.get("dzien_wyplaty") or 0)
+    if pay_day and plan:
+        last = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        pay = today.replace(day=min(pay_day, last.day))
+        while pay.weekday() >= 5:  # weekend: banks pay on Friday
+            pay -= timedelta(days=1)
+        kw = float((plan.get("profil") or {}).get("wplata") or ust.get("wplata") or 0)
+        bought = any(p.startswith("transakcje/") and str(d.get("data", "")).startswith(today.strftime("%Y-%m")) and not d.get("otwarcie")
+                     and not str(d.get("typ", "")).startswith("sprz") for p, d in docs.items())
+        amount = f"{kw:,.0f} zł".replace(",", " ") if kw else "wpłatę"
+        if today == pay and not bought:
+            out.append((f"wyp:{pay}", "wyplata", "Dzień wypłaty", f"Rozłóż {amount} na ETF-y: lista zakupów do XTB jest gotowa.", APP + "#wplata"))
+        if today == pay + timedelta(days=3) and not bought:
+            out.append((f"wyp2:{pay}", "wyplata", "Wpłata jeszcze niezapisana", "Kupiłeś już ETF-y w tym miesiącu? Zapisz je jednym kliknięciem.", APP + "#wplata"))
     prz = ((docs.get("app/plan") or {}).get("profil") or {}).get("przeglad")
     if prz and prz == today.isoformat():
         out.append((f"prz:{prz}", "terminy", "Czas na przegląd planu", "Sprawdź cel, wagi i tezy. Zmieniaj tylko z ważnego powodu.", APP))
@@ -106,7 +123,7 @@ def main():
     today, sent = warsaw_today(), 0
     for uid, devices in users.items():
         docs = {r["path"]: r["data"] for r in supa("GET", f"/rest/v1/docs?select=path,data&user_id=eq.{uid}&limit=5000")}
-        pw = (docs.get("app/ustawienia") or {}).get("powiadomienia") or {"raporty": True, "terminy": True}
+        pw = (docs.get("app/ustawienia") or {}).get("powiadomienia") or {"raporty": True, "terminy": True, "wyplata": True}
         log = (docs.get("app/push_log") or {}).get("wyslane") or {}
         todo = [m for m in messages(docs, today) if m[0] not in log and pw.get(m[1], True)]
         for key, kind, title, body, url in todo:

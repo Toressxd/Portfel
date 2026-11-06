@@ -246,8 +246,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-06-2"></script>
-<script src="backend.js?v=2026-11-06-2"></script>
+<script src="config.js?v=2026-11-06-3"></script>
+<script src="backend.js?v=2026-11-06-3"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -297,7 +297,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   }
   $("#priv-btn").addEventListener("click", () => saveCfg({ prywatny: !CFG.prywatny }));
 
-  let first = (location.hash || "").slice(1);
+  let first = (location.hash || "").slice(1), wantWplata = first === "wplata";
+  if (wantWplata) first = "portfel";
   if (!views.includes(first)) {
     if (CFG.ekran !== "ostatnia") first = CFG.ekran;
     else { try { first = localStorage.getItem("portfel-tab") || "start"; } catch (e) { first = "start"; } }
@@ -366,6 +367,14 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     for (let i = 0; i < 200; i++) { const m = (lo + hi) / 2; if (npv(lo) * npv(m) <= 0) hi = m; else lo = m; }
     return (lo + hi) / 2 * 100;
   }
+  // payday this month (moved to Friday when it falls on a weekend) and whether this month's contribution is saved yet
+  function paydayThisMonth() {
+    const d = +CFG.dzien_wyplaty; if (!d) return null;
+    const n = new Date(), last = new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate(), x = new Date(n.getFullYear(), n.getMonth(), Math.min(d, last), 12);
+    while (x.getDay() === 0 || x.getDay() === 6) x.setDate(x.getDate() - 1);
+    return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0") + "-" + String(x.getDate()).padStart(2, "0");
+  }
+  const boughtThisMonth = () => S.tx.some(t => !t.otwarcie && !isSell(t) && monthOf(t.data) === curMonth());
   function ikeLeft() {
     const lim = yearLimits(), rok = String(lim.rok);
     const paid = Math.max(+(lim.ike_wplacone || 0), S.tx.filter(t => t.konto === "IKE" && (t.data || "").startsWith(rok) && !isSell(t) && !t.otwarcie).reduce((s, t) => s + (+t.kwota_pln || 0), 0));
@@ -593,6 +602,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   function checks(c) {
     const out = [];
     const m = monthSum(curMonth());
+    const pay = paydayThisMonth();
+    if (S.plan && pay && today() >= pay && !boughtThisMonth()) out.push({ lvl: "todo", t: `Wypłata: rozłóż ${zl(+(S.plan.profil?.wplata || CFG.wplata) || 0)} na ETF-y`, s: "Lista zakupów do XTB, a po zakupie jedno kliknięcie, żeby zapisać wszystko.", go: "wplata" });
     if (S.loaded.plan && !S.plan) out.push({ lvl: "todo", t: "Ustaw swój plan", s: "Cel, podział portfela i zasady. Ok. 10 minut.", go: "plan" });
     else if (!c.list.length) out.push({ lvl: "todo", t: "Dodaj swoje pozycje", s: "Przez Mój plan → Obecny stan albo czerwony plus.", go: "portfel" });
     const prz = S.plan?.profil?.przeglad;
@@ -1413,10 +1424,12 @@ ${JSON.stringify(data)}`;
     return `<div class="setrow"><span class="label">Powiadomienia na tym urządzeniu</span>
       ${why ? `<p class="note">${why}</p>` : `<div class="actions"><button class="btn${pushSub ? " ghost" : ""}" type="button" id="cfg-push">${pushSub ? "Wyłącz" : "Włącz powiadomienia"}</button><span class="note" id="push-msg" role="status">${pushSub ? "Włączone." : Notification.permission === "denied" ? "Zablokowane w ustawieniach telefonu dla tej strony." : ""}</span></div>
       <label class="switch" for="pw-r"><span><strong>Raporty</strong><br><span class="note">Raport dnia (pn–pt rano) i tygodnia (sobota).</span></span><input type="checkbox" id="pw-r" ${pw.raporty !== false ? "checked" : ""}></label>
+      <label class="switch" for="pw-w"><span><strong>Dzień wypłaty</strong><br><span class="note">Przypomnienie o rozłożeniu wpłaty i drugie po 3 dniach, jeśli jej nie zapiszesz.</span></span><input type="checkbox" id="pw-w" ${pw.wyplata !== false ? "checked" : ""}></label>
       <label class="switch" for="pw-t"><span><strong>Terminy</strong><br><span class="note">Odsetki z obligacji, kończący się limit IKE, przegląd planu.</span></span><input type="checkbox" id="pw-t" ${pw.terminy !== false ? "checked" : ""}></label>`}</div>`;
   }
   function wirePush(redraw) {
-    const pw = () => ({ raporty: $("#pw-r").checked, terminy: $("#pw-t").checked });
+    const pw = () => ({ raporty: $("#pw-r").checked, terminy: $("#pw-t").checked, wyplata: $("#pw-w").checked });
+    $("#pw-w")?.addEventListener("change", () => saveCfg({ powiadomienia: pw() }));
     $("#pw-r")?.addEventListener("change", () => saveCfg({ powiadomienia: pw() }));
     $("#pw-t")?.addEventListener("change", () => saveCfg({ powiadomienia: pw() }));
     $("#cfg-push")?.addEventListener("click", async () => {
@@ -1458,7 +1471,9 @@ ${JSON.stringify(data)}`;
         <div class="setrow"><span class="label">Ekran po otwarciu</span>${seg("ekran", [["start", "Start"], ["budzet", "Budżet"], ["ostatnia", "Ostatni"]], 3)}</div>
         <label class="switch" for="cfg-priv"><span><strong>Ukryj kwoty</strong><br><span class="note">Rozmywa liczby, np. w tramwaju. Szybki przełącznik: ikona oka u góry.</span></span><input type="checkbox" id="cfg-priv" ${CFG.prywatny ? "checked" : ""}></label>
         <label class="switch" for="cfg-calm"><span><strong>Tryb spokojny</strong><br><span class="note">Chowa zmiany z ostatniego tygodnia. Przy horyzoncie 10 lat to i tak szum.</span></span><input type="checkbox" id="cfg-calm" ${CFG.spokojny ? "checked" : ""}></label>
-        <div class="field" style="max-width:240px"><label for="cfg-wpl">Zwykła miesięczna wpłata na ETF-y (zł)</label><input id="cfg-wpl" type="number" min="0" step="100" inputmode="numeric" value="${esc(CFG.wplata)}"></div>
+        <div class="fgrid"><div class="field"><label for="cfg-wpl">Zwykła miesięczna wpłata na ETF-y (zł)</label><input id="cfg-wpl" type="number" min="0" step="100" inputmode="numeric" value="${esc(CFG.wplata)}"></div>
+          <div class="field"><label for="cfg-pay">Dzień wypłaty (1–31)</label><input id="cfg-pay" type="number" min="1" max="31" step="1" inputmode="numeric" value="${esc(CFG.dzien_wyplaty || "")}" placeholder="np. 10"></div></div>
+        <p class="note">W dzień wypłaty Start (i powiadomienie) przypomni o rozłożeniu wpłaty. Gdy wypada w weekend, przypomnienie przyjdzie w piątek.</p>
         <p class="note">Ustawienia zapisują się na Twoim koncie, więc telefon i komputer wyglądają tak samo.</p>
         <div class="setrow"><span class="label">Kopia danych</span><div class="actions"><button class="btn ghost" type="button" id="cfg-json">Wszystko (JSON)</button><button class="btn ghost" type="button" id="cfg-csv">Budżet i zakupy (CSV)</button></div><span class="note">Twoje dane na Twoim dysku: do Excela albo na wszelki wypadek.</span></div>
         ${window.PortfelBackend ? `<div class="actions"><button class="btn ghost" type="button" id="cfg-out">Wyloguj</button></div>` : ""}
@@ -1484,6 +1499,7 @@ ${JSON.stringify(data)}`;
       };
       $("#cfg-priv").onchange =e => saveCfg({ prywatny: e.target.checked });
       $("#cfg-calm").onchange = e => saveCfg({ spokojny: e.target.checked });
+      $("#cfg-pay").onchange = e => { const v = Math.round(+e.target.value); saveCfg({ dzien_wyplaty: v >= 1 && v <= 31 ? v : null }); };
       $("#cfg-wpl").onchange = e => { const v = +e.target.value || 5000; try { localStorage.removeItem("portfel-wplata"); } catch (err) {} saveCfg({ wplata: v }); };
     };
     draw(); pushState().then(() => { if (sheet?.mode === "ustawienia") draw(); });
@@ -1736,6 +1752,7 @@ ${JSON.stringify(data)}`;
     maybeSnapshot(c);
     // a new person without a plan gets the wizard once, right after their data has loaded
     if (!wizShown && db && S.canWrite && S.loaded.plan && S.loaded.tx && !S.plan && !sheet) { wizShown = true; openWizard(); }
+    if (wantWplata && db && S.loaded.plan && S.loaded.tx && S.loaded.stan && S.plan && !sheet) { wantWplata = false; history.replaceState(null, "", location.pathname + "#portfel"); openWplata(); }
   }
   // one history point per price update, written by the owner's view when it first sees new prices
   async function maybeSnapshot(c) {
