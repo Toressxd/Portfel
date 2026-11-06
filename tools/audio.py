@@ -46,7 +46,7 @@ def spoken(doc, kind):
         when = f"{dd.day} {MONTHS[dd.month - 1]}"
     except ValueError:
         when = d
-    intro = f"{'Raport dnia' if kind == 'dzienne' else 'Raport tygodnia'}, {when}. NKU."
+    intro = f"{'Prasówka' if kind == 'dzienne' else 'Raport tygodnia'}, {when}. NKU."
     lines, skip = [], False
     for raw in (doc.get("tresc") or "").splitlines():
         line = raw.strip()

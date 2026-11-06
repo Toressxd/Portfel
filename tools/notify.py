@@ -66,7 +66,7 @@ def messages(docs, today):
     if dz and dz[-1].get("data") == today.isoformat():
         d = dz[-1]
         first = next((l.lstrip("-* ").strip() for l in (d.get("podsumowanie") or d.get("tresc") or "").splitlines() if l.strip().lstrip("-*# ").strip()), "")
-        out.append((f"dz:{d['data']}", "raporty", "Raport dnia", first[:180] or "Nowy raport w aplikacji.", APP + "#raporty"))
+        out.append((f"dz:{d['data']}", "raporty", "Prasówka dnia", first[:180] or "Nowa prasówka w aplikacji: do przeczytania i do słuchania.", APP + "#raporty"))
     rt = sorted((d for p, d in docs.items() if p.startswith("raporty/")), key=lambda d: d.get("data", ""))
     if rt and rt[-1].get("data", "") >= (today - timedelta(days=2)).isoformat():
         d = rt[-1]

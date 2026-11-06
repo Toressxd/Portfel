@@ -323,8 +323,8 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-06-12"></script>
-<script src="backend.js?v=2026-11-06-12"></script>
+<script src="config.js?v=2026-11-06-13"></script>
+<script src="backend.js?v=2026-11-06-13"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -869,7 +869,7 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
           <ol class="steps">${PIERWSZE.map(s => `<li class="${done(s) ? "done" : ""}"><span class="ic ${done(s) ? "ok" : "info"}" aria-hidden="true">${done(s) ? "✓" : "·"}</span><span>${esc(s.t)}</span>${s.go ? `<button class="go" type="button" data-go="${s.go}">Ustaw</button>` : `<button class="go" type="button" data-tip="${s.id}">Czytaj</button>`}</li>`).join("")}</ol>
           <div class="actions"><button class="btn ghost" type="button" data-tip="lista">Słownik pojęć</button><span class="note">Poziom zmienisz w ustawieniach.</span></div></div>`;
       })()}
-      ${(() => { const d = S.dzienne[0]; if (!d || (Date.now() - new Date(d.data + "T12:00:00")) / 86400000 > 4) return ""; return `<div class="card"><header><h2>Na rynkach</h2><span class="note">${esc(d.data)}</span></header><div class="md">${md(d.podsumowanie || d.tresc)}</div><div class="actions">${listenAllBtn()}<button class="go" type="button" data-go="raporty:raporty">Cały raport</button></div></div>`; })()}
+      ${(() => { const d = S.dzienne[0]; if (!d || (Date.now() - new Date(d.data + "T12:00:00")) / 86400000 > 4) return ""; return `<div class="card"><header><h2>Prasówka</h2><span class="note">${esc(d.data)}</span></header><div class="md">${md(d.podsumowanie || d.tresc)}</div><div class="actions">${listenAllBtn()}<button class="go" type="button" data-go="raporty:raporty">Cały raport</button></div></div>`; })()}
       ${obsTeaser()}
       ${(() => { const items = dayItems(), n = items.filter(dayDone).length; return `<div class="card">
         <header><h2>Dziś: ${esc(new Date().toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" }))}</h2><span class="note">${n} z ${items.length} · ok. 5 minut</span></header>
@@ -1287,7 +1287,7 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
   const fileOf = r => { const a = r?.audio; return a?.url && (!a.wygasa || a.wygasa >= today()) ? a : null; };
   function itemOf(kind, r) {
     const f = fileOf(r);
-    return { id: kind + "/" + r._id, title: (kind === "dzienne" ? "Raport dnia " : "Raport tygodnia ") + r.data.slice(8, 10) + "." + r.data.slice(5, 7), src: f?.url || null, sec: f?.sekundy || 0, kind, r };
+    return { id: kind + "/" + r._id, title: (kind === "dzienne" ? "Prasówka " : "Raport tygodnia ") + r.data.slice(8, 10) + "." + r.data.slice(5, 7), src: f?.url || null, sec: f?.sekundy || 0, kind, r };
   }
   function listenQueue() {
     const q = [], d = S.dzienne[0], w = S.raporty[0], age = x => (Date.now() - new Date(x.data + "T12:00:00")) / 86400000;
