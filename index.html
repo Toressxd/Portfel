@@ -271,8 +271,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-06-6"></script>
-<script src="backend.js?v=2026-11-06-6"></script>
+<script src="config.js?v=2026-11-06-7"></script>
+<script src="backend.js?v=2026-11-06-7"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -1877,12 +1877,18 @@ ${JSON.stringify(data)}`;
     if (wantWplata && db && S.loaded.plan && S.loaded.tx && S.loaded.stan && S.plan && !sheet) { wantWplata = false; history.replaceState(null, "", location.pathname + "#portfel"); openWplata(); }
   }
   // one history point per price update, written by the owner's view when it first sees new prices
+  // one history point per price update; the latest one follows edits (a deleted or added purchase rewrites it), older ones stay as they were
   async function maybeSnapshot(c) {
-    if (snapWritten || !db || !S.canWrite || !S.loaded.historia || !S.loaded.tx || !S.stan?.asOf || !c.list.length) return;
-    const id = S.stan.asOf.slice(0, 10);
-    snapWritten = true;
-    if (S.historia.some(h => h._id === id && h.majatek != null)) return;
-    try { await db.doc("historia/" + id).set({ data: id, wartosc: Math.round(c.total), wplacono: Math.round(c.wplacono), obligacje: Math.round(bondsValue()), poduszka: Math.round(+(S.cele?.poduszka?.zebrane || 0)), majatek: Math.round(c.total + bondsValue() + +(S.cele?.poduszka?.zebrane || 0)) }); } catch (e) {}
+    if (!db || !S.canWrite || !S.loaded.historia || !S.loaded.tx || !S.stan?.asOf || !c.list.length) return;
+    const id = S.stan.asOf.slice(0, 10), pod = Math.round(+(S.cele?.poduszka?.zebrane || 0)), obl = Math.round(bondsValue());
+    const pt = { data: id, wartosc: Math.round(c.total), wplacono: Math.round(c.wplacono), obligacje: obl, poduszka: pod, majatek: Math.round(c.total) + obl + pod };
+    const key = JSON.stringify(pt);
+    if (snapWritten === key) return;
+    const have = S.historia.find(h => h._id === id);
+    if (have && ["wartosc", "wplacono", "majatek"].every(k => Math.abs((have[k] ?? -1e9) - pt[k]) < 2)) { snapWritten = key; return; }
+    if (S.historia.some(h => h.data > id)) { snapWritten = key; return; } // an older price date: never rewrite the past
+    snapWritten = key;
+    try { await db.doc("historia/" + id).set(pt); } catch (e) {}
   }
   let rq = false;
   const queue = () => { if (rq) return; rq = true; requestAnimationFrame(() => { rq = false; if (!sheet) renderAll(); else pendingRender = true; }); };
