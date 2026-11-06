@@ -246,8 +246,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-06-4"></script>
-<script src="backend.js?v=2026-11-06-4"></script>
+<script src="config.js?v=2026-11-06-5"></script>
+<script src="backend.js?v=2026-11-06-5"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -1456,6 +1456,50 @@ ${JSON.stringify(data)}`;
   $("#fab").addEventListener("click", () => openSheet($("#v-portfel").hidden ? "wydatek" : "etf"));
   document.addEventListener("keydown", e => { if (e.key !== "Escape") return; if (tipView) closeTip(); else if (sheet) closeSheet(); });
 
+  /* ---------- first-run tour: what the app is for, privacy, the monthly routine, then the plan ---------- */
+  const IC = {
+    start: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    budzet: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/>',
+    portfel: '<path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/>',
+    cele: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>',
+    raporty: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>'
+  };
+  const ico = k => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="flex:none;color:var(--red)">${IC[k]}</svg>`;
+  const TOUR = [
+    { t: "Witaj w NKU", b: `<p>To Twój spokojny plan na lata: pieniądze, które odkładasz co miesiąc, i fundusze ETF, które za nie kupujesz. Bez codziennego śledzenia kursów.</p>
+      <div style="display:grid;gap:10px">${[["start", "Start", "Co dziś warto zrobić i czy wszystko idzie według planu."], ["budzet", "Budżet", "Wypłata, wydatki i ile odkładasz."], ["portfel", "Portfel", "Twoje fundusze, lista zakupów na wpłatę, co masz w środku."], ["cele", "Cele", "Poduszka, IKE, obligacje, kalkulator i podatki."], ["raporty", "Raporty", "Raport dnia, tygodnia i miesiąca, Twoje tezy i dziennik."]]
+        .map(([k, n, d]) => `<div style="display:flex;gap:12px;align-items:flex-start">${ico(k)}<div><strong>${n}</strong><div class="note">${d}</div></div></div>`).join("")}</div>
+      <p class="note">Czerwony plus w prawym dolnym rogu dodaje wydatek, wypłatę albo zakup.</p>` },
+    { t: "Twoje dane są tylko Twoje", b: `<p>Każdy widzi wyłącznie swoje konto: nikt inny z aplikacji nie zobaczy Twoich kwot ani planu. Pilnuje tego sama baza danych.</p>
+      <p>Raporty dzienne i tygodniowe pisze Claude (asystent AI) uruchomiony u właściciela aplikacji. Żeby napisać Twój raport, czyta Twój portfel i plan, a każdy raport jest tylko o Tobie.</p>
+      <p class="note">Aplikacja nie łączy się z Twoim brokerem i nigdy nie prosi o hasło do niego. Nic tu nie kupuje ani nie sprzedaje: to Twój notatnik i kalkulator.</p>
+      <p class="note">Ikona oka u góry rozmywa kwoty, np. gdy ktoś patrzy Ci przez ramię.</p>` },
+    { t: "Jak to działa co miesiąc", b: `<ol style="margin:0;padding-left:20px;display:grid;gap:8px">
+      <li><strong>Wypłata.</strong> Wpisujesz ją plusem (10 sekund). W dniu wypłaty dostaniesz przypomnienie.</li>
+      <li><strong>Lista zakupów.</strong> Portfel → Następna wpłata pokazuje, ile i którego funduszu kupić według Twojego planu.</li>
+      <li><strong>Kupujesz u brokera</strong> (np. w XTB) tak jak zwykle.</li>
+      <li><strong>Jedno kliknięcie:</strong> „Kupiłem: zapisz całą wpłatę”. Aplikacja zapisze wszystkie zakupy naraz.</li>
+      <li><strong>Czytasz raporty</strong>, gdy masz ochotę. Przychodzą same.</li></ol>
+      <p class="note">Cała comiesięczna obsługa to ok. 15 minut. Reszta to cierpliwość.</p>` },
+    { t: "Zaczynamy", b: `<p>Teraz ułożysz swój plan: cel, poduszkę na czarną godzinę, podział na fundusze i kilka zasad na trudne chwile. Zajmie to ok. 10 minut, a każdy krok jest wytłumaczony.</p>
+      <p>Najpierw wybierzesz swój poziom: jeśli to Twoje pierwsze inwestowanie, wybierz <strong>Początkujący</strong>, a aplikacja wyjaśni każde pojęcie.</p>
+      <p class="note">To edukacja i Twoje własne decyzje, nie porada inwestycyjna. Przewodnik obejrzysz znowu w Ustawieniach.</p>` }
+  ];
+  let tourStep = 0;
+  function openTour() { tourStep = 0; sheet = { mode: "przewodnik" }; drawTour(); }
+  function drawTour() {
+    const st = TOUR[tourStep], lastStep = tourStep === TOUR.length - 1;
+    $("#sheet-root").innerHTML = `<div class="sheet-bg" id="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="Przewodnik">
+      <header style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><span class="label">Przewodnik · ${tourStep + 1} z ${TOUR.length}</span><h2>${st.t}</h2></div><button class="btn ghost" type="button" id="tr-skip">Pomiń</button></header>
+      <div class="progress"><div style="width:${(tourStep + 1) / TOUR.length * 100}%"></div></div>
+      <div style="display:grid;gap:12px">${st.b}</div>
+      <div class="actions" style="justify-content:space-between">${tourStep ? '<button class="btn ghost" type="button" id="tr-back">Wstecz</button>' : "<span></span>"}<button class="btn" type="button" id="tr-next">${lastStep ? (S.plan ? "Gotowe" : "Ułóż mój plan") : "Dalej"}</button></div></div></div>`;
+    const finish = toPlan => { saveCfg({ przewodnik: true }); closeSheet(); if (toPlan && !S.plan) openWizard(); };
+    $("#tr-skip").onclick = () => finish(true);
+    $("#tr-back")?.addEventListener("click", () => { tourStep--; drawTour(); });
+    $("#tr-next").onclick = () => { if (lastStep) finish(true); else { tourStep++; drawTour(); $(".sheet").scrollTop = 0; } };
+    $("#tr-next").focus();
+  }
   /* ---------- push notifications: each device subscribes itself; the server sends from push/<device> ---------- */
   const pushKey = () => window.PORTFEL_CONFIG?.vapidPublicKey;
   const pushOk = () => !!(window.PortfelBackend && pushKey() && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window);
@@ -1515,7 +1559,7 @@ ${JSON.stringify(data)}`;
         <header style="display:flex;justify-content:space-between;align-items:center"><h2>Ustawienia</h2><button class="btn ghost" type="button" id="set-close">Gotowe</button></header>
         <div class="setrow"><span class="label">Mój plan</span><div class="actions"><button class="btn" type="button" id="cfg-plan">${S.plan ? "Zmień mój plan" : "Ustaw mój plan"}</button><span class="note">Cel, podział, pasma, tezy i zasady.</span></div></div>
         <div class="setrow"><span class="label">Mój poziom</span>${seg("poziom", POZIOMY.map(([v, l]) => [v, l]), 3)}<span class="note">${esc(POZIOMY.find(p => p[0] === poziom())[2])} Początkujący widzą wyjaśnienia i pierwsze kroki.</span></div>
-        <div class="setrow"><span class="label">Nauka</span><div class="actions"><button class="btn ghost" type="button" data-tip="lista">Słownik pojęć</button><span class="note">ETF, broker, IKE, IKZE, podatki, pasma…</span></div></div>
+        <div class="setrow"><span class="label">Nauka</span><div class="actions"><button class="btn ghost" type="button" id="cfg-tour">Pokaż przewodnik</button><button class="btn ghost" type="button" data-tip="lista">Słownik pojęć</button><span class="note">ETF, broker, IKE, IKZE, podatki, pasma…</span></div></div>
         ${pushRow()}
         <div class="setrow"><span class="label">Motyw</span>${seg("motyw", [["system", "Jak w telefonie"], ["jasny", "Jasny"], ["ciemny", "Ciemny"]], 3)}</div>
         <div class="setrow"><span class="label">Wielkość tekstu</span>${seg("tekst", [["normalny", "Normalny"], ["duzy", "Duży"]], 2)}</div>
@@ -1538,6 +1582,7 @@ ${JSON.stringify(data)}`;
       $("#cfg-out")?.addEventListener("click", () => window.PortfelBackend.signOut());
       $("#cfg-plan").onclick = () => { closeSheet(); openWizard(); };
       wirePush(draw);
+      $("#cfg-tour").onclick = () => { closeSheet(); openTour(); };
       $("#cfg-json").onclick = () => download(`nku-kopia-${today()}.json`, JSON.stringify({ utworzono: new Date().toISOString(), plan: S.plan, cele: S.cele, ustawienia: CFG, budzet_ustawienia: S.budzetCfg,
         transakcje: S.tx, budzet: S.budzet, raporty: S.raporty, dzienne: S.dzienne, analizy: S.analizy, historia: S.historia }, null, 1), "application/json");
       $("#cfg-csv").onclick = () => {
@@ -1802,7 +1847,8 @@ ${JSON.stringify(data)}`;
     if (!aiBusy) renderRaporty(c);
     maybeSnapshot(c);
     // a new person without a plan gets the wizard once, right after their data has loaded
-    if (!wizShown && db && S.canWrite && S.loaded.plan && S.loaded.tx && !S.plan && !sheet) { wizShown = true; openWizard(); }
+    // a new person sees the short tour first, then the plan wizard
+    if (!wizShown && db && S.canWrite && S.loaded.plan && S.loaded.tx && !S.plan && !sheet) { wizShown = true; if (CFG.przewodnik) openWizard(); else openTour(); }
     if (wantWplata && db && S.loaded.plan && S.loaded.tx && S.loaded.stan && S.plan && !sheet) { wantWplata = false; history.replaceState(null, "", location.pathname + "#portfel"); openWplata(); }
   }
   // one history point per price update, written by the owner's view when it first sees new prices
