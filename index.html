@@ -232,8 +232,34 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 /* the "+" slides away while scrolling down and comes back when scrolling up, so it never covers buttons */
 .fab { transition: transform .2s ease, opacity .2s ease; }
 .fab.away { transform: translateY(140%); opacity: 0; pointer-events: none; }
+/* player: a slim bar above the bottom menu, it stays while you switch tabs */
+.player { position: fixed; z-index: 22; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-h) + 8px + env(safe-area-inset-bottom, 0px)); width: min(520px, calc(100% - 16px)); display: flex; align-items: center; gap: 4px; padding: 6px 8px; background: var(--ink); color: var(--bg); border-radius: 14px; box-shadow: 0 8px 22px rgba(0,0,0,.3); }
+.pl-btn { flex: none; min-width: 38px; height: 38px; border: 0; border-radius: 10px; background: transparent; color: inherit; font: 700 0.8rem var(--f-data); cursor: pointer; display: grid; place-items: center; padding: 0 4px; }
+.pl-btn:hover { background: rgba(127,127,127,.22); }
+.pl-main { background: var(--red); color: var(--on-red); min-width: 44px; height: 44px; border-radius: 50%; }
+.pl-main:hover { background: var(--red); filter: brightness(1.1); }
+.pl-main svg { width: 20px; height: 20px; }
+.pl-info { flex: 1; min-width: 0; display: grid; gap: 2px; padding: 0 4px; }
+.pl-t { font: 600 0.82rem var(--f-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-s { font: 500 0.7rem var(--f-data); opacity: .75; }
+.pl-info input[type=range] { width: 100%; height: 4px; margin: 2px 0; accent-color: var(--red); padding: 0; border: 0; background: transparent; }
+body.playing .fab { bottom: calc(var(--nav-h) + 86px + env(safe-area-inset-bottom, 0px)); }
+body.playing .wrap { padding-bottom: 170px; }
+@media (max-width: 420px) { #pl-next { display: none; } .pl-btn { min-width: 34px; } }
+button.listen { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 6px 12px 6px 8px; font: 600 0.84rem var(--f-body); cursor: pointer; }
+button.listen svg { width: 18px; height: 18px; color: var(--red); }
+button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red); }
+.obs-item { border-top: 1px solid var(--line); padding: 14px 0 4px; display: grid; gap: 8px; }
+.obs-item:first-of-type { border-top: 0; }
+.obs-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.obs-head strong { font-size: 1rem; }
+.obs-checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.obs-note { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; font-size: 0.9rem; }
+.obs-note.claude { border-left-color: var(--red); }
 /* computer: the same app with a side menu and cards in two columns; phones keep the bottom bar */
 @media (min-width: 1024px) {
+  .player { left: calc(var(--side) + (100% - var(--side)) / 2); bottom: 18px; width: min(640px, calc(100% - var(--side) - 48px)); }
+  body.playing .wrap { padding-bottom: 110px; }
   :root { --side: 236px; }
   body { padding-left: var(--side); }
   .wrap { max-width: 1240px; padding: 22px 32px 56px; }
@@ -286,14 +312,23 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <button class="fab" type="button" id="fab" aria-label="Dodaj wpis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
 <div id="sheet-root"></div>
 <div id="tip-root"></div>
+<div id="player" class="player" hidden role="region" aria-label="Odtwarzacz raportów"><audio id="aud" preload="none"></audio>
+  <button type="button" class="pl-btn" id="pl-back" aria-label="15 sekund wstecz">−15</button>
+  <button type="button" class="pl-btn pl-main" id="pl-play" aria-label="Pauza"></button>
+  <button type="button" class="pl-btn" id="pl-fwd" aria-label="30 sekund dalej">+30</button>
+  <div class="pl-info"><div class="pl-t" id="pl-title"></div><input type="range" id="pl-pos" min="0" max="1000" value="0" step="1" aria-label="Pozycja nagrania"><div class="pl-s" id="pl-time"></div></div>
+  <button type="button" class="pl-btn" id="pl-rate" aria-label="Prędkość">1×</button>
+  <button type="button" class="pl-btn" id="pl-next" aria-label="Następne nagranie">⏭</button>
+  <button type="button" class="pl-btn" id="pl-close" aria-label="Zamknij odtwarzacz">×</button>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-06-10"></script>
-<script src="backend.js?v=2026-11-06-10"></script>
+<script src="config.js?v=2026-11-06-11"></script>
+<script src="backend.js?v=2026-11-06-11"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
-  const S = { dzien: null, dziennik: [], plan: null, stan: null, cele: null, tx: [], raporty: [], dzienne: [], analizy: [], historia: [], budzet: [], budzetCfg: null, przeglad: null, loaded: {}, canWrite: true };
+  const S = { dzien: null, dziennik: [], plan: null, stan: null, cele: null, tx: [], raporty: [], dzienne: [], analizy: [], historia: [], budzet: [], budzetCfg: null, przeglad: null, obs: [], loaded: {}, canWrite: true };
   let wizShown = false;
   let db = null, sample = null, snapWritten = false, aiCtl = null, aiText = "", aiBusy = false, aiErr = "";
   let bMonth = new Date().toISOString().slice(0, 7);
@@ -317,7 +352,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   }
   document.querySelectorAll("nav.tabbar button[role=tab]").forEach(b => b.addEventListener("click", () => show(b.dataset.view)));
   /* ---------- settings: kept in the database so phone and computer match, cached on the device for an instant start ---------- */
-  const DEFAULT_CFG = { motyw: "system", tekst: "normalny", ekran: "start", prywatny: false, spokojny: false, wplata: 5000 };
+  const DEFAULT_CFG = { motyw: "system", tekst: "normalny", ekran: "start", prywatny: false, spokojny: false, wplata: 5000, glos: "zofia" };
   let CFG = { ...DEFAULT_CFG };
   try { CFG = { ...CFG, ...JSON.parse(localStorage.getItem("portfel-ust") || "{}") }; } catch (e) {}
   function applyCfg() {
@@ -353,7 +388,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     budzet: [["miesiac", "Podsumowanie", ["Wydatki", "Stałe opłaty", "Ostatnie miesiące"]], ["wpisy", "Wpisy i limity", ["Wpisy", "Limity"]]],
     portfel: [["przeglad", "Przegląd", ["Pozycje", "Wartość w czasie"]], ["wplata", "Wpłata", ["Następna wpłata"]], ["sklad", "Skład i ryzyko", ["Co mam w środku", "Test na kryzys", "Rynek w tym tygodniu"]], ["historia", "Historia", ["Historia transakcji"]]],
     cele: [["cele", "Cele", ["Cel", "Majątek w czasie", "Cele oszczędnościowe", "Poduszka", "Zapisz cele"]], ["konta", "IKE, obligacje, podatki", ["IKE", "Obligacje", "Podatki", "Zapisz cele"]], ["kalk", "Kalkulator", ["Kalkulator"]]],
-    raporty: [["raporty", "Raporty", ["Raporty dzienne", "Raporty tygodniowe"]], ["miesiac", "Miesiąc", ["Podsumowanie miesiąca"]], ["tezy", "Tezy i dziennik", ["Tezy", "Dziennik decyzji"]], ["analiza", "Analiza", ["Analiza portfela", "Wcześniejsze analizy"]]]
+    raporty: [["raporty", "Raporty", ["Raporty dzienne", "Raporty tygodniowe"]], ["miesiac", "Miesiąc", ["Podsumowanie miesiąca"]], ["tezy", "Tezy i dziennik", ["Tezy", "Dziennik decyzji"]], ["obs", "Obserwatorium", ["Obserwatorium"]], ["analiza", "Analiza", ["Analiza portfela", "Wcześniejsze analizy"]]]
   };
   let SUB = {};
   try { SUB = JSON.parse(localStorage.getItem("nku-sub") || "{}"); } catch (e) {}
@@ -834,7 +869,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
           <ol class="steps">${PIERWSZE.map(s => `<li class="${done(s) ? "done" : ""}"><span class="ic ${done(s) ? "ok" : "info"}" aria-hidden="true">${done(s) ? "✓" : "·"}</span><span>${esc(s.t)}</span>${s.go ? `<button class="go" type="button" data-go="${s.go}">Ustaw</button>` : `<button class="go" type="button" data-tip="${s.id}">Czytaj</button>`}</li>`).join("")}</ol>
           <div class="actions"><button class="btn ghost" type="button" data-tip="lista">Słownik pojęć</button><span class="note">Poziom zmienisz w ustawieniach.</span></div></div>`;
       })()}
-      ${(() => { const d = S.dzienne[0]; if (!d || (Date.now() - new Date(d.data + "T12:00:00")) / 86400000 > 4) return ""; return `<div class="card"><header><h2>Na rynkach</h2><span class="note">${esc(d.data)}</span></header><div class="md">${md(d.podsumowanie || d.tresc)}</div><div class="actions"><button class="go" type="button" data-go="raporty:raporty">Cały raport</button></div></div>`; })()}
+      ${(() => { const d = S.dzienne[0]; if (!d || (Date.now() - new Date(d.data + "T12:00:00")) / 86400000 > 4) return ""; return `<div class="card"><header><h2>Na rynkach</h2><span class="note">${esc(d.data)}</span></header><div class="md">${md(d.podsumowanie || d.tresc)}</div><div class="actions">${listenAllBtn()}<button class="go" type="button" data-go="raporty:raporty">Cały raport</button></div></div>`; })()}
+      ${obsTeaser()}
       ${(() => { const items = dayItems(), n = items.filter(dayDone).length; return `<div class="card">
         <header><h2>Dziś: ${esc(new Date().toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" }))}</h2><span class="note">${n} z ${items.length} · ok. 5 minut</span></header>
         <div class="progress"><div style="width:${n / items.length * 100}%"></div></div>
@@ -1237,6 +1273,246 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     });
   }
 
+  /* ---------- listening: reports read aloud. The MP3 is made by GitHub Actions (plays with the screen off, in the car);
+     until it is ready the phone's own voice reads the text, which needs the screen on ---------- */
+  const PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+  const PAUSE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
+  const HEAD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/></svg>';
+  const RATES = [1, 1.15, 1.3, 1.5, 0.9];
+  const PL = { q: [], i: -1, tts: null, rate: 1, playing: false };
+  let heard = {}, plDrag = false;
+  try { PL.rate = +localStorage.getItem("nku-rate") || 1; heard = JSON.parse(localStorage.getItem("nku-heard") || "{}"); } catch (e) {}
+  const aud = $("#aud");
+  const mmss = s => { s = Math.max(0, Math.round(s || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  const fileOf = r => { const a = r?.audio; return a?.url && (!a.wygasa || a.wygasa >= today()) ? a : null; };
+  function speechText(r, kind) {
+    const out = []; let skip = false;
+    for (const raw of String(r.tresc || "").split("\n")) {
+      const l = raw.trim();
+      if (/^#{1,4}\s/.test(l)) { const h = l.replace(/^#+\s*/, ""); skip = /^źródł/i.test(h); if (!skip) out.push(h.replace(/[.:]+$/, "") + "."); continue; }
+      if (skip || !l || /^\|?\s*:?-{3,}/.test(l)) continue;
+      let t = l.startsWith("|") ? l.replace(/^\||\|$/g, "").split("|").map(c => c.trim()).filter(Boolean).join(", ") : l;
+      t = t.replace(/^[-*•]\s+|^\d+\.\s+/, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/https?:\/\/\S+/g, "").replace(/[*_`>#]/g, "");
+      out.push(/[.!?:;]$/.test(t) ? t : t + ".");
+    }
+    return (kind === "dzienne" ? "Raport dnia. " : "Raport tygodnia. ") + out.join(" ");
+  }
+  function itemOf(kind, r) {
+    const f = fileOf(r);
+    return { id: kind + "/" + r._id, title: (kind === "dzienne" ? "Raport dnia " : "Raport tygodnia ") + r.data.slice(8, 10) + "." + r.data.slice(5, 7), src: f?.url || null, sec: f?.sekundy || 0, kind, r };
+  }
+  function listenQueue() {
+    const q = [], d = S.dzienne[0], w = S.raporty[0], age = x => (Date.now() - new Date(x.data + "T12:00:00")) / 86400000;
+    if (d && age(d) <= 4) q.push(itemOf("dzienne", d));
+    if (w && age(w) <= 8 && !heard["raporty/" + w._id]) q.push(itemOf("raporty", w));
+    return q;
+  }
+  function listenBtn(kind, r) {
+    const it = itemOf(kind, r);
+    return `<button class="listen" type="button" data-listen="${kind}|${esc(r._id)}" aria-pressed="false">${HEAD_SVG}<span class="lb">Odsłuchaj</span>${it.sec ? " · " + Math.max(1, Math.round(it.sec / 60)) + " min" : ""}${heard[it.id] ? " · ✓" : ""}</button>`;
+  }
+  function listenAllBtn() {
+    const q = listenQueue(); if (!q.length) return "";
+    const min = q.reduce((a, x) => a + x.sec, 0) / 60;
+    return `<button class="listen" type="button" data-listen="all">${HEAD_SVG}<span>Słuchaj${q.length > 1 ? " raportów (" + q.length + ")" : ""}</span>${min ? " · " + Math.max(1, Math.round(min)) + " min" : ""}</button>`;
+  }
+  function syncListen() {
+    const cur = PL.q[PL.i]?.id;
+    document.querySelectorAll("button.listen[data-listen]").forEach(b => {
+      const [kind, id] = b.dataset.listen.split("|"), on = cur && cur === kind + "/" + id;
+      b.setAttribute("aria-pressed", String(!!(on && PL.playing)));
+      const lb = b.querySelector(".lb"); if (lb) lb.textContent = on ? (PL.playing ? "Słuchasz" : "Wstrzymane") : "Odsłuchaj";
+    });
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-listen]"); if (!b) return;
+    if (b.dataset.listen === "all") { const q = listenQueue(); if (q.length) { stopAll(); PL.q = q; playAt(0); } return; }
+    const [kind, id] = b.dataset.listen.split("|");
+    const r = (kind === "dzienne" ? S.dzienne : S.raporty).find(x => x._id === id); if (!r) return;
+    const it = itemOf(kind, r);
+    if (PL.q[PL.i]?.id === it.id) { togglePlay(); return; }
+    stopAll(); PL.q = [it]; playAt(0);
+  });
+  function stopAll() { aud.pause(); ttsHalt(); PL.tts = null; PL.playing = false; }
+  function playAt(i) {
+    stopAll();
+    if (i < 0 || i >= PL.q.length) { closePlayer(); return; }
+    PL.i = i; const it = PL.q[i];
+    document.body.classList.add("playing"); $("#player").hidden = false;
+    PL.playing = true;
+    if (it.src) { aud.src = it.src; aud.playbackRate = PL.rate; aud.play().catch(err => { if (err?.name !== "AbortError" && PL.q[PL.i] === it) { it.src = null; ttsStart(it); plUi(); } }); }
+    else ttsStart(it);
+    mediaMeta(it); plUi();
+  }
+  function closePlayer() { stopAll(); PL.q = []; PL.i = -1; $("#player").hidden = true; document.body.classList.remove("playing"); if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "none"; syncListen(); }
+  function togglePlay() {
+    if (!PL.q[PL.i]) return;
+    if (PL.playing) { PL.playing = false; if (PL.tts) ttsHalt(); else aud.pause(); }
+    else { PL.playing = true; if (PL.tts) ttsSpeak(); else aud.play().catch(() => {}); }
+    plUi();
+  }
+  function seek(sec) {
+    if (PL.tts) { const t = PL.tts; t.k = Math.max(0, Math.min(t.parts.length - 1, t.k + Math.sign(sec))); if (PL.playing) { ttsHalt(); ttsSpeak(); } plUi(); return; }
+    if (isFinite(aud.duration)) aud.currentTime = Math.max(0, Math.min(aud.duration - 0.5, aud.currentTime + sec));
+  }
+  function onEnded() {
+    const it = PL.q[PL.i];
+    if (it) { heard[it.id] = today(); try { localStorage.setItem("nku-heard", JSON.stringify(heard)); } catch (e) {} }
+    playAt(PL.i + 1);
+  }
+  // the phone's own voice: short chunks (long ones get cut off on Android), restartable for pause and skip
+  function ttsVoice() { const v = speechSynthesis.getVoices(); return v.find(x => /^pl/i.test(x.lang) && /natural|online|neural/i.test(x.name)) || v.find(x => /^pl/i.test(x.lang)); }
+  function ttsStart(it) {
+    if (!("speechSynthesis" in window)) { PL.playing = false; $("#pl-time").textContent = "Nagranie jeszcze się robi. Spróbuj za kilkanaście minut."; return; }
+    const parts = []; let cur = "";
+    for (const s of speechText(it.r, it.kind).match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || []) { if ((cur + s).length > 220 && cur) { parts.push(cur); cur = ""; } cur += s; }
+    if (cur.trim()) parts.push(cur);
+    PL.tts = { parts, k: 0, token: {} };
+    if (PL.playing) ttsSpeak();
+  }
+  function ttsSpeak() {
+    const t = PL.tts; if (!t) return;
+    if (t.k >= t.parts.length) { onEnded(); return; }
+    const token = t.token = {};
+    const u = new SpeechSynthesisUtterance(t.parts[t.k]); u.lang = "pl-PL"; u.rate = PL.rate;
+    const v = ttsVoice(); if (v) u.voice = v;
+    u.onend = () => { if (PL.tts !== t || t.token !== token || !PL.playing) return; t.k++; plUi(); ttsSpeak(); };
+    speechSynthesis.speak(u);
+  }
+  function ttsHalt() { if (PL.tts) PL.tts.token = null; if ("speechSynthesis" in window) speechSynthesis.cancel(); }
+  function plUi() {
+    const it = PL.q[PL.i]; if (!it) return;
+    $("#pl-title").textContent = it.title + (PL.q.length > 1 ? ` (${PL.i + 1} z ${PL.q.length})` : "");
+    $("#pl-play").innerHTML = PL.playing ? PAUSE_SVG : PLAY_SVG; $("#pl-play").setAttribute("aria-label", PL.playing ? "Pauza" : "Odtwarzaj");
+    $("#pl-rate").textContent = String(PL.rate).replace(".", ",") + "×";
+    $("#pl-next").disabled = PL.i >= PL.q.length - 1;
+    let pos, dur;
+    if (PL.tts) { pos = PL.tts.k; dur = PL.tts.parts.length; $("#pl-time").textContent = `głos telefonu · ${Math.min(pos + 1, dur)}/${dur}`; }
+    else if (it.src) { pos = aud.currentTime || 0; dur = isFinite(aud.duration) ? aud.duration : it.sec; $("#pl-time").textContent = mmss(pos) + " / " + mmss(dur); }
+    if (!plDrag && dur) $("#pl-pos").value = Math.round(pos / dur * 1000);
+    if ("mediaSession" in navigator) navigator.mediaSession.playbackState = PL.playing ? "playing" : "paused";
+    syncListen();
+  }
+  function mediaMeta(it) {
+    if (!("mediaSession" in navigator)) return;
+    try {
+      const ms = navigator.mediaSession;
+      ms.metadata = new MediaMetadata({ title: it.title, artist: "NKU", album: "Raporty", artwork: [{ src: "icon-512.png", sizes: "512x512", type: "image/png" }] });
+      ms.setActionHandler("play", () => { if (!PL.playing) togglePlay(); });
+      ms.setActionHandler("pause", () => { if (PL.playing) togglePlay(); });
+      ms.setActionHandler("seekbackward", () => seek(-15));
+      ms.setActionHandler("seekforward", () => seek(30));
+      ms.setActionHandler("previoustrack", () => { if (PL.i > 0) playAt(PL.i - 1); else seek(-1e6); });
+      ms.setActionHandler("nexttrack", () => { if (PL.i < PL.q.length - 1) playAt(PL.i + 1); });
+    } catch (e) {}
+  }
+  aud.addEventListener("ended", onEnded);
+  aud.addEventListener("timeupdate", plUi);
+  aud.addEventListener("loadedmetadata", plUi);
+  aud.addEventListener("play", () => { if (!PL.tts && PL.q[PL.i]) { PL.playing = true; plUi(); } });
+  aud.addEventListener("pause", () => { if (!PL.tts && PL.q[PL.i] && !aud.ended) { PL.playing = false; plUi(); } });
+  aud.addEventListener("error", () => { const it = PL.q[PL.i]; if (it?.src && aud.getAttribute("src")) { it.src = null; aud.removeAttribute("src"); ttsStart(it); plUi(); } });
+  $("#pl-play").onclick = togglePlay;
+  $("#pl-back").onclick = () => seek(-15);
+  $("#pl-fwd").onclick = () => seek(30);
+  $("#pl-next").onclick = () => playAt(PL.i + 1);
+  $("#pl-close").onclick = closePlayer;
+  $("#pl-rate").onclick = () => {
+    PL.rate = RATES[(RATES.indexOf(PL.rate) + 1) % RATES.length]; aud.playbackRate = PL.rate;
+    try { localStorage.setItem("nku-rate", String(PL.rate)); } catch (e) {}
+    if (PL.tts && PL.playing) { ttsHalt(); ttsSpeak(); }
+    plUi();
+  };
+  $("#pl-pos").addEventListener("input", () => { plDrag = true; });
+  $("#pl-pos").addEventListener("change", e => {
+    plDrag = false; const f = +e.target.value / 1000;
+    if (PL.tts) { PL.tts.k = Math.min(PL.tts.parts.length - 1, Math.floor(f * PL.tts.parts.length)); if (PL.playing) { ttsHalt(); ttsSpeak(); } plUi(); }
+    else if (isFinite(aud.duration)) aud.currentTime = f * aud.duration;
+  });
+
+  /* ---------- Obserwatorium: things to watch, yours and Claude's, checked against MSCI World after 3, 6 and 12 months ---------- */
+  const OBS_SYMBOLE = [["GC=F", "złoto"], ["SI=F", "srebro"], ["HG=F", "miedź"], ["CL=F", "ropa"], ["URA", "uran (ETF)"], ["INDA", "Indie"], ["EWZ", "Brazylia"], ["EWJ", "Japonia"], ["EPOL", "Polska"], ["^GSPC", "S&P 500"], ["^NDX", "Nasdaq-100"], ["SOXX", "półprzewodniki"], ["BTC-USD", "bitcoin"], ["NVDA", "NVIDIA"]];
+  const OBS_HOR = [["3m", "3 mies.", 91], ["6m", "6 mies.", 182], ["12m", "rok", 365]];
+  let obsFilter = "aktywna", obsKier = "";
+  const obsRel = k => k && k.zmiana != null && k.bench != null ? k.zmiana - k.bench : null;
+  const obsHit = (o, k) => { const r = obsRel(k); return r == null || !o.kierunek ? null : o.kierunek === "w_gore" ? r > 0 : r < 0; };
+  function obsScore() {
+    const sc = { claude: [0, 0], ja: [0, 0] };
+    for (const o of S.obs) for (const [h] of OBS_HOR) { const hit = obsHit(o, o.kontrole?.[h]); if (hit == null) continue; const s = sc[o.autor === "claude" ? "claude" : "ja"]; s[1]++; if (hit) s[0]++; }
+    return sc;
+  }
+  function obsTeaser() {
+    const week = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const isNew = o => o.autor === "claude" && o.data >= week, note = o => (o.notatki || []).filter(n => n.autor === "claude" && n.data >= week).slice(-1)[0];
+    const fresh = S.obs.filter(o => o.status !== "zamknieta" && (isNew(o) || note(o) || Object.values(o.kontrole || {}).some(k => k.data >= week)));
+    if (!fresh.length) return "";
+    const o = fresh[0], what = isNew(o) ? "Nowa obserwacja Claude" : note(o) ? "Nowy komentarz Claude" : "Wynik sprawdzenia";
+    return `<div class="card"><header><h2>Obserwatorium</h2><span class="note">${fresh.length > 1 ? fresh.length + " nowości" : "nowość"}</span></header><p style="margin:0"><span class="label">${what}</span><br><strong>${esc(o.tytul)}</strong></p><div class="actions"><button class="go" type="button" data-go="raporty:obs">Otwórz obserwatorium</button></div></div>`;
+  }
+  function obsItem(o) {
+    const st = o.start || {}, la = o.ostatnio || {}, rel = obsRel(la), startD = st.data || o.data;
+    const kier = { w_gore: "zakłada: lepiej niż świat", w_dol: "zakłada: gorzej niż świat" }[o.kierunek] || "bez założenia";
+    const pp = v => v == null ? "–" : (v > 0 ? "+" : v < 0 ? "−" : "") + nf(Math.abs(v), 1) + " pp";
+    const checks = OBS_HOR.map(([h, l, days]) => {
+      const k = o.kontrole?.[h];
+      if (k) { const hit = obsHit(o, k); return `<span class="pill ${hit == null ? "plain" : hit ? "ok" : "bad"}">${l}: ${pct(k.zmiana)} · świat ${pct(k.bench)}${hit == null ? "" : hit ? " ✓" : " ✗"}</span>`; }
+      const left = Math.ceil((new Date(startD + "T12:00:00").getTime() + days * 86400000 - Date.now()) / 86400000);
+      return o.symbol && !o.blad_symbolu ? `<span class="pill plain">${l}: za ${left > 0 ? left + " dni" : "chwilę"}</span>` : "";
+    }).join("");
+    const notes = o.notatki || [];
+    const noteHtml = n => `<div class="obs-note ${n.autor === "claude" ? "claude" : ""}"><span class="note">${n.autor === "claude" ? "Claude" : "Ty"} · ${esc(n.data)}</span><br>${esc(n.tekst)}</div>`;
+    const price = !o.symbol ? `<p class="note" style="margin:0">${o.komentuj !== false ? "Bez notowania: Claude dobierze je przy raporcie tygodnia." : "Bez notowania: dodaj symbol, żeby śledzić wynik."}</p>`
+      : o.blad_symbolu ? `<p class="note" style="margin:0">Yahoo nie zna symbolu „${esc(o.symbol)}”. Popraw go.</p>`
+      : la.data ? `<p style="margin:0"><span class="mono">${esc(o.symbol)}</span> od startu <strong class="${cls(la.zmiana)}">${pct(la.zmiana)}</strong> · MSCI World ${pct(la.bench)} · wobec świata <strong class="${cls(rel)}">${pp(rel)}</strong> <span class="note">(${esc(la.data)})</span></p>`
+      : `<p class="note" style="margin:0"><span class="mono">${esc(o.symbol)}</span>: pierwszy kurs pojawi się po nocnej aktualizacji.</p>`;
+    return `<div class="obs-item"><div class="obs-head"><strong>${esc(o.tytul)}</strong><span class="pill ${o.autor === "claude" ? "bad" : "plain"}">${o.autor === "claude" ? "Claude" : "Twoja"}</span><span class="note">od ${esc(startD)} · ${kier}</span></div>
+      ${o.opis ? `<p style="margin:0">${esc(o.opis)}</p>` : ""}
+      ${price}
+      ${checks ? `<div class="obs-checks">${checks}</div>` : ""}
+      ${notes.slice(-2).map(noteHtml).join("")}${notes.length > 2 ? `<details class="more"><summary>Wcześniejsze notatki (${notes.length - 2})</summary>${notes.slice(0, -2).reverse().map(noteHtml).join("")}</details>` : ""}
+      ${o.status === "zamknieta" && o.wniosek ? `<div class="obs-note"><span class="note">Wniosek · ${esc(o.zamknieto || "")}</span><br>${esc(o.wniosek)}</div>` : ""}
+      ${S.canWrite ? `<div class="actions" style="margin-top:0">${o.status !== "zamknieta" ? `<button class="go" type="button" data-onote="${esc(o._id)}">Dopisz notatkę</button>${!o.symbol || o.blad_symbolu ? `<button class="go" type="button" data-osym="${esc(o._id)}">${o.symbol ? "Popraw symbol" : "Dodaj symbol"}</button>` : ""}<button class="go" type="button" data-oend="${esc(o._id)}">Zakończ</button>` : ""}${o.autor !== "claude" ? `<button class="go" type="button" data-odel="${esc(o._id)}" style="color:var(--muted)">Usuń</button>` : ""}</div>` : ""}
+    </div>`;
+  }
+  function obsCard() {
+    const list = S.obs.filter(o => obsFilter === "zamknieta" ? o.status === "zamknieta" : o.status !== "zamknieta");
+    const sc = obsScore(), nAct = S.obs.filter(o => o.status !== "zamknieta").length;
+    const score = sc.claude[1] || sc.ja[1] ? `Trafność (wynik lepszy albo gorszy od MSCI World, tak jak zakładał autor): ${[["Claude", sc.claude], ["Ty", sc.ja]].filter(x => x[1][1]).map(([n, v]) => `<strong>${n} ${v[0]} z ${v[1]}</strong>`).join(" · ")}` : "Pierwsze sprawdzenie przychodzi 3 miesiące po starcie obserwacji. Wtedy zobaczysz tu, ile obserwacji, Twoich i Claude, się sprawdziło.";
+    return `<div class="card" id="obs"><header><h2>Obserwatorium</h2><span class="note">obserwacje, nie rekomendacje</span></header>
+      ${learn("Jak działa obserwatorium", "<p>Zapisujesz tu rzeczy, które chcesz śledzić: rynek, surowiec, kraj albo zjawisko. Claude dodaje tu też swoje obserwacje, np. dokąd płyną pieniądze do funduszy albo co się zmienia w wycenach.</p><p>Każda obserwacja ma datę startu. Po 3, 6 i 12 miesiącach aplikacja sama porównuje wynik z MSCI World. Po roku widać czarno na białym, czyje obserwacje były coś warte.</p><p>Obserwacja nie zmienia planu i nie jest sygnałem do kupna. Plan zmieniasz tylko świadomie, w przeglądzie.</p>")}
+      <p class="note">${score}</p>
+      ${S.canWrite ? `<details class="more" ${S.obs.length ? "" : "open"}><summary>Dodaj obserwację</summary>
+        <div style="display:grid;gap:10px;padding-top:6px">
+          <div class="field"><label for="o-tyt">Co chcesz obserwować?</label><input id="o-tyt" maxlength="90" placeholder="np. Uran: elektrownie jądrowe wracają do łask"></div>
+          <div class="field"><label for="o-op">Dlaczego? Co Twoim zdaniem się stanie?</label><textarea id="o-op" rows="2" placeholder="np. Kraje ogłaszają nowe reaktory, a wydobycie uranu rośnie wolno."></textarea></div>
+          <div class="field"><label for="o-sym">Notowanie: symbol z Yahoo (opcjonalnie)</label><input id="o-sym" list="o-syms" autocapitalize="characters" autocomplete="off" placeholder="np. URA. Zostaw puste, Claude dobierze"><datalist id="o-syms">${OBS_SYMBOLE.map(([s, l]) => `<option value="${esc(s)}">${esc(l)}</option>`).join("")}</datalist></div>
+          <div class="setrow"><span class="label">Spodziewam się, że wypadnie</span><div class="seg n3" role="group" style="grid-template-columns:repeat(3,1fr)">${[["w_gore", "lepiej niż świat"], ["w_dol", "gorzej niż świat"], ["", "nie wiem"]].map(([v, l]) => `<button type="button" data-okier="${v}" aria-pressed="${obsKier === v}">${l}</button>`).join("")}</div></div>
+          <label class="switch" for="o-kom"><span><strong>Claude, komentuj to w raportach tygodnia</strong><br><span class="note">Sprawdzi fakty, dopisze krótką notatkę i dobierze notowanie, jeśli go nie podasz.</span></span><input type="checkbox" id="o-kom" checked></label>
+          <div class="actions"><button class="btn" type="button" id="o-save">Zacznij obserwować</button><span class="note" id="o-msg" role="status"></span></div>
+        </div></details>` : ""}
+      <div class="seg n2" role="group" aria-label="Pokaż" style="grid-template-columns:repeat(2,1fr);margin-top:8px"><button type="button" data-ofil="aktywna" aria-pressed="${obsFilter !== "zamknieta"}">Obserwuję (${nAct})</button><button type="button" data-ofil="zamknieta" aria-pressed="${obsFilter === "zamknieta"}">Zakończone (${S.obs.length - nAct})</button></div>
+      <div>${list.map(obsItem).join("") || `<p class="note" style="padding-top:10px">${obsFilter === "zamknieta" ? "Nic jeszcze nie zakończyłeś." : "Na razie pusto. Dodaj pierwszą rzecz do obserwacji albo poczekaj na obserwacje Claude w raporcie tygodnia."}</p>`}</div>
+    </div>`;
+  }
+  function wireObs() {
+    const el = $("#obs"); if (!el) return;
+    const find = id => S.obs.find(o => o._id === id);
+    const put = (o, patch) => { const { _id, ...rest } = o; return db.doc("obserwacje/" + _id).set({ ...rest, ...patch }); };
+    el.querySelectorAll("[data-okier]").forEach(b => b.onclick = () => { obsKier = b.dataset.okier; el.querySelectorAll("[data-okier]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
+    el.querySelectorAll("[data-ofil]").forEach(b => b.onclick = () => { obsFilter = b.dataset.ofil; renderRaporty(calc()); });
+    $("#o-save")?.addEventListener("click", async () => {
+      const t = $("#o-tyt").value.trim();
+      if (!t) { $("#o-msg").textContent = "Napisz, co chcesz obserwować."; return; }
+      $("#o-save").disabled = true;
+      try { await db.collection("obserwacje").add({ data: today(), autor: "ja", tytul: t, opis: $("#o-op").value.trim(), symbol: $("#o-sym").value.trim().toUpperCase(), kierunek: obsKier, komentuj: $("#o-kom").checked, status: "aktywna", notatki: [] }); obsKier = ""; }
+      catch (err) { $("#o-msg").textContent = writeErr(err); $("#o-save").disabled = false; }
+    });
+    el.querySelectorAll("[data-onote]").forEach(b => b.onclick = async () => { const o = find(b.dataset.onote), t = prompt("Notatka do obserwacji:"); if (!o || !t?.trim()) return; try { await put(o, { notatki: [...(o.notatki || []), { data: today(), autor: "ja", tekst: t.trim() }] }); } catch (err) { b.textContent = writeErr(err); } });
+    el.querySelectorAll("[data-osym]").forEach(b => b.onclick = async () => { const o = find(b.dataset.osym), t = prompt("Symbol notowania z Yahoo Finance, np. URA, GC=F, ^GSPC:", o?.symbol || ""); if (!o || t == null || !t.trim()) return; try { await put(o, { symbol: t.trim().toUpperCase(), start: null, ostatnio: null, kontrole: {}, blad_symbolu: false }); } catch (err) { b.textContent = writeErr(err); } });
+    el.querySelectorAll("[data-oend]").forEach(b => b.onclick = async () => { const o = find(b.dataset.oend), t = prompt("Wniosek jednym zdaniem: czego nauczyła Cię ta obserwacja?"); if (!o || t == null) return; try { await put(o, { status: "zamknieta", zamknieto: today(), wniosek: t.trim() }); } catch (err) { b.textContent = writeErr(err); } });
+    el.querySelectorAll("[data-odel]").forEach(b => b.onclick = async () => { if (!confirm("Usunąć tę obserwację?")) return; try { await db.doc("obserwacje/" + b.dataset.odel).delete(); } catch (err) { b.textContent = writeErr(err); } });
+  }
+
   /* ---------- Raporty (with analysis and theses) ---------- */
   function renderRaporty(c) {
     const el = $("#v-raporty");
@@ -1250,16 +1526,17 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
         <div class="md" id="ai-out">${aiText ? md(aiText) : lastA ? md(lastA.tresc) : ""}</div></div>
       ${monthCard(sumMonth)}
       <div class="card"><header><h2>Raporty dzienne</h2><span class="note">pn–pt rano, automatycznie</span></header>
-        ${S.dzienne.length ? S.dzienne.slice(0, 10).map((r, i) => `<details class="more" ${i === 0 ? "open" : ""}><summary>${esc(r.tytul || "Raport dzienny")} <span class="note mono">${esc(r.data)}</span></summary><div class="md">${md(r.tresc)}</div></details>`).join("") : '<p class="note">Pierwszy raport dzienny pojawi się w najbliższy dzień roboczy rano.</p>'}</div>
+        ${S.dzienne.length ? S.dzienne.slice(0, 10).map((r, i) => `<details class="more" ${i === 0 ? "open" : ""}><summary>${esc(r.tytul || "Raport dzienny")} <span class="note mono">${esc(r.data)}</span></summary><div class="actions" style="margin:4px 0 8px">${listenBtn("dzienne", r)}</div><div class="md">${md(r.tresc)}</div></details>`).join("") : '<p class="note">Pierwszy raport dzienny pojawi się w najbliższy dzień roboczy rano.</p>'}</div>
       <div class="card"><header><h2>Raporty tygodniowe</h2><span class="note">soboty, automatycznie</span></header>
-        ${S.raporty.length ? S.raporty.map((r, i) => `${i === 0 && r.podsumowanie ? `<div class="md">${md(r.podsumowanie)}</div>` : ""}<details class="more"><summary>${esc(r.tytul || "Raport")} <span class="note mono">${esc(r.data)}</span></summary><div class="md">${md(r.tresc)}</div></details>`).join("") : '<div class="empty"><strong>Nie ma jeszcze raportów.</strong><span>W czacie napisz „raport tygodnia”. Zapisze się tutaj.</span></div>'}</div>
+        ${S.raporty.length ? S.raporty.map((r, i) => `${i === 0 && r.podsumowanie ? `<div class="md">${md(r.podsumowanie)}</div><div class="actions" style="margin:6px 0 4px">${listenBtn("raporty", r)}</div>` : ""}<details class="more"><summary>${esc(r.tytul || "Raport")} <span class="note mono">${esc(r.data)}</span></summary><div class="actions" style="margin:4px 0 8px">${listenBtn("raporty", r)}</div><div class="md">${md(r.tresc)}</div></details>`).join("") : '<div class="empty"><strong>Nie ma jeszcze raportów.</strong><span>W czacie napisz „raport tygodnia”. Zapisze się tutaj.</span></div>'}</div>
       <div class="card"><header><h2>Tezy</h2><span class="note">zmieniają się przez fakty, nie przez kurs</span></header>
         ${tezy.map(([k, t]) => { const hist = chrono.filter(r => r.tezy?.[k]).map(r => r.tezy[k]); const draft = /^SZKIC/.test(t.kiedy_sie_myle || ""); return `<details class="more"><summary><span>${esc(S.plan.role[k]?.nazwa || k)}</span>${statusPill(hist[hist.length - 1])}</summary>
           <div style="display:grid;gap:8px"><p>${esc(t.teza)}</p><div><span class="label">Co obserwuję</span><ul style="margin:4px 0 0;padding-left:18px">${(t.co_obserwowac || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul></div><div><span class="label">Kiedy się mylę</span> ${draft ? '<span class="pill warn">szkic</span>' : ""}<p>${esc((t.kiedy_sie_myle || "").replace(/^SZKIC do zatwierdzenia:\s*/, ""))}</p></div></div></details>`; }).join("") || '<p class="note">Brak tez.</p>'}</div>
       ${journalCard()}
+      ${obsCard()}
       ${S.analizy.length > 1 ? `<details class="more card"><summary>Wcześniejsze analizy (${S.analizy.length - 1})</summary>${S.analizy.slice(1).map(a => `<details class="more"><summary>${esc(a.data)}</summary><div class="md">${md(a.tresc)}</div></details>`).join("")}</details>` : ""}
     </div>`;
-    wireJournal();
+    wireJournal(); wireObs();
     $("#ms-prev")?.addEventListener("click", () => { sumMonth = shiftMonth(sumMonth, -1); renderRaporty(calc()); $("#month-sum").scrollIntoView({ block: "nearest" }); });
     $("#ms-next")?.addEventListener("click", () => { sumMonth = shiftMonth(sumMonth, 1); renderRaporty(calc()); $("#month-sum").scrollIntoView({ block: "nearest" }); });
     $("#ai-go")?.addEventListener("click", () => runAnalysis());
@@ -1650,6 +1927,7 @@ ${JSON.stringify(data)}`;
         <label class="switch" for="cfg-calm"><span><strong>Tryb spokojny</strong><br><span class="note">Chowa zmiany z ostatniego tygodnia. Przy horyzoncie 10 lat to i tak szum.</span></span><input type="checkbox" id="cfg-calm" ${CFG.spokojny ? "checked" : ""}></label>
         <div class="fgrid"><div class="field"><label for="cfg-wpl">Zwykła miesięczna wpłata na ETF-y (zł)</label><input id="cfg-wpl" type="number" min="0" step="100" inputmode="numeric" value="${esc(CFG.wplata)}"></div>
           <div class="field"><label for="cfg-pay">Dzień wypłaty (1–31)</label><input id="cfg-pay" type="number" min="1" max="31" step="1" inputmode="numeric" value="${esc(CFG.dzien_wyplaty || "")}" placeholder="np. 10"></div></div>
+        <div class="setrow"><span class="label">Głos raportów do odsłuchu</span>${seg("glos", [["zofia", "Zofia"], ["marek", "Marek"]], 2)}</div>
         <p class="note">W dzień wypłaty Start (i powiadomienie) przypomni o rozłożeniu wpłaty. Gdy wypada w weekend, przypomnienie przyjdzie w piątek.</p>
         <p class="note">Ustawienia zapisują się na Twoim koncie, więc telefon i komputer wyglądają tak samo.</p>
         <div class="setrow"><span class="label">Kopia danych</span><div class="actions"><button class="btn ghost" type="button" id="cfg-json">Wszystko (JSON)</button><button class="btn ghost" type="button" id="cfg-csv">Budżet i zakupy (CSV)</button></div><span class="note">Twoje dane na Twoim dysku: do Excela albo na wszelki wypadek.</span></div>
@@ -1940,7 +2218,7 @@ ${JSON.stringify(data)}`;
     $("#asof").textContent = asof ? "kursy z " + asof.slice(8, 10) + "." + asof.slice(5, 7) : (S.loaded.stan ? "brak kursów" : "wczytuję…");
     renderStart(c); renderBudzet(); renderPortfel(c); renderCele();
     if (!aiBusy) renderRaporty(c);
-    maybeSnapshot(c);
+    maybeSnapshot(c); syncListen();
     // a new person without a plan gets the wizard once, right after their data has loaded
     // a new person sees the short tour first, then the plan wizard
     if (!wizShown && db && S.canWrite && S.loaded.plan && S.loaded.tx && !S.plan && !sheet) { wizShown = true; if (CFG.przewodnik) openWizard(); else openTour(); }
@@ -1985,6 +2263,7 @@ ${JSON.stringify(data)}`;
     colSub(db.collection("budzet").orderBy("data", "desc").limit(1000), "budzet");
     colSub(db.collection("dzienne").orderBy("data", "desc").limit(30), "dzienne");
     colSub(db.collection("dziennik").orderBy("data", "desc").limit(200), "dziennik");
+    colSub(db.collection("obserwacje").orderBy("data", "desc").limit(200), "obs");
     sample = null;
     queue();
   })();

@@ -271,6 +271,59 @@ def build(plan, fxd):
             "benchmark": {"isin": BENCHMARK, "nazwa": "100% MSCI World", "seria": seria}}
 
 
+"""Observatory: observations the user or Claude marked (obserwacje/<id>) are checked against MSCI World
+3, 6 and 12 months after they started. A check is filled once and never rewritten."""
+OBS_BENCH = "URTH"  # MSCI World in USD, the same yardstick for every observation
+HORIZONS = [("3m", 91), ("6m", 182), ("12m", 365)]
+
+
+def close_on(points, d):
+    """First close on or after date d (ISO), else None."""
+    for day, c in points:
+        if day.isoformat() >= d:
+            return day.isoformat(), c
+    return None
+
+
+def track_observations(uid, upsert):
+    rows = supa("GET", f"/rest/v1/docs?select=path,data&user_id=eq.{uid}&path=like.obserwacje/*") or []
+    bench = fetch(OBS_BENCH, "2y")
+    n = 0
+    for r in rows:
+        o = r["data"] or {}
+        sym = (o.get("symbol") or "").strip()
+        if not sym or o.get("status") == "zamknieta" or not bench:
+            continue
+        s = fetch(sym, "2y")
+        if not s:
+            o["blad_symbolu"] = True
+            upsert(uid, r["path"], o)
+            continue
+        o.pop("blad_symbolu", None)
+        start = o.get("start") or {}
+        if not start.get("cena"):
+            hit = close_on(s["points"], (o.get("data") or "")[:10]) or (s["points"][-1][0].isoformat(), s["points"][-1][1])
+            b = close_on(bench["points"], hit[0])
+            start = o["start"] = {"data": hit[0], "cena": round(hit[1], 4), "bench": round(b[1], 4) if b else None, "waluta": s["currency"]}
+        last_d, last_c = s["points"][-1]
+        lb = bench["points"][-1][1]
+        ch = lambda a, b: round((a / b - 1) * 100, 2) if a and b else None
+        o["ostatnio"] = {"data": last_d.isoformat(), "cena": round(last_c, 4), "zmiana": ch(last_c, start["cena"]), "bench": ch(lb, start.get("bench"))}
+        k = o.setdefault("kontrole", {})
+        sd = datetime.fromisoformat(start["data"]).date()
+        for name, days in HORIZONS:
+            due = (sd.toordinal() + days)
+            if name in k or last_d.toordinal() < due:
+                continue
+            dd = datetime.fromordinal(due).date().isoformat()
+            a, b = close_on(s["points"], dd), close_on(bench["points"], dd)
+            if a and b:
+                k[name] = {"data": a[0], "cena": round(a[1], 4), "zmiana": ch(a[1], start["cena"]), "bench": ch(b[1], start.get("bench"))}
+        upsert(uid, r["path"], o)
+        n += 1
+    return n
+
+
 def main():
     if not URL.startswith("https://"):
         print("BŁĄD: brak sekretu SUPABASE_URL (albo nie zaczyna się od https://). Dodaj go w Settings > Secrets and variables > Actions.")
@@ -332,7 +385,9 @@ def main():
             if c and d.get("wartosc_otwarcia_pln"):
                 d.update(jednostki=round(float(d["wartosc_otwarcia_pln"]) / c["pln"], 6), waluta=c["waluta"], do_przeliczenia=False)
                 upsert(uid, t["path"], d)
+        nobs = track_observations(uid, upsert)
         ok += 1
+        print(f"  obserwacje: {nobs}")
         print(f"użytkownik {row['user_id'][:8]}…: {len(stan['ceny'])} funduszy, braki {stan['bez_notowan']}")
     print(f"zaktualizowano {ok} portfeli")
     return 0

@@ -1,0 +1,31 @@
+name: Audio raportów
+
+# Reads new reports aloud (Polish neural voice) and saves the MP3 for the app's player.
+# Every 20 minutes in the morning (UTC 5-11 = 6-12 in Poland in winter); a run with nothing new ends in seconds.
+on:
+  schedule:
+    - cron: "*/20 5-11 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audio
+  cancel-in-progress: false
+
+jobs:
+  audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "edge-tts>=7,<8"
+      - name: Nagraj raporty
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python tools/audio.py
