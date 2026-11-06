@@ -188,6 +188,9 @@ button.link { background: none; border: 0; padding: 0; color: var(--down); font:
 .sheet-bg { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; }
 .sheet { background: var(--bg); width: 100%; max-width: 560px; border-radius: 18px 18px 0 0; padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 14px; max-height: 92vh; overflow-y: auto; }
 @media (min-width: 600px) { .sheet-bg { align-items: center; } .sheet { border-radius: 18px; } }
+/* while a window is open, swiping down must scroll it, never pull-to-refresh the page (that would lose what was typed) */
+.sheet { overscroll-behavior: contain; }
+html:has(#sheet-root .sheet-bg), html:has(#sheet-root .sheet-bg) body { overscroll-behavior-y: contain; }
 /* glossary: a "?" next to a term opens its explanation above whatever is open */
 button.tip { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-left: 4px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--red); font: 800 0.72rem var(--f-body); cursor: pointer; vertical-align: middle; padding: 0; text-transform: none; letter-spacing: 0; }
 .learn { background: var(--surface); border-left: 3px solid var(--red); border-radius: 0 10px 10px 0; padding: 10px 12px; display: grid; gap: 6px; font-size: 0.9rem; }
@@ -271,8 +274,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-06-7"></script>
-<script src="backend.js?v=2026-11-06-7"></script>
+<script src="config.js?v=2026-11-06-8"></script>
+<script src="backend.js?v=2026-11-06-8"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -1673,10 +1676,20 @@ ${JSON.stringify(data)}`;
     };
   }
   const W_STEPS = ["Twój poziom", "Cel", "Bezpieczeństwo", "Podział", "Tezy", "Zasady", "Obecny stan", "Podsumowanie"];
-  function openWizard() {
+  const DRAFT = "nku-plan-szkic";
+  let wRestored = false;
+  function saveDraft() { if (!W) return; try { localStorage.setItem(DRAFT, JSON.stringify({ W, wStep, t: Date.now() })); } catch (e) {} }
+  function dropDraft() { try { localStorage.removeItem(DRAFT); } catch (e) {} }
+  function openWizard(fresh = false) {
     if (!db || !S.canWrite) { $("#notice").textContent = "Plan można zapisać po zalogowaniu."; $("#notice").hidden = false; return; }
-    W = wizardState(); wStep = 0; sheet = { mode: "plan" }; drawWizard();
+    let d = null;
+    try { d = fresh ? null : JSON.parse(localStorage.getItem(DRAFT) || "null"); } catch (e) {}
+    if (d?.W && Date.now() - d.t < 30 * 86400000) { W = d.W; wStep = Math.min(+d.wStep || 0, W_STEPS.length - 1); wRestored = true; }
+    else { W = wizardState(); wStep = 0; wRestored = false; }
+    sheet = { mode: "plan" }; drawWizard();
   }
+  // the phone may close the app while you check numbers in the broker's app: keep what was typed
+  document.addEventListener("visibilitychange", () => { if (document.hidden && W) saveDraft(); });
   function wWarnings() {
     const out = [], roles = W.role, sum = roles.reduce((s, r) => s + (+r.cel || 0), 0);
     if (Math.abs(sum - 100) > 0.01) out.push(`Wagi sumują się do ${nf(sum, 1)}%, a powinny do 100%.`);
@@ -1777,6 +1790,8 @@ ${JSON.stringify(data)}`;
       ${body}
       <div class="actions" style="justify-content:space-between">${wStep ? '<button class="btn ghost" type="button" id="w-back">Wstecz</button>' : "<span></span>"}${wStep < W_STEPS.length - 1 ? '<button class="btn" type="button" id="w-next">Dalej</button>' : '<button class="btn" type="button" id="w-save">Zapisz plan</button>'}</div>
       <p class="note" id="w-msg" role="status"></p></div></div>`;
+    if (wRestored) { $("#w-msg").innerHTML = 'Wróciłeś do niedokończonego planu. <button class="link" type="button" id="w-fresh">Zacznij od nowa</button>'; $("#w-fresh").onclick = () => { if (!armed($("#w-fresh"), "Na pewno? Kliknij jeszcze raz")) return; dropDraft(); openWizard(true); }; wRestored = false; }
+    saveDraft();
     // inputs
     root.querySelectorAll("[data-f]").forEach(el => el.addEventListener("input", () => { P[el.dataset.f] = el.value; }));
     root.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { P[b.dataset.p] = b.dataset.v; drawWizard(); });
@@ -1803,10 +1818,11 @@ ${JSON.stringify(data)}`;
     root.querySelectorAll("[data-rdel]").forEach(b => b.onclick = () => { W.role.splice(+b.dataset.rdel, 1); drawWizard(); });
     $("#r-add")?.addEventListener("click", () => { W.role.push({ key: "", nazwa: "", cel: "", rdzen: false, pasmo: 3, fundusze: [] }); drawWizard(); });
     root.querySelectorAll("[data-t]").forEach(el => el.addEventListener("input", () => { const k = el.dataset.t; W.tezy[k] ||= {}; W.tezy[k][el.dataset.tk] = el.dataset.tk === "co_obserwowac" ? el.value.split(",").map(s => s.trim()).filter(Boolean) : el.value; }));
-    root.querySelectorAll("[data-o]").forEach(el => el.addEventListener("change", () => { W.otwarcie[+el.dataset.o][el.dataset.ok] = el.value; }));
+    root.querySelectorAll("[data-o]").forEach(el => ["input", "change"].forEach(ev => el.addEventListener(ev, () => { W.otwarcie[+el.dataset.o][el.dataset.ok] = el.value; saveDraft(); })));
+    root.querySelectorAll("[data-r]").forEach(el => el.addEventListener("input", () => { const r = W.role[+el.dataset.r]; r[el.dataset.k] = el.dataset.k === "nazwa" ? el.value : (el.value === "" ? "" : +el.value); saveDraft(); }));
+    root.querySelectorAll("[data-f],[data-w],[data-pod],[data-t]").forEach(el => el.addEventListener("input", () => setTimeout(saveDraft)));
     $("#o-add2")?.addEventListener("click", () => { W.otwarcie.push({ isin: "", konto: "zwykle", wartosc: "", koszt: "" }); drawWizard(); });
-    $("#sheet-bg").addEventListener("click", e => { if (e.target.id === "sheet-bg") closeWizard(); });
-    $("#w-x").onclick = closeWizard;
+    $("#w-x").onclick = () => { saveDraft(); closeWizard(); $("#notice").textContent = "Plan zapisany jako szkic: dokończysz go w Ustawieniach → Ustaw mój plan."; $("#notice").hidden = !!S.plan; };
     $("#w-back")?.addEventListener("click", () => { wStep--; drawWizard(); $(".sheet").scrollTop = 0; });
     $("#w-next")?.addEventListener("click", () => {
       if (W_STEPS[wStep] === "Twój poziom" && !W.poziom) { $("#w-msg").textContent = "Wybierz poziom, żeby przejść dalej."; return; }
@@ -1859,7 +1875,7 @@ ${JSON.stringify(data)}`;
           wartosc_otwarcia_pln: +o.wartosc, otwarcie: true, do_przeliczenia: !p, uwagi: "stan otwarcia z kreatora planu" });
       }
       if (+P.wplata) await saveCfg({ wplata: +P.wplata });
-      closeWizard(); show("start");
+      dropDraft(); closeWizard(); show("start");
     } catch (e) { $("#w-msg").textContent = writeErr(e); btn.disabled = false; }
   }
 
