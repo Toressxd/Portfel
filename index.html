@@ -146,6 +146,7 @@ tr:last-child td { border-bottom: 0; }
 .item .a { font-family: var(--f-data); text-align: right; white-space: nowrap; }
 details.more > summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 10px; }
 details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary .mono { white-space: nowrap; flex: none; margin-left: auto; padding-left: 8px; }
 details.more > summary::after { content: "+"; color: var(--red); font-weight: 800; }
 details.more[open] > summary::after { content: "−"; }
 details.more[open] > summary { margin-bottom: 10px; }
@@ -223,6 +224,14 @@ svg text { fill: var(--muted); font-family: var(--f-data); font-size: 11px; }
 /* privacy: amounts are blurred until you turn it off (handy in public) */
 html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kpi .v, #wpl-out) { filter: blur(7px); user-select: none; }
 @media (prefers-reduced-motion: no-preference) { .bar .fill, .progress > div { transition: width .35s ease; } }
+.subnav { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; position: sticky; top: 0; z-index: 5; background: var(--bg); margin: 0 -2px; }
+.subnav::-webkit-scrollbar { display: none; }
+.subnav button { flex: none; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 8px 14px; font: 600 0.86rem var(--f-body); cursor: pointer; white-space: nowrap; }
+.subnav button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+[hidden] { display: none !important; }
+/* the "+" slides away while scrolling down and comes back when scrolling up, so it never covers buttons */
+.fab { transition: transform .2s ease, opacity .2s ease; }
+.fab.away { transform: translateY(140%); opacity: 0; pointer-events: none; }
 /* computer: the same app with a side menu and cards in two columns; phones keep the bottom bar */
 @media (min-width: 1024px) {
   :root { --side: 236px; }
@@ -241,7 +250,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   /* cards flow into two balanced columns; the headline number spans both */
   :is(#v-start, #v-budzet, #v-portfel, #v-cele) > div { display: block !important; columns: 2; column-gap: 20px; }
   :is(#v-start, #v-budzet, #v-portfel, #v-cele) > div > * { break-inside: avoid; margin-bottom: 20px; }
-  :is(#v-start, #v-budzet, #v-portfel, #v-cele) > div > :is(.hero, .monthnav) { column-span: all; }
+  :is(#v-start, #v-budzet, #v-portfel, #v-cele) > div > :is(.hero, .monthnav, .subnav) { column-span: all; }
+  .subnav { position: static; }
   /* reports are long texts: one wide, readable column */
   #v-raporty > div { max-width: 920px; }
   .md { max-width: 78ch; }
@@ -274,8 +284,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-06-8"></script>
-<script src="backend.js?v=2026-11-06-8"></script>
+<script src="config.js?v=2026-11-06-9"></script>
+<script src="backend.js?v=2026-11-06-9"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -332,7 +342,41 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     else { try { first = localStorage.getItem("portfel-tab") || "start"; } catch (e) { first = "start"; } }
   }
   show(first);
-  document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if (g) { const [v, extra] = g.dataset.go.split(":"); if (v === "add") openSheet(extra || "wydatek"); else if (v === "plan") openWizard(); else if (v === "wplata") openWplata(); else show(v); } });
+  document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if (g) { const [v, extra] = g.dataset.go.split(":"); if (v === "add") openSheet(extra || "wydatek"); else if (v === "plan") openWizard(); else if (v === "wplata") openWplata(); else { if (extra) setSub(v, extra); show(v); } } });
+
+  /* ---------- sub-pages: long tabs split into short pages (pills under the header) ---------- */
+  const SUBS = {
+    budzet: [["miesiac", "Podsumowanie", ["Wydatki", "Stałe opłaty", "Ostatnie miesiące"]], ["wpisy", "Wpisy i limity", ["Wpisy", "Limity"]]],
+    portfel: [["przeglad", "Przegląd", ["Pozycje", "Wartość w czasie"]], ["wplata", "Wpłata", ["Następna wpłata"]], ["sklad", "Skład i ryzyko", ["Co mam w środku", "Test na kryzys", "Rynek w tym tygodniu"]], ["historia", "Historia", ["Historia transakcji"]]],
+    cele: [["cele", "Cele", ["Cel", "Majątek w czasie", "Cele oszczędnościowe", "Poduszka", "Zapisz cele"]], ["konta", "IKE, obligacje, podatki", ["IKE", "Obligacje", "Podatki", "Zapisz cele"]], ["kalk", "Kalkulator", ["Kalkulator"]]],
+    raporty: [["raporty", "Raporty", ["Raporty dzienne", "Raporty tygodniowe"]], ["miesiac", "Miesiąc", ["Podsumowanie miesiąca"]], ["tezy", "Tezy i dziennik", ["Tezy", "Dziennik decyzji"]], ["analiza", "Analiza", ["Analiza portfela", "Wcześniejsze analizy"]]]
+  };
+  let SUB = {};
+  try { SUB = JSON.parse(localStorage.getItem("nku-sub") || "{}"); } catch (e) {}
+  function setSub(view, key) { SUB[view] = key; try { localStorage.setItem("nku-sub", JSON.stringify(SUB)); } catch (e) {} applySub(view); window.scrollTo(0, 0); }
+  function applySub(view) {
+    const defs = SUBS[view], wrap = $("#v-" + view + " > div");
+    if (!defs || !wrap) return;
+    const cur = defs.some(d => d[0] === SUB[view]) ? SUB[view] : defs[0][0];
+    let bar = wrap.querySelector(":scope > .subnav");
+    if (!bar) {
+      bar = document.createElement("div"); bar.className = "subnav"; bar.setAttribute("role", "tablist");
+      bar.innerHTML = defs.map(([k, l]) => `<button type="button" role="tab" data-sub="${k}">${l}</button>`).join("");
+      const after = wrap.querySelector(":scope > .hero, :scope > .monthnav");
+      const anchor = wrap.querySelector(":scope > .hero") || after;
+      anchor ? anchor.after(bar) : wrap.prepend(bar);
+      bar.addEventListener("click", e => { const b = e.target.closest("[data-sub]"); if (b) setSub(view, b.dataset.sub); });
+    }
+    bar.querySelectorAll("[data-sub]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.sub === cur)));
+    const title = el => (el.querySelector(":scope > header h2, :scope > summary, :scope > header h3") || el).textContent.trim();
+    for (const el of wrap.children) {
+      if (el === bar || el.matches(".hero, .monthnav, .notice")) continue;
+      const t = title(el), owners = defs.filter(d => d[2].some(p => t.startsWith(p))).map(d => d[0]);
+      el.hidden = owners.length ? !owners.includes(cur) : false;
+    }
+  }
+  // every render replaces a tab's content: put the pills back and show the chosen page
+  for (const v of Object.keys(SUBS)) new MutationObserver(() => applySub(v)).observe($("#v-" + v), { childList: true });
 
   /* ---------- portfolio calculations ---------- */
   function fundIndex() {
@@ -676,7 +720,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     { id: "wyplata", t: "Wpisz wypłatę i skopiuj stałe opłaty", go: "budzet" },
     { id: "budzet", t: "Przejrzyj wydatki i limity", go: "budzet" },
     { id: "odloz", t: "Odłóż na poduszkę lub obligacje", go: "cele" },
-    { id: "wplata", t: "Rozpisz wpłatę i kup ETF-y u brokera", go: "portfel" },
+    { id: "wplata", t: "Rozpisz wpłatę i kup ETF-y u brokera", go: "portfel:wplata" },
     { id: "zakupy", t: "Zapisz wpłatę na ETF-y w aplikacji", go: "wplata" },
     { id: "raport", t: "Przeczytaj raport lub poproś o analizę", go: "raporty" }
   ];
@@ -730,8 +774,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
   });
   function dayItems() {
     const wd = new Date().getDay(), out = [];
-    if (wd >= 1 && wd <= 5) out.push({ id: "raport", t: "Przeczytaj raport dnia", go: "raporty" });
-    else if (wd === 6) out.push({ id: "raport", t: "Przeczytaj raport tygodnia", go: "raporty" });
+    if (wd >= 1 && wd <= 5) out.push({ id: "raport", t: "Przeczytaj raport dnia", go: "raporty:raporty" });
+    else if (wd === 6) out.push({ id: "raport", t: "Przeczytaj raport tygodnia", go: "raporty:raporty" });
     else out.push({ id: "budzet", t: "Rzuć okiem na budżet tygodnia", go: "budzet" });
     out.push({ id: "wydatki", t: "Wpisz dzisiejsze wydatki", go: "add:wydatek" });
     if (poziom() !== "zaawansowany") { const k = lessonOfDay(); out.push({ id: "lekcja", t: "Pojęcie dnia: " + SLOWNIK[k].t, tip: k }); }
@@ -770,8 +814,11 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       </div>
       <div class="card">
         <div class="status-head"><div class="mark ${todo ? "todo" : "ok"}">${todo ? todo : "✓"}</div>
-          <div><h2>${todo ? (todo === 1 ? "Jedna rzecz do zrobienia" : `${todo} rzeczy do zrobienia`) : "Spokojnie. Wszystko według planu."}</h2><p class="note">Reszta poniżej jest w porządku albo tylko do wiadomości.</p></div></div>
-        <ul class="checks">${ch.sort((a, b) => ["todo", "warn", "info", "ok"].indexOf(a.lvl) - ["todo", "warn", "info", "ok"].indexOf(b.lvl)).map(x => `<li><span class="ic ${x.lvl}">${x.lvl === "ok" ? "✓" : x.lvl === "todo" ? "!" : x.lvl === "warn" ? "!" : "i"}</span><div><div>${esc(x.t)}</div>${x.s ? `<div class="note">${esc(x.s)}</div>` : ""}</div><button class="go" type="button" data-go="${x.go}">${x.go === "plan" ? "Ustaw" : x.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button></li>`).join("")}</ul>
+          <div><h2>${todo ? (todo === 1 ? "Jedna rzecz do zrobienia" : `${todo} rzeczy do zrobienia`) : "Spokojnie. Wszystko według planu."}</h2><p class="note">${todo ? "Pozostałe sprawy są w porządku albo tylko do wiadomości." : "Nic nie wymaga Twojej uwagi."}</p></div></div>
+        ${(() => { const ord = ["todo", "warn", "info", "ok"], sorted = ch.sort((a, b) => ord.indexOf(a.lvl) - ord.indexOf(b.lvl));
+          const li = x => `<li><span class="ic ${x.lvl}">${x.lvl === "ok" ? "✓" : x.lvl === "info" ? "i" : "!"}</span><div><div>${esc(x.t)}</div>${x.s ? `<div class="note">${esc(x.s)}</div>` : ""}</div><button class="go" type="button" data-go="${x.go}">${x.go === "plan" ? "Ustaw" : x.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button></li>`;
+          const main = sorted.filter(x => x.lvl === "todo" || x.lvl === "warn"), rest = sorted.filter(x => !main.includes(x));
+          return `${main.length ? `<ul class="checks">${main.map(li).join("")}</ul>` : ""}${rest.length ? `<details class="more"><summary>Do wiadomości (${rest.length})</summary><ul class="checks">${rest.map(li).join("")}</ul></details>` : ""}`; })()}
       </div>
       ${(() => {
         if (poziom() !== "poczatkujacy") return "";
@@ -783,7 +830,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
           <ol class="steps">${PIERWSZE.map(s => `<li class="${done(s) ? "done" : ""}"><span class="ic ${done(s) ? "ok" : "info"}" aria-hidden="true">${done(s) ? "✓" : "·"}</span><span>${esc(s.t)}</span>${s.go ? `<button class="go" type="button" data-go="${s.go}">Ustaw</button>` : `<button class="go" type="button" data-tip="${s.id}">Czytaj</button>`}</li>`).join("")}</ol>
           <div class="actions"><button class="btn ghost" type="button" data-tip="lista">Słownik pojęć</button><span class="note">Poziom zmienisz w ustawieniach.</span></div></div>`;
       })()}
-      ${(() => { const d = S.dzienne[0]; if (!d || (Date.now() - new Date(d.data + "T12:00:00")) / 86400000 > 4) return ""; return `<div class="card"><header><h2>Na rynkach</h2><span class="note">${esc(d.data)}</span></header><div class="md">${md(d.podsumowanie || d.tresc)}</div><div class="actions"><button class="go" type="button" data-go="raporty">Cały raport</button></div></div>`; })()}
+      ${(() => { const d = S.dzienne[0]; if (!d || (Date.now() - new Date(d.data + "T12:00:00")) / 86400000 > 4) return ""; return `<div class="card"><header><h2>Na rynkach</h2><span class="note">${esc(d.data)}</span></header><div class="md">${md(d.podsumowanie || d.tresc)}</div><div class="actions"><button class="go" type="button" data-go="raporty:raporty">Cały raport</button></div></div>`; })()}
       ${(() => { const items = dayItems(), n = items.filter(dayDone).length; return `<div class="card">
         <header><h2>Dziś: ${esc(new Date().toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" }))}</h2><span class="note">${n} z ${items.length} · ok. 5 minut</span></header>
         <div class="progress"><div style="width:${n / items.length * 100}%"></div></div>
@@ -797,7 +844,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
         if (!x.etfIn && !x.b.przychod && x.majD == null) return ""; // nothing worth a card yet
         return `<div class="card"><header><h2>${esc(cap(monthName(m)))} w skrócie</h2><span class="note">podsumowanie miesiąca</span></header>
           <div class="chips">${x.etfIn ? `<span class="chip">Na ETF-y <b>${zl(x.etfIn)}</b></span>` : ""}${x.b.przychod ? `<span class="chip">Oszczędzone <b>${pct(x.b.odlozone / x.b.przychod * 100, 0, false)}</b></span>` : ""}${x.majD != null ? `<span class="chip">Majątek <b class="${cls(x.majD)}">${szl(x.majD)}</b></span>` : ""}</div>
-          <div class="actions"><button class="go" type="button" data-go="raporty">Całe podsumowanie</button></div></div>`; })()}
+          <div class="actions"><button class="go" type="button" data-go="raporty:miesiac">Całe podsumowanie</button></div></div>`; })()}
       ${(() => { const list = `<ol class="steps" id="month-steps">${STEPS.map(s => { const d = stepDone(s.id); return `<li class="${d ? "done" : ""}"><input type="checkbox" id="st-${s.id}" ${d ? "checked" : ""} ${S.canWrite && db ? "" : "disabled"} aria-label="${esc(s.t)}"><span>${esc(s.t)}</span><button class="go" type="button" data-go="${s.go}">${s.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button></li>`; }).join("")}</ol>`;
         // a finished monthly review folds into one line, so the daily card stays the main thing
         return done === STEPS.length ? `<details class="more card"><summary><span>Przegląd: ${esc(monthName(curMonth()))} <span class="up">✓ zrobiony</span></span></summary>${list}</details>`
@@ -987,8 +1034,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       <span class="label">Największe spółki</span>
       <div class="list">${lt.firms.slice(0, 10).map(f => `<div class="item"><div class="t">${esc(f.n)}</div><div class="a">${zl(f.v)}</div><div class="s">${pct(f.v / c.total * 100, 1, false)} portfela · z: ${[...f.from].map(sym).join(", ")}</div><div></div></div>`).join("")}</div>
       <p class="note">${top ? `Największa pojedyncza spółka to ${esc(top.n)}: ${pct(top.v / c.total * 100, 1, false)} całego portfela. ` : ""}${multi.length ? `${multi.length} ${multi.length === 1 ? "spółka jest" : multi.length < 5 ? "spółki są" : "spółek jest"} w kilku Twoich funduszach naraz (np. ${esc(multi[0].n)}). ` : ""}Pokazane spółki to ${pct(lt.covered / c.total * 100, 0, false)} portfela; reszta to setki mniejszych.</p>
-      <span class="label">Branże</span>
-      <div class="roles">${lt.sect.map(([k, v]) => `<div class="role"><div class="row"><span>${k === "_inne" ? "Surowce bez danych o składzie" : esc(SEKTORY[k] || k)}</span><span class="mono">${pct(v / c.total * 100, 1, false)}</span></div>${bar(v, c.total, null, k === "technology" ? "red" : "")}</div>`).join("")}</div>
+      <details class="more"><summary>Branże</summary>
+      <div class="roles">${lt.sect.map(([k, v]) => `<div class="role"><div class="row"><span>${k === "_inne" ? "Surowce bez danych o składzie" : esc(SEKTORY[k] || k)}</span><span class="mono">${pct(v / c.total * 100, 1, false)}</span></div>${bar(v, c.total, null, k === "technology" ? "red" : "")}</div>`).join("")}</div></details>
       <p class="note">Dane: Yahoo Finance, 10 największych spółek każdego funduszu i jego podział na branże. Kraje i pełna lista spółek nie są dostępne bezpłatnie.</p></div>`;
   }
   // the yearly rate needs a month of history; tell when it appears instead of a vague "later"
@@ -1201,7 +1248,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       <div class="card"><header><h2>Raporty dzienne</h2><span class="note">pn–pt rano, automatycznie</span></header>
         ${S.dzienne.length ? S.dzienne.slice(0, 10).map((r, i) => `<details class="more" ${i === 0 ? "open" : ""}><summary>${esc(r.tytul || "Raport dzienny")} <span class="note mono">${esc(r.data)}</span></summary><div class="md">${md(r.tresc)}</div></details>`).join("") : '<p class="note">Pierwszy raport dzienny pojawi się w najbliższy dzień roboczy rano.</p>'}</div>
       <div class="card"><header><h2>Raporty tygodniowe</h2><span class="note">soboty, automatycznie</span></header>
-        ${S.raporty.length ? S.raporty.map((r, i) => `<details class="more" ${i === 0 ? "open" : ""}><summary>${esc(r.tytul || "Raport")} <span class="note mono">${esc(r.data)}</span></summary><div class="md">${md(r.tresc)}</div></details>`).join("") : '<div class="empty"><strong>Nie ma jeszcze raportów.</strong><span>W czacie napisz „raport tygodnia”. Zapisze się tutaj.</span></div>'}</div>
+        ${S.raporty.length ? S.raporty.map((r, i) => `${i === 0 && r.podsumowanie ? `<div class="md">${md(r.podsumowanie)}</div>` : ""}<details class="more"><summary>${esc(r.tytul || "Raport")} <span class="note mono">${esc(r.data)}</span></summary><div class="md">${md(r.tresc)}</div></details>`).join("") : '<div class="empty"><strong>Nie ma jeszcze raportów.</strong><span>W czacie napisz „raport tygodnia”. Zapisze się tutaj.</span></div>'}</div>
       <div class="card"><header><h2>Tezy</h2><span class="note">zmieniają się przez fakty, nie przez kurs</span></header>
         ${tezy.map(([k, t]) => { const hist = chrono.filter(r => r.tezy?.[k]).map(r => r.tezy[k]); const draft = /^SZKIC/.test(t.kiedy_sie_myle || ""); return `<details class="more"><summary><span>${esc(S.plan.role[k]?.nazwa || k)}</span>${statusPill(hist[hist.length - 1])}</summary>
           <div style="display:grid;gap:8px"><p>${esc(t.teza)}</p><div><span class="label">Co obserwuję</span><ul style="margin:4px 0 0;padding-left:18px">${(t.co_obserwowac || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul></div><div><span class="label">Kiedy się mylę</span> ${draft ? '<span class="pill warn">szkic</span>' : ""}<p>${esc((t.kiedy_sie_myle || "").replace(/^SZKIC do zatwierdzenia:\s*/, ""))}</p></div></div></details>`; }).join("") || '<p class="note">Brak tez.</p>'}</div>
@@ -1482,6 +1529,8 @@ ${JSON.stringify(data)}`;
     };
   }
   $("#fab").addEventListener("click", () => openSheet($("#v-portfel").hidden ? "wydatek" : "etf"));
+  let lastY = scrollY;
+  addEventListener("scroll", () => { const y = scrollY; if (Math.abs(y - lastY) > 8) { $("#fab").classList.toggle("away", y > lastY && y > 120); lastY = y; } }, { passive: true });
   document.addEventListener("keydown", e => { if (e.key !== "Escape") return; if (tipView) closeTip(); else if (sheet) closeSheet(); });
 
   /* ---------- first-run tour: what the app is for, privacy, the monthly routine, then the plan ---------- */
