@@ -113,7 +113,7 @@ def main():
             payload = json.dumps({"title": title, "body": body, "url": url, "tag": key.split(":")[0]})
             for dev in devices:
                 try:
-                    webpush(subscription_info=dev["data"]["sub"], data=payload, vapid_private_key=VAPID, vapid_claims={"sub": APP}, ttl=12 * 3600)
+                    webpush(subscription_info=dev["data"]["sub"], data=payload, vapid_private_key=VAPID, vapid_claims={"sub": "https://toressxd.github.io"}, ttl=12 * 3600)
                     sent += 1
                 except WebPushException as e:
                     if e.response is not None and e.response.status_code in (404, 410):  # the phone dropped this subscription
