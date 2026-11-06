@@ -246,8 +246,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-05-7"></script>
-<script src="backend.js?v=2026-11-05-7"></script>
+<script src="config.js?v=2026-11-06-1"></script>
+<script src="backend.js?v=2026-11-06-1"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -303,7 +303,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     else { try { first = localStorage.getItem("portfel-tab") || "start"; } catch (e) { first = "start"; } }
   }
   show(first);
-  document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if (g) { const [v, extra] = g.dataset.go.split(":"); if (v === "add") openSheet(extra || "wydatek"); else if (v === "plan") openWizard(); else show(v); } });
+  document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if (g) { const [v, extra] = g.dataset.go.split(":"); if (v === "add") openSheet(extra || "wydatek"); else if (v === "plan") openWizard(); else if (v === "wplata") openWplata(); else show(v); } });
 
   /* ---------- portfolio calculations ---------- */
   function fundIndex() {
@@ -638,7 +638,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
     { id: "budzet", t: "Przejrzyj wydatki i limity", go: "budzet" },
     { id: "odloz", t: "Odłóż na poduszkę lub obligacje", go: "cele" },
     { id: "wplata", t: "Rozpisz wpłatę i kup ETF-y u brokera", go: "portfel" },
-    { id: "zakupy", t: "Zapisz zakupy w aplikacji", go: "add:etf" },
+    { id: "zakupy", t: "Zapisz wpłatę na ETF-y w aplikacji", go: "wplata" },
     { id: "raport", t: "Przeczytaj raport lub poproś o analizę", go: "raporty" }
   ];
   // the daily card: a few minutes, different on weekdays (daily report), Saturday (weekly report) and Sunday
@@ -967,7 +967,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       <div class="card"><header><h2>Następna wpłata</h2><span class="note">dokupuję to, co najbardziej poniżej celu</span></header>
         <div class="field" style="max-width:220px"><label for="wpl">Kwota (zł)</label><input id="wpl" type="number" min="0" step="100" inputmode="numeric" value="${amount}"></div>
         <div id="wpl-out" class="list"></div>
-        <p class="note">To Twoja zasada policzona na cenach z ostatniej aktualizacji, nie rekomendacja.</p></div>
+        <p class="note">To Twoja zasada policzona na cenach z ostatniej aktualizacji, nie rekomendacja.</p>
+        ${S.canWrite && S.plan ? `<div class="actions"><button class="btn" type="button" id="wpl-save">Kupiłem: zapisz całą wpłatę</button><span class="note">Rozłoży kwotę na fundusze i zapisze zakupy naraz.</span></div>` : ""}</div>
       <div class="card"><header><h2>Pozycje</h2><span class="note">${c.list.length}</span></header>
         ${c.list.length ? `<div class="list">${c.list.map(p => { const w = (p.wartosc || 0) - p.koszt; return `<div class="item" data-fund="${esc(p.isin)}" role="button" tabindex="0" style="cursor:pointer"><div class="t">${esc(p.nazwa)} <span class="go">›</span>${skip.has(p.isin) ? ' <span class="pill plain">nie dokupuję</span>' : ""}</div><div class="a">${zl(p.wartosc)}</div><div class="s">${Object.keys(p.konta).filter(k => p.konta[k] > 0).join(", ")} · ${c.total ? nf((p.wartosc || 0) / c.total * 100, 1) : 0}% portfela</div><div class="a ${cls(w)}" style="font-size:.84rem">${szl(w)} (${pct(p.koszt ? w / p.koszt * 100 : null)})</div></div>`; }).join("")}</div>` : '<div class="empty"><strong>Brak pozycji.</strong><span>Dodaj zakup czerwonym plusem albo wyślij Claude zrzut z XTB.</span></div>'}
       </div>
@@ -979,7 +980,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
         <div class="tablebox"><table><thead><tr><th>Wskaźnik</th><th class="n">Ostatnio</th><th class="n">Tydzień</th></tr></thead><tbody>${(S.stan?.wskazniki || []).map(w => `<tr><td>${esc(w.nazwa)}</td><td class="n">${nf(w.wartosc, 2)}</td><td class="n ${cls(w.tydz_proc)}">${pct(w.tydz_proc, 2)}</td></tr>`).join("")}</tbody></table></div>
         <p class="note">Yahoo, ceny z opóźnieniem. Tydzień to szum przy horyzoncie 10 lat.</p></details>
       <details class="more card"><summary>Historia transakcji (${txs.length})</summary>
-        <div class="list">${txs.map(t => `<div class="item"><div class="t">${esc(name[t.isin] || t.isin)}</div><div class="a">${isSell(t) ? "−" : ""}${zl(+t.kwota_pln, 2)}</div><div class="s">${esc(t.data)} · ${esc(t.konto)} · ${isSell(t) ? "sprzedaż" : t.otwarcie ? "stan otwarcia" : "kupno"} · ${nf(+t.jednostki, 4)} jedn.</div><div>${S.canWrite ? `<button class="link" type="button" data-tdel="${esc(t._id)}">Usuń</button>` : ""}</div></div>`).join("") || '<p class="note">Brak.</p>'}</div></details>
+        <div class="list">${txs.map(t => `<div class="item"><div class="t">${esc(name[t.isin] || t.isin)}</div><div class="a">${isSell(t) ? "−" : ""}${zl(+t.kwota_pln, 2)}</div><div class="s">${esc(t.data)} · ${esc(t.konto)} · ${isSell(t) ? "sprzedaż" : t.otwarcie ? "stan otwarcia" : "kupno"} · ${t.jednostki == null ? "jednostki po nocnej aktualizacji" : (t.szacunek ? "ok. " : "") + nf(+t.jednostki, 4) + " jedn."}</div><div>${S.canWrite ? `${t.szacunek && t.jednostki != null ? `<button class="link" type="button" data-tfix="${esc(t._id)}">Popraw jedn.</button> ` : ""}<button class="link" type="button" data-tdel="${esc(t._id)}">Usuń</button>` : ""}</div></div>`).join("") || '<p class="note">Brak.</p>'}</div></details>
     </div>`;
     const out = () => {
       const a = +$("#wpl").value || 0;
@@ -1002,6 +1003,15 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       $("#wpl-out").querySelectorAll("[data-buy]").forEach(b => b.addEventListener("click", () => { const s = rows[+b.dataset.buy]; openSheet("etf", { isin: s.isins[0], kwota: Math.round(s.u >= 1 ? s.u * s.p.pln : s.kwota), jednostki: s.u >= 1 ? s.u : "" }); }));
     };
     $("#wpl").addEventListener("input", out); out();
+    $("#wpl-save")?.addEventListener("click", () => openWplata(+$("#wpl").value));
+    el.querySelectorAll("[data-tfix]").forEach(b => b.addEventListener("click", async () => {
+      const t = S.tx.find(x => x._id === b.dataset.tfix); if (!t) return;
+      const v = prompt(`Ile jednostek ${fundIndex().name[t.isin] || t.isin} kupiłeś ${t.data}? (z potwierdzenia w XTB)`, String(t.jednostki).replace(".", ","));
+      const u = +String(v ?? "").replace(",", ".");
+      if (!(u > 0)) return;
+      const { _id, ...rest } = t;
+      try { await db.doc("transakcje/" + _id).set({ ...rest, jednostki: u, szacunek: false, cena: rest.kwota_pln && S.stan?.ceny?.[t.isin] ? +(rest.kwota_pln / u / (S.stan.ceny[t.isin].pln / S.stan.ceny[t.isin].cena)).toFixed(4) : rest.cena }); } catch (err) { b.textContent = writeErr(err); }
+    }));
     el.querySelectorAll("[data-tdel]").forEach(b => b.addEventListener("click", async () => {
       if (!armed(b, "Na pewno?")) return;
       b.disabled = true;
@@ -1277,6 +1287,7 @@ ${JSON.stringify(data)}`;
           <div class="field"><label for="q-isin">Fundusz</label><select id="q-isin">${funds.map(i => `<option value="${esc(i)}" ${i === pre.isin ? "selected" : ""}>${esc(name[i])}${skip.has(i) ? " (nie dokupuję)" : ""}</option>`).join("")}</select></div>
           <div class="fgrid"><div class="field"><label for="q-j">Jednostki (z XTB)</label><input id="q-j" type="number" step="any" min="0" inputmode="decimal" required value="${esc(pre.jednostki ?? "")}"></div>
           <div class="field"><label for="q-konto">Konto</label><select id="q-konto"><option value="zwykle">Zwykłe</option><option value="IKE">IKE</option><option value="IKZE">IKZE</option></select></div></div>
+          ${sell ? "" : `<button class="link" type="button" id="q-split">Kupiłeś kilka funduszy naraz? Rozłóż całą wpłatę według planu</button>`}
           <p class="note">${sell ? "Kwota w PLN, która wpłynęła na konto po sprzedaży (po przewalutowaniu), i liczba sprzedanych jednostek. Na zwykłym koncie to wchodzi do PIT-38." : "Kwota w PLN, która zeszła z konta (z przewalutowaniem), i liczba jednostek z potwierdzenia w XTB."}</p>
           <div class="field"><label for="q-why">Dlaczego? (opcjonalnie, trafi do dziennika decyzji)</label><input id="q-why" placeholder="np. zgodnie z planem, EM najbardziej poniżej celu"></div>` : `
           <div class="catchips" role="group" aria-label="Kategoria">${k.map(x => `<button type="button" data-kat="${esc(x)}" aria-pressed="${x === sheet.kat}">${esc(x)}</button>`).join("")}</div>
@@ -1289,6 +1300,7 @@ ${JSON.stringify(data)}`;
     $("#sheet-bg").addEventListener("click", e => { if (e.target.id === "sheet-bg") closeSheet(); });
     $("#q-close").onclick = closeSheet;
     root.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { sheet.mode = b.dataset.mode; sheet.pre = { kwota: $("#q-kw").value }; drawSheet(); });
+    $("#q-split")?.addEventListener("click", () => { const k = +$("#q-kw").value; closeSheet(); openWplata(k); });
     root.querySelectorAll("[data-etyp]").forEach(b => b.onclick = () => { sheet.typ = b.dataset.etyp; sheet.pre = { kwota: $("#q-kw").value, isin: $("#q-isin").value }; drawSheet(); });
     root.querySelectorAll("[data-kat]").forEach(b => b.onclick = () => { sheet.kat = b.dataset.kat; root.querySelectorAll("[data-kat]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); });
     setTimeout(() => $("#q-kw")?.focus(), 30);
@@ -1318,6 +1330,66 @@ ${JSON.stringify(data)}`;
       }
       catch (err) { $("#q-msg").textContent = writeErr(err); $("#q-save").disabled = false; }
     });
+  }
+  /* ---------- one contribution, split across the plan's funds and saved as purchases in one go ---------- */
+  let WP = null;
+  function wpRows() {
+    const c = calc(), skip = new Set(S.plan?.nie_dokupujemy || []);
+    if (WP.tryb === "plan") return (S.plan ? Object.entries(S.plan.role) : []).map(([k, r]) => {
+      const held = c.list.filter(p => p.rola === k && !skip.has(p.isin)).map(p => p.isin), isin = held[0] || Object.keys(r.fundusze).find(i => !skip.has(i));
+      return { isin, nazwa: r.nazwa, kwota: Math.round(WP.kwota * r.cel / 100) };
+    }).filter(x => x.isin && x.kwota > 0);
+    return splitWplata(c, WP.kwota).map(s => ({ isin: s.isins[0], nazwa: s.nazwa, kwota: Math.round(s.kwota) }));
+  }
+  function openWplata(kwota) {
+    if (!S.canWrite || !db || !S.plan) { $("#notice").textContent = S.plan ? "Zapis działa po zalogowaniu." : "Najpierw ustaw swój plan."; $("#notice").hidden = false; return; }
+    const k = +kwota || +(S.plan?.profil?.wplata || CFG.wplata) || 1000;
+    const dup = S.budzet.some(b => b.typ === "odlozone" && monthOf(b.data) === curMonth() && /Inwestycje|IKE/.test(b.kategoria || ""));
+    WP = { kwota: k, data: today(), konto: "zwykle", tryb: "zasada", budzet: !dup, dup, why: "" };
+    WP.rows = wpRows();
+    sheet = { mode: "wplata" }; drawWplata();
+  }
+  function drawWplata() {
+    const { name } = fundIndex(), sum = WP.rows.reduce((s, r) => s + (+r.kwota || 0), 0);
+    $("#sheet-root").innerHTML = `<div class="sheet-bg" id="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="Wpłata na ETF-y">
+      <header style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><span class="label">Zapisz zakupy jednym ruchem</span><h2>Wpłata na ETF-y</h2></div><button class="btn ghost" type="button" id="wp-x">Zamknij</button></header>
+      <input class="amount" id="wp-kw" type="number" step="100" min="0" inputmode="decimal" value="${esc(WP.kwota)}" aria-label="Kwota wpłaty w złotych">
+      <div class="seg n2" role="group" aria-label="Jak rozłożyć" style="grid-template-columns:1fr 1fr"><button type="button" data-wpt="zasada" aria-pressed="${WP.tryb === "zasada"}">Dokupuję to, co poniżej celu</button><button type="button" data-wpt="plan" aria-pressed="${WP.tryb === "plan"}">Po równo z planem (%)</button></div>
+      <div class="list">${WP.rows.map((r, i) => { const p = S.stan?.ceny?.[r.isin]; return `<div class="item"><div class="t">${esc(r.nazwa)}</div>
+        <div class="a"><input data-wpr="${i}" type="number" min="0" step="10" inputmode="numeric" value="${esc(r.kwota)}" aria-label="Kwota: ${esc(r.nazwa)}" style="width:110px;text-align:right"></div>
+        <div class="s" style="grid-column:1/-1">${esc(name[r.isin] || r.isin)}${p ? ` · ok. ${nf((+r.kwota || 0) / p.pln, 3)} jedn. po ${zl(p.pln, 2)}` : " · jednostki policzą się po nocnej aktualizacji"}</div></div>`; }).join("") || '<p class="note">Wszystkie role są powyżej celu albo plan nie ma funduszy.</p>'}</div>
+      <p class="note mono">Razem ${zl(sum)}${Math.abs(sum - WP.kwota) >= 1 ? ` · <span class="down">różnica ${szl(WP.kwota - sum)} względem wpłaty</span>` : ""}</p>
+      <div class="fgrid"><div class="field"><label for="wp-d">Data zakupu</label><input id="wp-d" type="date" value="${esc(WP.data)}"></div>
+        <div class="field"><label for="wp-k">Konto</label><select id="wp-k">${["zwykle", "IKE", "IKZE"].map(k => `<option value="${k}" ${k === WP.konto ? "selected" : ""}>${k === "zwykle" ? "Zwykłe" : k}</option>`).join("")}</select></div></div>
+      <label class="switch" for="wp-b"><span><strong>Dodaj do budżetu jako „odłożone”</strong><br><span class="note">${WP.dup ? "W tym miesiącu jest już wpis o wpłacie na inwestycje, więc domyślnie wyłączone." : "Wtedy stopa oszczędzania na Starcie liczy się sama."}</span></span><input type="checkbox" id="wp-b" ${WP.budzet ? "checked" : ""}></label>
+      <div class="field"><label for="wp-w">Dlaczego? (opcjonalnie, do dziennika decyzji)</label><input id="wp-w" value="${esc(WP.why)}" placeholder="np. zwykła miesięczna wpłata według planu"></div>
+      <p class="note">Jednostki liczę z ostatniej ceny w aplikacji, więc mogą się różnić od XTB o ułamek procenta. Jeśli chcesz dokładnie, popraw je później w Historii transakcji. Na dwa konta (np. część na IKE) zrób dwie wpłaty.</p>
+      <div class="actions"><button class="btn" type="button" id="wp-save" style="flex:1">Zapisz ${WP.rows.filter(r => +r.kwota > 0).length} zakupy</button></div>
+      <p class="note" id="wp-msg" role="status"></p></div></div>`;
+    const keep = () => { WP.data = $("#wp-d").value; WP.konto = $("#wp-k").value; WP.budzet = $("#wp-b").checked; WP.why = $("#wp-w").value; };
+    $("#sheet-bg").addEventListener("click", e => { if (e.target.id === "sheet-bg") { WP = null; closeSheet(); } });
+    $("#wp-x").onclick = () => { WP = null; closeSheet(); };
+    $("#wp-kw").addEventListener("change", e => { keep(); WP.kwota = +e.target.value || 0; WP.rows = wpRows(); drawWplata(); });
+    $("#sheet-root").querySelectorAll("[data-wpt]").forEach(b => b.onclick = () => { keep(); WP.tryb = b.dataset.wpt; WP.rows = wpRows(); drawWplata(); });
+    $("#sheet-root").querySelectorAll("[data-wpr]").forEach(inp => inp.addEventListener("change", () => { keep(); WP.rows[+inp.dataset.wpr].kwota = +inp.value || 0; drawWplata(); }));
+    $("#wp-save").onclick = async () => {
+      keep();
+      const rows = WP.rows.filter(r => +r.kwota > 0);
+      if (!rows.length) { $("#wp-msg").textContent = "Nie ma czego zapisać."; return; }
+      $("#wp-save").disabled = true; $("#wp-msg").textContent = "Zapisuję…";
+      try {
+        for (const r of rows) {
+          const p = S.stan?.ceny?.[r.isin], kw = +r.kwota;
+          await db.collection("transakcje").add(p
+            ? { data: WP.data, konto: WP.konto, isin: r.isin, ticker_xtb: xtbTicker(p.symbol), typ: "kupno", jednostki: +(kw / p.pln).toFixed(6), cena: p.cena, waluta: p.waluta, kwota_pln: kw, szacunek: true, uwagi: `wpłata rozłożona w aplikacji, jednostki z ceny z ${p.data}` }
+            : { data: WP.data, konto: WP.konto, isin: r.isin, ticker_xtb: "", typ: "kupno", jednostki: null, cena: null, waluta: "", kwota_pln: kw, wartosc_otwarcia_pln: kw, do_przeliczenia: true, szacunek: true, uwagi: "wpłata rozłożona w aplikacji" });
+        }
+        const total = rows.reduce((s, r) => s + +r.kwota, 0);
+        if (WP.budzet) await db.collection("budzet").add({ data: WP.data, typ: "odlozone", kategoria: WP.konto === "zwykle" ? "Inwestycje (ETF)" : "IKE / IKZE", kwota: total, opis: "Wpłata na ETF-y", stale: false });
+        if (WP.why.trim()) await db.collection("dziennik").add({ data: WP.data, typ: "kupno", emocja: "spokoj", tekst: WP.why.trim(), wartosc_portfela: Math.round(calc().total) });
+        WP = null; closeSheet(); show("portfel");
+      } catch (err) { $("#wp-msg").textContent = writeErr(err); $("#wp-save").disabled = false; }
+    };
   }
   $("#fab").addEventListener("click", () => openSheet($("#v-portfel").hidden ? "wydatek" : "etf"));
   document.addEventListener("keydown", e => { if (e.key !== "Escape") return; if (tipView) closeTip(); else if (sheet) closeSheet(); });
