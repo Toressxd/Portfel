@@ -4,7 +4,7 @@
 // every 30 s and when the app comes back to the foreground.
 (function () {
   const cfg = window.PORTFEL_CONFIG || {};
-  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true }, global: { fetch: (...a) => window.fetch(...a) } });
   const store = new Map();          // path -> data
   const docListeners = new Map();   // path -> Set(cb)
   const colListeners = new Set();   // {path, order, dir, lim, cb}
@@ -22,23 +22,72 @@
   function emitAll() { for (const p of docListeners.keys()) emitDoc(p); for (const l of colListeners) emitCol(l); }
   function emitPath(path) { emitDoc(path); const par = parentOf(path); for (const l of colListeners) if (l.path === par) emitCol(l); }
 
+  /* Nothing typed may vanish:
+     - a refresh that started before a save must not wipe that save from the screen (recent local writes are laid back on top);
+     - a save made offline, or with a session that expired in the background, waits in an outbox on this device
+       (kept across reloads and app updates) and is sent as soon as the connection is back. */
+  let gen = 0, loading = null;
+  const recent = [];                                    // {gen, t, path, data} (data undefined = deleted)
+  const OUTBOX = () => "nku-outbox-" + userId;
+  const readBox = () => { try { return JSON.parse(localStorage.getItem(OUTBOX()) || "[]"); } catch (e) { return []; } };
+  const saveBox = box => { try { localStorage.setItem(OUTBOX(), JSON.stringify(box)); } catch (e) {} };
+  function remember(path, data) {
+    recent.push({ gen: ++gen, t: Date.now(), path, data });
+    while (recent.length && Date.now() - recent[0].t > 120000) recent.shift();
+  }
+  function overlay(fromGen) {
+    for (const op of recent) if (op.gen > fromGen) { if (op.data === undefined) store.delete(op.path); else store.set(op.path, op.data); }
+    for (const op of readBox()) { if (op.del) store.delete(op.path); else store.set(op.path, op.data); }
+  }
+  const offline = err => !navigator.onLine || !err?.code && /fetch|network|load failed|timeout/i.test(err?.message || "");
+  const authErr = err => /jwt|token|expired|401/i.test((err?.message || "") + (err?.code || ""));
+
   async function loadAll() {
-    const rows = [];
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await sb.from("docs").select("path,data").range(from, from + 999);
-      if (error) throw error;
-      rows.push(...data);
-      if (data.length < 1000) break;
+    if (loading) return loading;
+    loading = (async () => {
+      await flush();
+      const g0 = gen, rows = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await sb.from("docs").select("path,data").order("path").range(from, from + 999);
+        if (error) throw error;
+        rows.push(...data);
+        if (data.length < 1000) break;
+      }
+      store.clear();
+      for (const r of rows) store.set(r.path, r.data);
+      overlay(g0);
+      emitAll();
+    })();
+    try { await loading; } finally { loading = null; }
+  }
+  async function send(op) {
+    const q = op.del ? sb.from("docs").delete().eq("user_id", userId).eq("path", op.path)
+                     : sb.from("docs").upsert({ user_id: userId, path: op.path, data: op.data }, { onConflict: "user_id,path" });
+    let { error } = await q;
+    if (error && authErr(error)) { await sb.auth.refreshSession().catch(() => {}); ({ error } = await (op.del ? sb.from("docs").delete().eq("user_id", userId).eq("path", op.path) : sb.from("docs").upsert({ user_id: userId, path: op.path, data: op.data }, { onConflict: "user_id,path" }))); }
+    return error;
+  }
+  async function flush() {
+    let box = readBox();
+    if (!box.length || !navigator.onLine) return;
+    for (const op of [...box]) {
+      const error = await send(op).catch(e => e);
+      if (error && offline(error)) return;            // still no connection: try again later
+      box = readBox().filter(x => !(x.path === op.path && x.t === op.t)); saveBox(box);
+      if (error) console.warn("NKU: nie zapisano", op.path, error.message);
     }
-    store.clear();
-    for (const r of rows) store.set(r.path, r.data);
-    emitAll();
   }
-  async function write(path, data) {
-    const { error } = await sb.from("docs").upsert({ user_id: userId, path, data }, { onConflict: "user_id,path" });
-    if (error) throw { code: "unavailable", message: error.message };
-    store.set(path, data); emitPath(path);
+  async function apply(op) {
+    remember(op.path, op.del ? undefined : op.data);
+    if (op.del) store.delete(op.path); else store.set(op.path, op.data);
+    emitPath(op.path);
+    const error = await send(op).catch(e => e);
+    if (!error) return;
+    if (offline(error) || authErr(error)) { saveBox([...readBox().filter(x => x.path !== op.path), { ...op, t: Date.now() }]); return; } // kept, sent later
+    loadAll().catch(() => {});                          // refused for good: show the real state again
+    throw { code: "unavailable", message: error.message };
   }
+  const write = (path, data) => apply({ path, data });
   const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
   function doc(path) {
@@ -48,7 +97,7 @@
       onSnapshot(cb) { if (!docListeners.has(path)) docListeners.set(path, new Set()); docListeners.get(path).add(cb); setTimeout(() => cb(snap(path, store.get(path))), 0); return () => docListeners.get(path).delete(cb); },
       set: data => write(path, data),
       update: data => write(path, { ...(store.get(path) || {}), ...data }),
-      delete: async () => { const { error } = await sb.from("docs").delete().eq("user_id", userId).eq("path", path); if (error) throw { code: "unavailable", message: error.message }; store.delete(path); emitPath(path); },
+      delete: () => apply({ path, del: true }),
       collection: sub => collection(path + "/" + sub)
     };
   }
@@ -105,9 +154,11 @@
       const { data } = await sb.auth.getSession();
       const user = data.session?.user || await loginScreen();
       userId = user.id;
-      await loadAll();
+      try { await loadAll(); }
+      catch (e) { if (!readBox().length) throw e; overlay(gen); emitAll(); }  // offline start: show what waits to be sent
       setInterval(() => { if (!document.hidden) loadAll().catch(() => {}); }, 30000);
       document.addEventListener("visibilitychange", () => { if (!document.hidden) loadAll().catch(() => {}); });
+      addEventListener("online", () => loadAll().catch(() => {}));
       return { doc, collection };
     },
     async signOut() { await sb.auth.signOut(); location.reload(); },

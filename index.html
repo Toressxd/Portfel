@@ -323,15 +323,15 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-06-13"></script>
-<script src="backend.js?v=2026-11-06-13"></script>
+<script src="config.js?v=2026-11-06-14"></script>
+<script src="backend.js?v=2026-11-06-14"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
   const S = { dzien: null, dziennik: [], plan: null, stan: null, cele: null, tx: [], raporty: [], dzienne: [], analizy: [], historia: [], budzet: [], budzetCfg: null, przeglad: null, obs: [], loaded: {}, canWrite: true };
   let wizShown = false;
   let db = null, sample = null, snapWritten = false, aiCtl = null, aiText = "", aiBusy = false, aiErr = "";
-  let bMonth = new Date().toISOString().slice(0, 7);
+  let bMonth = (d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"))(new Date());
   const $ = (s, r = document) => r.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const nf = (n, d = 0) => new Intl.NumberFormat("pl-PL", { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
@@ -339,7 +339,8 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
   const szl = (n, d = 0) => (n == null || isNaN(n)) ? "–" : (n > 0 ? "+" : n < 0 ? "−" : "") + nf(Math.abs(n), d) + " zł";
   const pct = (n, d = 1, sign = true) => (n == null || isNaN(n)) ? "–" : (sign && n > 0 ? "+" : n < 0 ? "−" : "") + nf(Math.abs(n), d) + "%";
   const cls = n => n > 0 ? "up" : n < 0 ? "down" : "";
-  const today = () => new Date().toISOString().slice(0, 10);
+  // the local calendar day (toISOString is UTC: right after midnight it still said "yesterday")
+  const today = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const curMonth = () => today().slice(0, 7);
 
   /* ---------- navigation ---------- */
@@ -370,7 +371,8 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
   async function saveCfg(patch) {
     CFG = { ...CFG, ...patch };
     applyCfg(); queue();
-    if (db && S.canWrite) { try { await db.doc("app/ustawienia").set(CFG); } catch (e) {} }
+    // only the changed fields: a device with older settings must not overwrite what was set on another one
+    if (db && S.canWrite) { try { await db.doc("app/ustawienia").update(patch); } catch (e) { try { await db.doc("app/ustawienia").set(CFG); } catch (e2) {} } }
   }
   $("#priv-btn").addEventListener("click", () => saveCfg({ prywatny: !CFG.prywatny }));
 
