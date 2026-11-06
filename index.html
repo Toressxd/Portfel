@@ -246,8 +246,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
 <div id="tip-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-06-3"></script>
-<script src="backend.js?v=2026-11-06-3"></script>
+<script src="config.js?v=2026-11-06-4"></script>
+<script src="backend.js?v=2026-11-06-4"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -763,6 +763,13 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
         ${n === items.length ? '<p class="note">Na dziś wszystko. Przy horyzoncie 10 lat więcej nie trzeba.</p>' : ""}
       </div>`; })()}
       ${quizCard()}
+      ${(() => { // first week of a month: last month at a glance
+        if (+today().slice(8) > 7) return "";
+        const m = shiftMonth(curMonth(), -1), x = monthSummary(m);
+        if (!x.etfIn && !x.b.przychod && x.majD == null) return ""; // nothing worth a card yet
+        return `<div class="card"><header><h2>${esc(cap(monthName(m)))} w skrócie</h2><span class="note">podsumowanie miesiąca</span></header>
+          <div class="chips">${x.etfIn ? `<span class="chip">Na ETF-y <b>${zl(x.etfIn)}</b></span>` : ""}${x.b.przychod ? `<span class="chip">Oszczędzone <b>${pct(x.b.odlozone / x.b.przychod * 100, 0, false)}</b></span>` : ""}${x.majD != null ? `<span class="chip">Majątek <b class="${cls(x.majD)}">${szl(x.majD)}</b></span>` : ""}</div>
+          <div class="actions"><button class="go" type="button" data-go="raporty">Całe podsumowanie</button></div></div>`; })()}
       ${(() => { const list = `<ol class="steps" id="month-steps">${STEPS.map(s => { const d = stepDone(s.id); return `<li class="${d ? "done" : ""}"><input type="checkbox" id="st-${s.id}" ${d ? "checked" : ""} ${S.canWrite && db ? "" : "disabled"} aria-label="${esc(s.t)}"><span>${esc(s.t)}</span><button class="go" type="button" data-go="${s.go}">${s.go.startsWith("add") ? "Dodaj" : "Otwórz"}</button></li>`; }).join("")}</ol>`;
         // a finished monthly review folds into one line, so the daily card stays the main thing
         return done === STEPS.length ? `<details class="more card"><summary><span>Przegląd: ${esc(monthName(curMonth()))} <span class="up">✓ zrobiony</span></span></summary>${list}</details>`
@@ -1162,6 +1169,7 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
         <p class="note">Claude czyta plan, pozycje, budżet z 3 miesięcy, cele, tezy i ostatni raport. Ocenia kierunek i pokazuje, co warto sprawdzić. Nie mówi, co kupić. Zużywa Twój limit Claude.</p>
         <div class="actions">${sample ? `<button class="btn" type="button" id="ai-go" ${aiBusy ? "disabled" : ""}>Poproś o analizę</button>${aiBusy ? '<button class="btn ghost" type="button" id="ai-stop">Zatrzymaj</button>' : ""}` : (window.PortfelBackend ? '<button class="btn" type="button" id="ai-copy">Skopiuj dane do analizy</button><span class="note">Wklej je w aplikacji Claude i wyślij.</span>' : '<span class="note">Analiza działa po otwarciu strony w Claude.</span>')}<span class="note" id="ai-msg" role="status">${esc(aiErr)}</span></div>
         <div class="md" id="ai-out">${aiText ? md(aiText) : lastA ? md(lastA.tresc) : ""}</div></div>
+      ${monthCard(sumMonth)}
       <div class="card"><header><h2>Raporty dzienne</h2><span class="note">pn–pt rano, automatycznie</span></header>
         ${S.dzienne.length ? S.dzienne.slice(0, 10).map((r, i) => `<details class="more" ${i === 0 ? "open" : ""}><summary>${esc(r.tytul || "Raport dzienny")} <span class="note mono">${esc(r.data)}</span></summary><div class="md">${md(r.tresc)}</div></details>`).join("") : '<p class="note">Pierwszy raport dzienny pojawi się w najbliższy dzień roboczy rano.</p>'}</div>
       <div class="card"><header><h2>Raporty tygodniowe</h2><span class="note">soboty, automatycznie</span></header>
@@ -1173,6 +1181,8 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       ${S.analizy.length > 1 ? `<details class="more card"><summary>Wcześniejsze analizy (${S.analizy.length - 1})</summary>${S.analizy.slice(1).map(a => `<details class="more"><summary>${esc(a.data)}</summary><div class="md">${md(a.tresc)}</div></details>`).join("")}</details>` : ""}
     </div>`;
     wireJournal();
+    $("#ms-prev")?.addEventListener("click", () => { sumMonth = shiftMonth(sumMonth, -1); renderRaporty(calc()); $("#month-sum").scrollIntoView({ block: "nearest" }); });
+    $("#ms-next")?.addEventListener("click", () => { sumMonth = shiftMonth(sumMonth, 1); renderRaporty(calc()); $("#month-sum").scrollIntoView({ block: "nearest" }); });
     $("#ai-go")?.addEventListener("click", () => runAnalysis());
     $("#ai-stop")?.addEventListener("click", () => aiCtl?.abort());
     // outside Claude there is no built-in model: hand the same prompt to the Claude app instead
@@ -1181,6 +1191,47 @@ html.priv :is(.big, .chip b, .item .a, td.n, .mono, .md, ul.checks li > div, .kp
       try { await navigator.clipboard.writeText(text); $("#ai-msg").textContent = "Skopiowano. Otwórz Claude, wklej i wyślij."; }
       catch (e) { $("#ai-out").innerHTML = `<textarea readonly style="min-height:160px">${esc(text)}</textarea>`; $("#ai-out textarea").select(); $("#ai-msg").textContent = "Zaznaczone: skopiuj ręcznie."; }
     });
+  }
+  /* ---------- monthly summary: computed from the app's own data, for any month ---------- */
+  let sumMonth = +today().slice(8) <= 10 ? shiftMonth(curMonth(), -1) : curMonth();
+  const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+  function monthSummary(m) {
+    const first = m + "-01", last = shiftMonth(m, 1) + "-01";
+    const inM = d => d >= first && d < last;
+    const buys = S.tx.filter(t => inM(t.data || "") && !t.otwarcie && !isSell(t)), sells = S.tx.filter(t => inM(t.data || "") && isSell(t));
+    const etfIn = buys.reduce((s, t) => s + (+t.kwota_pln || 0), 0), etfOut = sells.reduce((s, t) => s + (+t.kwota_pln || 0), 0);
+    const ike = buys.filter(t => t.konto === "IKE").reduce((s, t) => s + (+t.kwota_pln || 0), 0);
+    const h = [...S.historia].sort((a, b) => a.data.localeCompare(b.data));
+    const at = d => h.filter(p => p.data < d).pop(), inside = h.filter(p => inM(p.data));
+    const startP = at(first) || inside[0], endP = inside[inside.length - 1];
+    const etfD = startP && endP && endP !== startP ? endP.wartosc - startP.wartosc : null;
+    const rynek = etfD != null ? etfD - (etfIn - etfOut) : null;
+    const majD = startP?.majatek != null && endP?.majatek != null && endP !== startP ? endP.majatek - startP.majatek : null;
+    const b = monthSum(m), bp = monthSum(shiftMonth(m, -1));
+    const lim = limits(), over = Object.entries(b.byCat).filter(([k, v]) => +lim[k] && v > +lim[k]);
+    const topCat = Object.entries(b.byCat).sort((a, c) => c[1] - a[1]).slice(0, 3);
+    const dz = S.dziennik.filter(j => inM(j.data || ""));
+    const done = S.przeglad?.miesiac === m ? Object.values(S.przeglad.kroki || {}).filter(Boolean).length : null;
+    return { m, etfIn, etfOut, ike, etfD, rynek, majD, startP, endP, b, bp, over, topCat, dz, done, any: !!(buys.length || sells.length || b.e.length || inside.length) };
+  }
+  function monthCard(m) {
+    const x = monthSummary(m), cur = m === curMonth(), goal = +(S.plan?.profil?.cel_kwota || 0);
+    const rate = x.b.przychod ? x.b.odlozone / x.b.przychod * 100 : null, rateP = x.bp.przychod ? x.bp.odlozone / x.bp.przychod * 100 : null;
+    const li = (ic, html) => `<li><span class="ic ${ic}">${ic === "ok" ? "✓" : ic === "warn" ? "!" : "i"}</span><div>${html}</div><span></span></li>`;
+    const rows = [];
+    if (x.etfIn || x.etfOut) rows.push(li("ok", `Na ETF-y: <strong>${zl(x.etfIn)}</strong>${x.ike ? ` (w tym IKE ${zl(x.ike)})` : ""}${x.etfOut ? ` · sprzedaż ${zl(x.etfOut)}` : ""}`));
+    else if (S.plan) rows.push(li("info", cur ? "Wpłaty na ETF-y w tym miesiącu jeszcze nie zapisałeś." : "W tym miesiącu nie było zapisanych zakupów ETF."));
+    if (x.etfD != null) rows.push(li("info", `ETF-y: <strong class="${cls(x.etfD)}">${szl(x.etfD)}</strong>, z czego wpłaty ${szl(x.etfIn - x.etfOut)}, a rynek <span class="${cls(x.rynek)}">${szl(x.rynek)}</span>`));
+    if (x.majD != null) rows.push(li("info", `Cały majątek: <strong class="${cls(x.majD)}">${szl(x.majD)}</strong>${goal && x.endP?.majatek ? ` · ${pct(x.endP.majatek / goal * 100, 0, false)} celu` : ""}`));
+    if (x.b.przychod) rows.push(li(rate >= 20 ? "ok" : "info", `Budżet: przychody ${zl(x.b.przychod)}, wydatki ${zl(x.b.wydatek)}, odłożone ${zl(x.b.odlozone)} · <strong>oszczędzasz ${pct(rate, 0, false)}</strong>${rateP != null ? ` (miesiąc wcześniej ${pct(rateP, 0, false)})` : ""}`));
+    if (x.topCat.length) rows.push(li("info", `Najwięcej wydałeś na: ${x.topCat.map(([k, v]) => `${esc(k)} ${zl(v)}`).join(", ")}`));
+    if (x.over.length) rows.push(li("warn", `Przekroczone limity: ${x.over.map(([k, v]) => `${esc(k)} o ${zl(v - limits()[k])}`).join(", ")}`));
+    if (x.dz.length) rows.push(li("info", `Dziennik: ${x.dz.length} ${x.dz.length === 1 ? "decyzja" : x.dz.length < 5 ? "decyzje" : "decyzji"}${x.dz.some(j => ["strach", "fomo", "chciwosc"].includes(j.emocja)) ? ", w tym podjęte w emocjach: warto je przeczytać" : ""}`));
+    if (x.done != null) rows.push(li(x.done >= 6 ? "ok" : "info", `Przegląd miesiąca: ${x.done} z 6 kroków`));
+    return `<div class="card" id="month-sum"><header><h2>Podsumowanie miesiąca</h2><span class="note">z Twoich danych</span></header>
+      <div class="monthnav"><button type="button" id="ms-prev" aria-label="Poprzedni miesiąc">‹</button><strong>${esc(cap(monthName(m)))}</strong>${cur ? '<span class="note">do dziś</span>' : ""}<button type="button" id="ms-next" aria-label="Następny miesiąc" ${cur ? "disabled" : ""}>›</button></div>
+      ${x.any ? `<ul class="checks">${rows.join("")}</ul>${x.startP && x.endP && x.startP !== x.endP ? `<p class="note">Wartości z ${esc(x.startP.data)} i ${esc(x.endP.data)} (punkty po aktualizacjach kursów).</p>` : '<p class="note">Zmiana majątku pojawi się, gdy w miesiącu będą co najmniej dwie aktualizacje kursów.</p>'}` : '<p class="note">Brak danych z tego miesiąca.</p>'}
+    </div>`;
   }
   /* ---------- decision journal: why I did it and how I felt, read back months later next to what happened ---------- */
   const EMOCJE = [["spokoj", "Spokój"], ["pewnosc", "Pewność"], ["niepewnosc", "Niepewność"], ["strach", "Strach"], ["fomo", "Boję się, że coś mi ucieknie"], ["chciwosc", "Chęć szybkiego zysku"]];

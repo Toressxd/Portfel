@@ -71,6 +71,11 @@ def messages(docs, today):
     if rt and rt[-1].get("data", "") >= (today - timedelta(days=2)).isoformat():
         d = rt[-1]
         out.append((f"rt:{d['data']}", "raporty", d.get("tytul") or "Raport tygodnia", "Portfel, rynki i Twoje tezy z ostatniego tygodnia.", APP + "#raporty"))
+    if today.day <= 2:  # a new month: last month's summary is ready in the app
+        prev = (today.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+        if any(str(d.get("data", "")).startswith(prev) for p, d in docs.items() if p.startswith(("transakcje/", "budzet/", "historia/"))):
+            name = ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"][int(prev[5:]) - 1]
+            out.append((f"mies:{prev}", "raporty", f"{name} w skrócie", "Wpłaty, zmiana majątku, oszczędności i wydatki z ostatniego miesiąca.", APP + "#raporty"))
     cele = docs.get("app/cele") or {}
     for o in cele.get("obligacje") or []:
         try:
