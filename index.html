@@ -331,8 +331,8 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-07-2"></script>
-<script src="backend.js?v=2026-11-07-2"></script>
+<script src="config.js?v=2026-11-07-3"></script>
+<script src="backend.js?v=2026-11-07-3"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -902,7 +902,7 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
         return done === STEPS.length ? `<details class="more card"><summary><span>Przegląd: ${esc(monthName(curMonth()))} <span class="up">✓ zrobiony</span></span></summary>${list}</details>`
           : `<div class="card"><header><h2>Przegląd: ${esc(monthName(curMonth()))}</h2><span class="note">${done} z ${STEPS.length} · raz w miesiącu, ok. 20 minut</span></header>
           <div class="progress"><div style="width:${done / STEPS.length * 100}%"></div></div>${list}</div>`; })()}
-      ${c.roles.length ? `<div class="card"><header><h2>Plan ${esc(S.plan?.rdzen_satelity || "")}</h2><span class="note">czerwona kreska = cel</span></header><div class="roles">${c.roles.map(r => `<div class="role"><div class="row"><span>${esc(r.nazwa)}</span><span class="mono">${c.list.length ? nf(r.waga, 1) + "% / " : ""}${r.cel}%</span></div>${bar(c.list.length ? r.waga : 0, 100, r.cel, r.rola === "rdzen" ? "" : "red")}</div>`).join("")}</div></div>` : ""}
+      ${c.roles.length ? `<div class="card"><header><h2>Plan ${esc(S.plan?.rdzen_satelity || "")}</h2><span class="note">czerwona kreska = cel</span></header><div class="roles">${c.roles.map(r => `<div class="role"><div class="row"><span>${esc(r.nazwa)}</span><span class="mono">${c.list.length ? nf(r.waga, 1) + "% / " : ""}${r.cel}%</span></div>${bar(c.list.length ? r.waga : 0, 100, r.cel, r.rola === "rdzen" ? "" : "red")}</div>`).join("")}</div>${S.canWrite ? `<div class="actions"><button class="btn ghost" type="button" data-go="plan">Zmień plan</button><span class="note">cel, podział, fundusze, tezy</span></div>` : ""}</div>` : ""}
     </div>`;
     el.querySelectorAll("#day-steps input").forEach(inp => inp.addEventListener("change", () => markDay(inp.id.slice(3), inp.checked)));
     // opening the report from the daily card counts as reading it; expenses are ticked by the entry itself
@@ -1116,6 +1116,7 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
         ${S.canWrite && S.plan ? `<div class="actions"><button class="btn" type="button" id="wpl-save">Kupiłem: zapisz całą wpłatę</button><span class="note">Rozłoży kwotę na fundusze i zapisze zakupy naraz.</span></div>` : ""}</div>
       <div class="card"><header><h2>Pozycje</h2><span class="note">${c.list.length}</span></header>
         ${c.list.length ? `<div class="list">${c.list.map(p => { const w = (p.wartosc || 0) - p.koszt; return `<div class="item" data-fund="${esc(p.isin)}" role="button" tabindex="0" style="cursor:pointer"><div class="t">${esc(p.nazwa)} <span class="go">›</span>${skip.has(p.isin) ? ' <span class="pill plain">nie dokupuję</span>' : ""}</div><div class="a">${zl(p.wartosc)}</div><div class="s">${Object.keys(p.konta).filter(k => p.konta[k] > 0).join(", ")} · ${c.total ? nf((p.wartosc || 0) / c.total * 100, 1) : 0}% portfela</div><div class="a ${cls(w)}" style="font-size:.84rem">${szl(w)} (${pct(p.koszt ? w / p.koszt * 100 : null)})</div></div>`; }).join("")}</div>` : '<div class="empty"><strong>Brak pozycji.</strong><span>Dodaj zakup czerwonym plusem albo wyślij Claude zrzut z XTB.</span></div>'}
+        ${S.canWrite ? `<div class="actions"><button class="btn" type="button" data-go="add:etf">Dodaj zakup lub sprzedaż</button><button class="btn ghost" type="button" data-go="plan">Zmień plan</button><button class="go" type="button" data-go="portfel:historia">Popraw lub usuń transakcję</button></div>` : ""}
       </div>
       ${insideCard(c)}
       <div class="card"><header><h2>Wartość w czasie</h2></header>${chart()}</div>
@@ -2064,7 +2065,7 @@ ${JSON.stringify(data)}`;
     let d = null;
     try { d = fresh ? null : JSON.parse(localStorage.getItem(DRAFT) || "null"); } catch (e) {}
     if (d?.W && Date.now() - d.t < 30 * 86400000) { W = d.W; wStep = Math.min(+d.wStep || 0, W_STEPS.length - 1); wRestored = true; }
-    else { W = wizardState(); wStep = 0; wRestored = false; }
+    else { W = wizardState(); wStep = S.plan ? W_STEPS.indexOf("Podział") : 0; wRestored = false; }
     sheet = { mode: "plan" }; drawWizard();
   }
   // the phone may close the app while you check numbers in the broker's app: keep what was typed
@@ -2164,13 +2165,14 @@ ${JSON.stringify(data)}`;
       </div>${ww.list.length ? `<ul class="checks">${ww.list.map(t => `<li><span class="ic warn">!</span><div>${esc(t)}</div><span></span></li>`).join("")}</ul>` : ""}
       <p class="note">Plan jest Twoją decyzją. Aplikacja tylko pilnuje, żebyś się go trzymał, i ostrzega o rzeczach, które łatwo przeoczyć.</p>`; }
     root.innerHTML = `<div class="sheet-bg" id="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="Mój plan" style="max-width:640px">
-      <header style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><span class="label">Mój plan · krok ${wStep + 1} z ${W_STEPS.length}</span><h2>${esc(step)}</h2></div><button class="btn ghost" type="button" id="w-x">Zamknij</button></header>
-      <div class="progress"><div style="width:${(wStep + 1) / W_STEPS.length * 100}%"></div></div>
+      <header style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><span class="label">${S.plan ? "Zmiana planu" : `Mój plan · krok ${wStep + 1} z ${W_STEPS.length}`}</span><h2>${esc(step)}</h2></div><button class="btn ghost" type="button" id="w-x">Zamknij</button></header>
+      ${S.plan ? `<div class="catchips" role="group" aria-label="Przejdź do kroku">${W_STEPS.map((t, i) => `<button type="button" data-wjump="${i}" aria-pressed="${i === wStep}">${esc(t)}</button>`).join("")}</div><p class="note" style="margin:0">Wybierz, co chcesz zmienić. Reszta planu zostaje bez zmian.</p>` : `<div class="progress"><div style="width:${(wStep + 1) / W_STEPS.length * 100}%"></div></div>`}
       ${body}
-      <div class="actions" style="justify-content:space-between">${wStep ? '<button class="btn ghost" type="button" id="w-back">Wstecz</button>' : "<span></span>"}${wStep < W_STEPS.length - 1 ? '<button class="btn" type="button" id="w-next">Dalej</button>' : '<button class="btn" type="button" id="w-save">Zapisz plan</button>'}</div>
+      <div class="actions" style="justify-content:space-between">${wStep ? '<button class="btn ghost" type="button" id="w-back">Wstecz</button>' : "<span></span>"}${wStep < W_STEPS.length - 1 ? (S.plan ? '<span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" type="button" id="w-next">Dalej</button><button class="btn" type="button" id="w-save">Zapisz zmiany</button></span>' : '<button class="btn" type="button" id="w-next">Dalej</button>') : `<button class="btn" type="button" id="w-save">${S.plan ? "Zapisz zmiany" : "Zapisz plan"}</button>`}</div>
       <p class="note" id="w-msg" role="status"></p></div></div>`;
     if (wRestored) { $("#w-msg").innerHTML = 'Wróciłeś do niedokończonego planu. <button class="link" type="button" id="w-fresh">Zacznij od nowa</button>'; $("#w-fresh").onclick = () => { if (!armed($("#w-fresh"), "Na pewno? Kliknij jeszcze raz")) return; dropDraft(); openWizard(true); }; wRestored = false; }
     saveDraft();
+    root.querySelectorAll("[data-wjump]").forEach(b => b.onclick = () => { wStep = +b.dataset.wjump; drawWizard(); $("#sheet-bg .sheet").scrollTop = 0; });
     // inputs
     root.querySelectorAll("[data-f]").forEach(el => el.addEventListener("input", () => { P[el.dataset.f] = el.value; }));
     root.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { P[b.dataset.p] = b.dataset.v; drawWizard(); });
@@ -2201,14 +2203,22 @@ ${JSON.stringify(data)}`;
     root.querySelectorAll("[data-r]").forEach(el => el.addEventListener("input", () => { const r = W.role[+el.dataset.r]; r[el.dataset.k] = el.dataset.k === "nazwa" ? el.value : (el.value === "" ? "" : +el.value); saveDraft(); }));
     root.querySelectorAll("[data-f],[data-w],[data-pod],[data-t]").forEach(el => el.addEventListener("input", () => setTimeout(saveDraft)));
     $("#o-add2")?.addEventListener("click", () => { W.otwarcie.push({ isin: "", konto: "zwykle", wartosc: "", koszt: "" }); drawWizard(); });
-    $("#w-x").onclick = () => { saveDraft(); closeWizard(); $("#notice").textContent = "Plan zapisany jako szkic: dokończysz go w Ustawieniach → Ustaw mój plan."; $("#notice").hidden = !!S.plan; };
+    $("#w-x").onclick = () => { saveDraft(); closeWizard(); $("#notice").textContent = "Plan zapisany jako szkic: dokończysz go w Portfelu albo na Starcie: przycisk Zmień plan."; $("#notice").hidden = !!S.plan; };
     $("#w-back")?.addEventListener("click", () => { wStep--; drawWizard(); $(".sheet").scrollTop = 0; });
     $("#w-next")?.addEventListener("click", () => {
       if (W_STEPS[wStep] === "Twój poziom" && !W.poziom) { $("#w-msg").textContent = "Wybierz poziom, żeby przejść dalej."; return; }
-      if (W_STEPS[wStep] === "Podział") { const ww = wWarnings(); if (!W.role.length) { $("#w-msg").textContent = "Dodaj przynajmniej jedną rolę."; return; } if (Math.abs(ww.sum - 100) > 0.01) { $("#w-msg").textContent = `Wagi muszą dać razem 100% (teraz ${nf(ww.sum, 1)}%).`; return; } if (W.role.some(r => !r.fundusze.length)) { $("#w-msg").textContent = "Każda rola potrzebuje funduszu."; return; } W._tplAuto = false; }
+      if (W_STEPS[wStep] === "Podział") { const e = splitError(); if (e) { $("#w-msg").textContent = e; return; } W._tplAuto = false; }
       wStep++; drawWizard(); $(".sheet").scrollTop = 0;
     });
-    $("#w-save")?.addEventListener("click", saveWizard);
+    // saving from any step still needs a valid split: otherwise jump to it and say what is missing
+    $("#w-save")?.addEventListener("click", () => { const e = splitError(); if (e) { wStep = W_STEPS.indexOf("Podział"); drawWizard(); $("#w-msg").textContent = e; return; } saveWizard(); });
+  }
+  function splitError() {
+    const ww = wWarnings();
+    if (!W.role.length) return "Dodaj przynajmniej jedną rolę.";
+    if (Math.abs(ww.sum - 100) > 0.01) return `Wagi muszą dać razem 100% (teraz ${nf(ww.sum, 1)}%).`;
+    if (W.role.some(r => !r.fundusze.length)) return "Każda rola potrzebuje funduszu.";
+    return "";
   }
   function applyTpl(t) {
     W.role = t === "jeden" ? [{ key: "rdzen", nazwa: "Rdzeń: cały świat", cel: 100, rdzen: true, pasmo: 5, fundusze: [] }]
