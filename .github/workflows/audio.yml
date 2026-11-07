@@ -1,13 +1,14 @@
 name: Audio raportów
 
 # Reads new reports and library lessons aloud (Polish neural voice) and saves the MP3 for the app's player.
-# Every 20 minutes in the morning (UTC 5-11 = 6-12 in Poland in winter); a run with nothing new ends in seconds.
+# Main trigger: the report task on the owner's PC pushes .nagraj right after saving reports, so the recording follows at once.
+# Backup: every 30 minutes during the day (GitHub skips many scheduled runs); a run with nothing new ends in seconds.
 on:
   schedule:
-    - cron: "*/20 5-11 * * *"
+    - cron: "*/30 5-21 * * *"
   push:
     branches: [main]
-    paths: ["wiedza.json", "tools/audio.py"]
+    paths: ["wiedza.json", "tools/audio.py", ".nagraj"]
   workflow_dispatch:
 
 permissions:
