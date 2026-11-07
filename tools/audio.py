@@ -153,7 +153,73 @@ def main():
             req("DELETE", f"/storage/v1/object/{BUCKET}", {"prefixes": gone})
             print(f"usunięto {len(gone)} starych plików")
     print(f"nagrano {made}")
+    lessons()
     return 0
+
+
+LIB_BUCKET = "wiedza"  # public: lessons are the same for everyone and contain nothing personal
+
+
+def lesson_script(l):
+    lines = [f"{l['tytul'].replace('Książka w pigułce: ', 'Książka w pigułce. ')}.", "Lekcja z biblioteki NKU.", ""]
+    for raw in l["tresc"].splitlines():
+        t = raw.strip()
+        if t.startswith("#"):
+            t = re.sub(r"^#+\s*", "", t).rstrip(".:") + "."
+            lines += ["", t]
+            continue
+        t = re.sub(r"[*_`>]", "", re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", t))
+        lines.append(t)
+    lines += ["", "To wszystko w tej lekcji. Do usłyszenia w kolejnej."]
+    return say("\n".join(lines))
+
+
+def lessons():
+    """Library lessons (wiedza.json from the repository) read aloud once; re-recorded only when the text changes.
+    Public files <id>-<hash>.mp3 plus manifest.json {id: {plik, sekundy, hash}} that the app reads."""
+    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "wiedza.json")
+    if not os.path.exists(src):
+        return
+    lib = json.load(open(src, encoding="utf-8"))
+    if not any(b.get("id") == LIB_BUCKET for b in req("GET", "/storage/v1/bucket") or []):
+        req("POST", "/storage/v1/bucket", {"id": LIB_BUCKET, "name": LIB_BUCKET, "public": True, "file_size_limit": 25 * 1024 * 1024,
+                                           "allowed_mime_types": ["audio/mpeg", "application/json"]})
+        print("utworzono publiczny bucket wiedza")
+    try:
+        with urllib.request.urlopen(f"{URL}/storage/v1/object/public/{LIB_BUCKET}/manifest.json?t={int(datetime.now().timestamp())}", timeout=30) as r:
+            man = json.loads(r.read())
+    except Exception:
+        man = {}
+    voice, made, gone = VOICES["zofia"], 0, []
+    for l in lib:
+        text = lesson_script(l)
+        h = hashlib.sha1((voice + text).encode()).hexdigest()[:10]
+        if (man.get(l["id"]) or {}).get("hash") == h:
+            continue
+        with tempfile.TemporaryDirectory() as tmp:
+            f = os.path.join(tmp, "a.mp3")
+            try:
+                asyncio.run(speak(text, voice, f))
+            except Exception as e:
+                print(f"  lekcja {l['id']}: synteza nie wyszła: {e}")
+                continue
+            data = open(f, "rb").read()
+        name = f"{l['id']}-{h}.mp3"
+        req("POST", f"/storage/v1/object/{LIB_BUCKET}/{name}", data, "audio/mpeg", {"x-upsert": "true", "cache-control": "31536000"})
+        if man.get(l["id"], {}).get("plik"):
+            gone.append(man[l["id"]]["plik"])
+        man[l["id"]] = {"plik": name, "sekundy": round(len(data) * 8 / 48000), "hash": h}
+        made += 1
+        print(f"lekcja {l['id']} ({man[l['id']]['sekundy']} s)")
+    ids = {l["id"] for l in lib}
+    for k in [k for k in man if k not in ids]:  # lesson removed from the library
+        gone.append(man.pop(k)["plik"])
+    if made or gone:
+        req("POST", f"/storage/v1/object/{LIB_BUCKET}/manifest.json", json.dumps(man, ensure_ascii=False).encode(), "application/json",
+            {"x-upsert": "true", "cache-control": "60"})
+    if gone:
+        req("DELETE", f"/storage/v1/object/{LIB_BUCKET}", {"prefixes": gone})
+    print(f"lekcje: nagrano {made}, w bibliotece {len(man)}")
 
 
 if __name__ == "__main__":

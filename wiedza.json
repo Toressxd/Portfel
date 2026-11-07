@@ -1,0 +1,149 @@
+[
+ {
+  "id": "po-co-inwestowac",
+  "tytul": "Po co w ogóle inwestować",
+  "sciezka": "podstawy",
+  "poziom": "p",
+  "min": 4,
+  "akcja": "Ustaw swój cel | cele:cele",
+  "tresc": "Wyobraź sobie, że odkładasz tysiąc złotych do skarbonki. Po dziesięciu latach wyciągasz dokładnie tysiąc złotych. Tylko że za te pieniądze kupisz już wyraźnie mniej niż dziesięć lat temu. To robi inflacja: ceny rosną, a pieniądz leżący bez ruchu po cichu traci wartość.\n\nPrzy inflacji na poziomie trzech procent rocznie pieniądze tracą mniej więcej jedną czwartą siły nabywczej w dziesięć lat. Nie widać tego na koncie, bo kwota się nie zmienia. Widać to w sklepie.\n\n## Co robi inwestowanie\n\nInwestowanie to oddanie pieniędzy do pracy. Kupując fundusz akcji, stajesz się drobnym współwłaścicielem tysięcy firm na całym świecie. Te firmy zarabiają, rosną i dzielą się zyskiem. Przez dziesięciolecia akcje rosły szybciej niż inflacja, i to wyraźnie. Szeroki rynek światowy dawał historycznie średnio kilka procent rocznie ponad inflację.\n\nHaczyk jest jeden: po drodze bywają duże spadki. Dlatego inwestuje się pieniądze, których nie będziesz potrzebować przez wiele lat. Krótki horyzont i akcje to zły duet. Długi horyzont i akcje to duet, który historycznie działał.\n\n## Co z tego wynika dla Ciebie\n\nNajpierw poduszka finansowa na nagłe wydatki. Potem regularne, nudne wpłaty co miesiąc. Bez zgadywania, kiedy jest dobry moment. NKU pilnuje za Ciebie planu, a Ty pilnujesz jednego: żeby wpłaty szły dalej."
+ },
+ {
+  "id": "procent-skladany",
+  "tytul": "Procent składany: czas jest ważniejszy niż kwota",
+  "sciezka": "podstawy",
+  "poziom": "p",
+  "min": 4,
+  "akcja": "Policz w kalkulatorze | cele:kalk",
+  "tresc": "Procent składany to zysk od zysku. Zarabiasz nie tylko na tym, co wpłaciłeś, ale też na tym, co już zarobiłeś wcześniej. Na początku efekt jest niewidoczny. Po latach staje się najważniejszą siłą w całym portfelu.\n\n## Prosty przykład\n\nWpłacasz pięćset złotych miesięcznie i zakładasz, że portfel rośnie średnio o sześć procent rocznie. Po dziesięciu latach wpłacisz sześćdziesiąt tysięcy, a portfel będzie wart około osiemdziesięciu tysięcy. Po dwudziestu latach wpłacisz sto dwadzieścia tysięcy, a portfel będzie wart mniej więcej dwieście trzydzieści tysięcy. Po trzydziestu latach wpłacisz sto osiemdziesiąt tysięcy, a portfel może być wart około pół miliona.\n\nZauważ, co się dzieje. W pierwszych latach większość wartości to Twoje wpłaty. Po kilkunastu latach zysk zaczyna przerastać wpłaty. To dlatego mówi się, że najlepszy moment na start był wczoraj, a drugi najlepszy jest dziś.\n\n## Trzy dźwignie\n\nMasz wpływ na trzy rzeczy: ile wpłacasz, jak długo i ile oddajesz po drodze w kosztach i podatkach. Na wynik rynku wpływu nie masz. Dlatego tak ważne są tanie fundusze, konta IKE i IKZE oraz cierpliwość. Każdy procent kosztów rocznie, powtórzony przez dwadzieścia lat, zjada sporą część końcowej kwoty.\n\nSprawdź to sam w kalkulatorze w NKU. Zmień liczbę lat z dziesięciu na dwadzieścia i zobacz, jak zmienia się wynik."
+ },
+ {
+  "id": "co-to-etf",
+  "tytul": "Czym jest ETF",
+  "sciezka": "podstawy",
+  "poziom": "p",
+  "min": 4,
+  "akcja": "Zobacz, co masz w funduszach | portfel:sklad",
+  "tresc": "ETF to fundusz, który kupujesz na giełdzie jak zwykłą akcję. W środku ma koszyk wielu spółek. Kupując jedną jednostkę funduszu na cały świat, kupujesz kawałek ponad tysiąca firm naraz: od Apple i Nvidii po japońskie banki i europejskie fabryki.\n\n## Dlaczego ETF-y są tak popularne\n\nPo pierwsze, są tanie. Fundusz nie płaci zespołowi analityków za wybieranie spółek, tylko kopiuje indeks. Roczny koszt dobrego funduszu na cały świat to około dwóch dziesiątych procenta. Tradycyjne fundusze aktywne potrafią brać dziesięć razy więcej.\n\nPo drugie, dają rozproszenie. Gdy jedna firma upada, w funduszu z tysiącem spółek prawie tego nie czuć. Ryzyko jednej firmy znika, zostaje tylko ryzyko całego rynku.\n\nPo trzecie, są przejrzyste. Wiesz, jaki indeks fundusz naśladuje i co ma w środku.\n\n## Na co patrzeć przy wyborze\n\nNa indeks, czyli co fundusz kopiuje. Na roczny koszt. Na wielkość funduszu, bo duże fundusze są stabilniejsze. Na to, czy jest akumulujący, czyli sam reinwestuje dywidendy. I na walutę, w której jest notowany na giełdzie, choć to mniej ważne, niż się wydaje.\n\nW NKU każdy Twój fundusz ma kartę. Kliknij go w portfelu, a zobaczysz, jakie spółki ma w środku i jak bardzo się wahał."
+ },
+ {
+  "id": "ryzyko",
+  "tytul": "Ryzyko: dlaczego portfel spada i co z tym robić",
+  "sciezka": "podstawy",
+  "poziom": "p",
+  "min": 5,
+  "akcja": "Zrób test na kryzys | portfel:sklad",
+  "tresc": "Ryzyko w inwestowaniu to nie tylko szansa, że stracisz. To przede wszystkim to, że po drodze wartość portfela będzie się mocno wahać. Fundusz na cały świat w kryzysie dwa tysiące ósmego roku stracił w szczycie ponad połowę wartości. W pandemii w kilka tygodni spadł o około jedną trzecią. Oba razy później odrobił straty i poszedł wyżej, ale trwało to od kilku miesięcy do kilku lat.\n\n## Zmienność to cena za wyższy zysk\n\nLokata nie spada, ale też ledwo goni inflację. Akcje dają więcej, bo inwestorzy chcą nagrody za znoszenie wahań. Bez wahań nie byłoby tej nagrody. Dlatego spadki nie są błędem w planie, tylko jego częścią.\n\n## Co możesz kontrolować\n\nPo pierwsze, horyzont. Pieniądze potrzebne za rok czy dwa nie powinny być w akcjach. Po drugie, proporcje. Część bezpieczna, na przykład obligacje skarbowe, łagodzi spadki. Po trzecie, rozproszenie. Jeden fundusz na cały świat jest bezpieczniejszy niż jedna branża. Po czwarte, swoje reakcje. Największe straty inwestorzy robią sobie sami, sprzedając w panice na dnie.\n\n## Ćwiczenie\n\nOtwórz w NKU test na kryzys. Zobaczysz, ile w złotych straciłby Twój obecny plan w prawdziwych kryzysach. Zadaj sobie szczere pytanie: czy przy takim spadku spałbym spokojnie? Jeśli nie, plan jest za ryzykowny dla Ciebie, i to jest w porządku. Lepszy plan spokojniejszy, którego się trzymasz, niż agresywny, który porzucisz w najgorszym momencie."
+ },
+ {
+  "id": "poduszka",
+  "tytul": "Najpierw poduszka finansowa",
+  "sciezka": "podstawy",
+  "poziom": "p",
+  "min": 3,
+  "akcja": "Ustaw poduszkę | cele:cele",
+  "tresc": "Poduszka finansowa to pieniądze na nieprzewidziane sytuacje: zepsute auto, utrata pracy, nagła wizyta u dentysty. Trzymasz je bezpiecznie i pod ręką, na koncie oszczędnościowym albo w obligacjach skarbowych, które łatwo wypłacić.\n\n## Ile odłożyć\n\nZwykle mówi się o trzech do sześciu miesiącach wydatków. Jeśli masz stabilny etat i nikogo na utrzymaniu, wystarczy bliżej trzech. Jeśli prowadzisz firmę albo masz rodzinę, lepiej bliżej sześciu. NKU liczy Twoje średnie wydatki z budżetu, więc łatwo sprawdzić, ile to w złotych.\n\n## Dlaczego przed inwestowaniem\n\nBo bez poduszki każdy nagły wydatek zmusza Cię do sprzedaży funduszy. A los lubi złośliwość: auto psuje się często akurat wtedy, gdy rynek spada. Sprzedajesz wtedy ze stratą i przerywasz procent składany.\n\nPoduszka sprawia też, że łatwiej znosisz spadki. Wiesz, że rachunki są opłacone, więc czerwony portfel to tylko liczba na ekranie, a nie problem do rozwiązania na jutro.\n\n## Najprostsza zasada\n\nNajpierw buduj poduszkę, potem inwestuj. Albo dziel wpłatę: część do poduszki, część do funduszy, aż poduszka będzie pełna. Gdy z niej skorzystasz, uzupełnij ją, zanim wrócisz do pełnych wpłat na fundusze."
+ },
+ {
+  "id": "ike-ikze",
+  "tytul": "IKE i IKZE: jak nie oddawać dziewiętnastu procent",
+  "sciezka": "konta",
+  "poziom": "p",
+  "min": 5,
+  "akcja": "Sprawdź swoje limity | cele:konta",
+  "tresc": "W Polsce od zysku z inwestycji płacisz zwykle dziewiętnaście procent podatku. Państwo daje jednak dwa specjalne konta na długie oszczędzanie, na których tego podatku można uniknąć albo go zmniejszyć. To IKE i IKZE. Możesz je założyć w biurze maklerskim, na przykład w XTB, i kupować na nich te same fundusze ETF.\n\n## IKE, czyli Indywidualne Konto Emerytalne\n\nNa IKE wpłacasz do rocznego limitu. W dwa tysiące dwudziestym szóstym roku to dwadzieścia osiem tysięcy dwieście sześćdziesiąt złotych. Jeśli wypłacisz pieniądze po sześćdziesiątce i wpłacałeś w co najmniej pięciu różnych latach, nie płacisz od zysku ani złotówki podatku. Przy wcześniejszej wypłacie po prostu oddajesz podatek, jak na zwykłym koncie. Nic więcej nie tracisz.\n\n## IKZE, czyli Indywidualne Konto Zabezpieczenia Emerytalnego\n\nTu limit jest mniejszy: dla osoby na etacie jedenaście tysięcy trzysta cztery złote w dwa tysiące dwudziestym szóstym roku. Za to wpłaty odliczasz od dochodu w zeznaniu rocznym. Jeśli płacisz podatek dwanaście procent, dostajesz od każdej wpłaconej stówki dwanaście złotych zwrotu, a przy trzydziestu dwóch procentach nawet trzydzieści dwa. Przy wypłacie po sześćdziesiątce piątce płacisz zryczałtowane dziesięć procent od całości.\n\n## Co wybrać\n\nNajczęstsza kolejność to: najpierw poduszka, potem IKE, a gdy zostaje więcej, również IKZE. IKZE opłaca się szczególnie przy wyższym progu podatkowym. Pamiętaj, że niewykorzystany limit przepada trzydziestego pierwszego grudnia i nie przechodzi na kolejny rok. NKU przypomina o tym pod koniec roku."
+ },
+ {
+  "id": "podatek-belki",
+  "tytul": "Podatek Belki i PIT-38 w praktyce",
+  "sciezka": "konta",
+  "poziom": "s",
+  "min": 4,
+  "akcja": "Zobacz podatki w NKU | cele:konta",
+  "tresc": "Podatek Belki to dziewiętnaście procent od zysku kapitałowego. Nazwa wzięła się od ministra finansów, który go wprowadził. Dotyczy zysku ze sprzedaży funduszy, akcji i obligacji, odsetek oraz dywidend.\n\n## Kiedy płacisz\n\nNa zwykłym koncie maklerskim płacisz dopiero wtedy, gdy sprzedasz fundusz z zyskiem. Dopóki trzymasz, podatku nie ma, nawet jeśli fundusz urósł dwa razy. To ważne: fundusz akumulujący, który sam reinwestuje dywidendy, pozwala odkładać podatek na lata, a odroczony podatek dalej pracuje na Ciebie.\n\n## PIT-38\n\nJeśli w danym roku coś sprzedałeś, do końca kwietnia następnego roku składasz zeznanie PIT-38. Broker, na przykład XTB, przysyła na początku roku dokument z podsumowaniem, czyli PIT-8C albo zestawienie dla klientów. Przepisujesz z niego przychód i koszty. Straty z jednego roku możesz odliczać od zysków w kolejnych pięciu latach, w określonych granicach.\n\n## Jak liczy się zysk\n\nPrzy wielu zakupach tego samego funduszu w różnych cenach liczy się zasada pierwsze weszło, pierwsze wyszło. Sprzedajesz najpierw jednostki kupione najwcześniej. NKU liczy to tak samo w karcie Podatki, żebyś przed sprzedażą wiedział, ile mniej więcej oddasz.\n\nNa IKE i IKZE tych rozliczeń nie robisz. To jeszcze jeden powód, żeby długoterminowe pieniądze trzymać właśnie tam."
+ },
+ {
+  "id": "rdzen-satelity",
+  "tytul": "Rdzeń i satelity: jak zbudowany jest Twój plan",
+  "sciezka": "portfel",
+  "poziom": "s",
+  "min": 4,
+  "akcja": "Zobacz swój plan | portfel:przeglad",
+  "tresc": "Rdzeń i satelity to sposób na połączenie spokoju z własnymi pomysłami. Większość pieniędzy, na przykład sześćdziesiąt procent albo więcej, trafia do rdzenia. To szeroki fundusz na cały świat. Reszta to satelity: mniejsze części na tematy, w które wierzysz, na przykład technologia, ochrona zdrowia albo surowce.\n\n## Po co rdzeń\n\nRdzeń daje rynkowy wynik niemal za darmo. Nie musisz mieć racji co do żadnej branży. Jeśli Twoje satelity zawiodą, rdzeń i tak ciągnie portfel w górę razem z gospodarką świata.\n\n## Po co satelity\n\nSatelity pozwalają działać na podstawie własnych przekonań, w kontrolowanej dawce. Każdy satelita powinien mieć tezę, czyli powód, dla którego jest w portfelu, i warunek, kiedy uznasz, że się mylisz. Bez tego satelity zamieniają się w zbiór przypadkowych zakupów pod wpływem nagłówków.\n\n## Pasma\n\nW NKU każda rola ma cel i pasmo, na przykład dziesięć procent plus minus pięć. Dopóki waga mieści się w paśmie, nic nie robisz. Gdy wychodzi poza nie, kolejne wpłaty kierujesz tam, gdzie jest najmniej względem celu. To pilnuje, żeby jeden satelita, który akurat mocno urósł, nie zdominował portfela.\n\n## Najczęstszy błąd\n\nZbyt wiele satelitów. Każdy kolejny fundusz to więcej pilnowania, a efekt na całość coraz mniejszy. Trzy, cztery dobrze uzasadnione satelity to zwykle więcej niż dość."
+ },
+ {
+  "id": "rebalans",
+  "tytul": "Rebalansowanie wpłatami",
+  "sciezka": "portfel",
+  "poziom": "s",
+  "min": 3,
+  "akcja": "Zobacz podział wpłaty | portfel:wplata",
+  "tresc": "Z czasem proporcje w portfelu same się rozjeżdżają. To, co rośnie najszybciej, zajmuje coraz większą część. Rebalansowanie to przywracanie proporcji z planu.\n\n## Dwa sposoby\n\nPierwszy: sprzedajesz to, czego jest za dużo, i kupujesz to, czego jest za mało. Działa od razu, ale na zwykłym koncie sprzedaż z zyskiem oznacza podatek, a do tego płacisz prowizje.\n\nDrugi, łagodniejszy: rebalans wpłatami. Nic nie sprzedajesz. Każdą nową wpłatę kierujesz do części, które są najbardziej poniżej celu. To dokładnie robi lista zakupów w NKU. Przy regularnych wpłatach to zwykle wystarcza, żeby portfel trzymał się blisko planu.\n\n## Dlaczego to działa na Twoją korzyść\n\nRebalans zmusza do kupowania tego, co ostatnio radziło sobie gorzej, czyli jest relatywnie tańsze. A to, co mocno urosło, przestajesz dokupować. To dyscyplina, która chroni przed pogonią za modą.\n\n## Kiedy sprzedać\n\nGdy jedna część jest daleko poza pasmem, a wpłaty są za małe, żeby ją dogonić w rozsądnym czasie. Wtedy raz w roku możesz rozważyć sprzedaż, najlepiej na IKE, gdzie nie ma podatku od zysku."
+ },
+ {
+  "id": "akumulacja-waluty",
+  "tytul": "Fundusz akumulujący, dystrybucyjny i ryzyko walutowe",
+  "sciezka": "portfel",
+  "poziom": "s",
+  "min": 4,
+  "tresc": "Fundusze dzielą się na dwa typy, w zależności od tego, co robią z dywidendami od spółek. Akumulujący reinwestuje je sam, w środku funduszu. Dystrybucyjny wypłaca je na Twoje konto.\n\n## Co wybrać na długi termin\n\nDla budowania majątku w Polsce zwykle lepszy jest akumulujący. Dywidenda wypłacona na zwykłe konto oznacza podatek od razu, a potem musisz ją sam ponownie zainwestować. W funduszu akumulującym pieniądze pracują dalej bez przerwy, a podatek płacisz dopiero przy sprzedaży. Dystrybucyjny ma sens, gdy chcesz żyć z regularnych wypłat.\n\n## Ryzyko walutowe\n\nFundusz na cały świat ma w środku spółki z dolarów, euro, jenów i innych walut. Ty liczysz w złotych. Gdy złoty się umacnia, wartość funduszu w złotych spada, nawet jeśli spółki nie drgnęły. Gdy złoty słabnie, zyskujesz. W NKU w raporcie tygodnia widzisz, ile zmiany to waluty, a ile same fundusze.\n\nWaluta, w jakiej fundusz jest notowany na giełdzie, ma tu małe znaczenie. Liczy się, w jakich walutach są firmy w środku. Fundusz na świat notowany w euro i ten sam fundusz notowany w dolarach to w praktyce to samo ryzyko.\n\n## Czy się zabezpieczać\n\nNa horyzoncie kilkunastu lat wahania walut w dużej mierze się wyrównują, a zabezpieczenie walutowe kosztuje. Dla większości inwestorów długoterminowych rozsądne jest po prostu przyjąć to ryzyko i pamiętać, że część ruchów portfela to złoty, a nie rynek."
+ },
+ {
+  "id": "timing",
+  "tytul": "Dlaczego nie warto zgadywać rynku",
+  "sciezka": "glowa",
+  "poziom": "s",
+  "min": 4,
+  "tresc": "Kusi, żeby poczekać na spadek i dopiero wtedy kupić. Albo sprzedać przed krachem i wrócić na dnie. Problem w tym, że prawie nikomu to się nie udaje w powtarzalny sposób, również zawodowcom.\n\n## Najlepsze dni są blisko najgorszych\n\nNajwiększe wzrosty giełdy zdarzają się zwykle w środku albo tuż po największych spadkach, gdy strach jest największy. Kto wyszedł z rynku w panice, zwykle przegapia też odbicie. Badania pokazują, że kto przez dwadzieścia lat ominął tylko kilka, kilkanaście najlepszych sesji, mniej więcej o połowę obniżył swój wynik.\n\n## Zawodowcy też nie wygrywają\n\nWiększość aktywnych funduszy, prowadzonych przez opłacanych analityków, przez dziesięć i więcej lat wypada gorzej niż zwykły tani fundusz indeksowy. Rok do roku różnie bywa, ale na dłuższym dystansie wygrywa mniejszość, i trudno ją wskazać z góry.\n\n## Co działa zamiast tego\n\nRegularne wpłaty w stałym rytmie, niezależnie od nastrojów. W złym miesiącu za tę samą kwotę kupujesz więcej jednostek, w dobrym mniej. Do tego zasada na spadki zapisana zawczasu, na spokojnie. W NKU masz ją w swoim profilu i przypominamy ją w prasówce, gdy rynek mocno spada.\n\nCzas spędzony na rynku jest ważniejszy niż wyczucie momentu wejścia na rynek."
+ },
+ {
+  "id": "krach",
+  "tytul": "Jak przetrwać krach",
+  "sciezka": "glowa",
+  "poziom": "s",
+  "min": 4,
+  "akcja": "Zapisz decyzję w dzienniku | raporty:tezy",
+  "tresc": "Krach przyjdzie. Nie wiadomo kiedy, ale w ciągu dziesięciu lat inwestowania prawie na pewno zobaczysz przynajmniej jeden spadek o dwadzieścia procent albo więcej. Lepiej przygotować się teraz, na spokojnie, niż wymyślać plan w środku paniki.\n\n## Co dzieje się w głowie\n\nStrata boli mniej więcej dwa razy mocniej niż zysk tej samej wielkości cieszy. Do tego dochodzą nagłówki, komentarze i znajomi, którzy właśnie sprzedali. Mózg krzyczy: zrób coś. Najczęściej najlepsze, co możesz zrobić, to nic poza tym, co i tak było w planie.\n\n## Plan na krach, zanim przyjdzie\n\nPo pierwsze: pieniądze potrzebne w ciągu kilku lat nie są w akcjach, a poduszka jest pełna. Po drugie: wiesz, ile w złotych może spaść Twój portfel, bo widziałeś test na kryzys. Po trzecie: masz zapisaną zasadę, na przykład dalej wpłacam co miesiąc i nic nie sprzedaję, chyba że zmieni się teza. Po czwarte: mniej patrzysz. Tryb spokojny w NKU chowa dzienne zmiany.\n\n## Gdy już spada\n\nZapytaj, czy zmieniły się fakty, czy tylko cena. Spadek ceny przy niezmienionych faktach to zwykle wyprzedaż, a nie powód do ucieczki. Zapisz w dzienniku decyzji, co czujesz i co robisz. Za rok przeczytasz to i nauczysz się o sobie więcej niż z każdej książki."
+ },
+ {
+  "id": "teza",
+  "tytul": "Teza inwestycyjna i warunek „kiedy się mylę”",
+  "sciezka": "glowa",
+  "poziom": "z",
+  "min": 4,
+  "akcja": "Zobacz swoje tezy | raporty:tezy",
+  "tresc": "Teza to krótki powód, dla którego coś jest w Twoim portfelu. Na przykład: ochrona zdrowia, bo społeczeństwa się starzeją, a wydatki na leczenie rosną szybciej niż gospodarka. Dobra teza mieści się w dwóch zdaniach i opiera się na faktach, które da się sprawdzać.\n\n## Warunek „kiedy się mylę”\n\nTo najważniejsza część i najczęściej pomijana. Zapisujesz z góry, jaki fakt sprawi, że uznasz tezę za błędną. Na przykład: jeśli najwięksi gracze w AI przez dwa kwartały z rzędu tną wydatki na centra danych z powodu słabego popytu. Warunek opisuje fakty, a nie cenę. Spadek kursu o dwadzieścia procent to nie jest dowód, że teza upadła.\n\n## Po co to wszystko\n\nBez warunku każda teza żyje wiecznie, bo zawsze znajdzie się powód, żeby jeszcze poczekać. Albo odwrotnie: porzucasz dobrą tezę przy pierwszym spadku. Warunek zapisany na spokojnie chroni przed oboma błędami.\n\n## Jak NKU w tym pomaga\n\nW raporcie tygodnia każda Twoja teza dostaje status: bez zmian, wspierająca, do obserwacji albo sygnał ostrzegawczy. Raport pisze też, czy zbliża się Twój warunek. W obserwatorium możesz śledzić pomysły, zanim staną się tezą, i po roku sprawdzić, czy były trafne."
+ },
+ {
+  "id": "ks-bogle",
+  "tytul": "Książka w pigułce: John C. Bogle, The Little Book of Common Sense Investing",
+  "sciezka": "ksiazki",
+  "poziom": "p",
+  "min": 5,
+  "tresc": "John Bogle założył Vanguard i stworzył pierwszy fundusz indeksowy dla zwykłych ludzi. Ta krótka książka to jego najprostszy wykład o tym, dlaczego większość inwestorów powinna po prostu kupić cały rynek i trzymać go przez lata. Poniżej najważniejsze myśli, opowiedziane własnymi słowami.\n\n## Inwestorzy razem dostają wynik rynku, minus koszty\n\nWszyscy inwestorzy razem wzięci są właścicielami całego rynku. Przed kosztami ich średni wynik musi być równy wynikowi rynku. Po kosztach, czyli opłatach, prowizjach i podatkach, średni inwestor musi wypaść gorzej. Kto płaci najmniej, ten zatrzymuje najwięcej. To prosta arytmetyka, a nie opinia.\n\n## Koszty zjadają procent składany\n\nRóżnica jednego, dwóch procent rocznie wygląda niewinnie. Przez czterdzieści lat potrafi zabrać jedną trzecią albo połowę końcowego majątku. Bogle przekonuje, że koszty to jedyna rzecz w inwestowaniu, którą masz pod pełną kontrolą, więc warto o nie walczyć.\n\n## Nie szukaj igły, kup cały stóg siana\n\nZamiast szukać funduszu albo spółki, które pobiją rynek, kup rynek w całości. Fundusze, które świetnie radziły sobie w przeszłości, rzadko utrzymują przewagę. Pogoń za zeszłorocznymi zwycięzcami zwykle kończy się kupowaniem drogo.\n\n## Nie przeszkadzaj sobie\n\nNajwiększym wrogiem inwestora jest on sam: zbyt częste zmiany, reagowanie na nagłówki, sprzedawanie w panice. Plan prosty i nudny, utrzymany przez dekady, zwykle wygrywa z planem błyskotliwym, który zmienia się co kwartał.\n\n## Co z tego bierze NKU\n\nRdzeń Twojego planu to dokładnie ta idea: tani fundusz na cały świat i regularne wpłaty. Satelity to Twoja przestrzeń na przekonania, ale rdzeń zostaje fundamentem."
+ },
+ {
+  "id": "ks-housel",
+  "tytul": "Książka w pigułce: Morgan Housel, The Psychology of Money",
+  "sciezka": "ksiazki",
+  "poziom": "p",
+  "min": 5,
+  "tresc": "Morgan Housel pisze o pieniądzach tak, jakby pisał o ludziach, bo jego zdaniem właśnie o to chodzi. Sukces finansowy mniej zależy od wiedzy, a bardziej od zachowania. Książka składa się z krótkich rozdziałów, a poniżej są jej główne myśli, opowiedziane własnymi słowami.\n\n## Każdy ma swoją historię z pieniędzmi\n\nTo, jak ktoś inwestuje, zależy od tego, co przeżył. Ktoś, kto zaczynał w czasie krachu, będzie ostrożniejszy niż ktoś, kto pamięta tylko wzrosty. Nikt nie jest szalony, każdy działa według swoich doświadczeń. Dobrze wiedzieć, jakie są Twoje.\n\n## Wystarczająco\n\nJedna z najważniejszych umiejętności to wiedzieć, kiedy masz dość. Pogoń za ciągle wyższym celem prowadzi do ryzyka, którego nie trzeba podejmować. Ludzie tracili fortuny, ryzykując to, co mieli i czego potrzebowali, dla czegoś, czego wcale nie potrzebowali.\n\n## Przetrwanie jest ważniejsze niż maksymalny wynik\n\nProcent składany działa tylko wtedy, gdy nie przerwiesz go po drodze. Lepszy przeciętny wynik utrzymany przez trzydzieści lat niż świetny przez pięć, zakończony bankructwem albo paniczną sprzedażą. Stąd zapas bezpieczeństwa, poduszka i rozsądne ryzyko.\n\n## Bogactwo to to, czego nie widać\n\nDrogie auto pokazuje, ile ktoś wydał, a nie ile ma. Prawdziwy majątek to pieniądze, których nie wydałeś. Najcenniejsze, co dają pieniądze, to kontrola nad własnym czasem.\n\n## Rozsądnie zamiast idealnie\n\nNie musisz mieć planu optymalnego na papierze. Wystarczy plan, którego się trzymasz i przy którym dobrze śpisz. To podejście jest wpisane w NKU: proste zasady, tryb spokojny i plan, który ustawiasz pod siebie."
+ },
+ {
+  "id": "ks-malkiel",
+  "tytul": "Książka w pigułce: Burton Malkiel, A Random Walk Down Wall Street",
+  "sciezka": "ksiazki",
+  "poziom": "s",
+  "min": 5,
+  "tresc": "Burton Malkiel, profesor z Princeton, od kilkudziesięciu lat wznawia tę książkę z nowymi danymi. W Polsce ukazała się pod tytułem Błądząc po Wall Street. Jej główna teza: krótkoterminowe ruchy cen są w dużej mierze nieprzewidywalne, więc zwykłemu inwestorowi najlepiej służy szeroki, tani fundusz indeksowy. Poniżej najważniejsze myśli, opowiedziane własnymi słowami.\n\n## Bańki powtarzają się od wieków\n\nMalkiel opisuje szaleństwa od holenderskiej manii tulipanowej, przez bańkę internetową, po późniejsze spekulacyjne mody. Schemat jest podobny: nowa, ekscytująca historia, rosnące ceny, przekonanie, że tym razem jest inaczej, a potem bolesny koniec. Wniosek: gdy wszyscy wokół mówią o łatwych pieniądzach, warto być ostrożnym.\n\n## Analiza wykresów i wybieranie spółek\n\nAutor przegląda metody przewidywania cen, od rysowania formacji na wykresach po szczegółową analizę spółek. Dane pokazują, że żadna z nich nie daje trwałej przewagi większości stosujących. Informacje szybko trafiają do cen, więc trudno konsekwentnie wyprzedzać rynek.\n\n## Praktyczne rady\n\nZbuduj zapas na nagłe wydatki. Korzystaj z kont z ulgami podatkowymi. Dopasuj ryzyko do wieku i spokoju ducha. Inwestuj regularnie, stałą kwotą. Rozpraszaj i co jakiś czas przywracaj proporcje. Pilnuj kosztów.\n\n## Co z tego wynika dla Ciebie\n\nWiększość tych rad masz już w NKU: poduszkę, IKE i IKZE, regularne wpłaty, pasma i rebalans. Książka jest dobrym przypomnieniem, dlaczego nudny plan to nie wada, tylko zaleta."
+ },
+ {
+  "id": "ks-graham",
+  "tytul": "Książka w pigułce: Benjamin Graham, The Intelligent Investor",
+  "sciezka": "ksiazki",
+  "poziom": "z",
+  "min": 5,
+  "tresc": "Benjamin Graham był nauczycielem Warrena Buffetta i ojcem inwestowania w wartość. Jego książka, wydana po raz pierwszy w połowie dwudziestego wieku, po polsku jako Inteligentny inwestor, jest długa i miejscami techniczna. Poniżej jej ponadczasowe myśli, opowiedziane własnymi słowami.\n\n## Pan Rynek\n\nGraham proponuje wyobrazić sobie rynek jako wspólnika, który codziennie przychodzi z ofertą kupna albo sprzedaży. Raz jest w euforii i chce dużo, raz w depresji i oddaje za bezcen. Nie musisz słuchać jego nastrojów. Możesz korzystać z jego przesadnych ofert albo po prostu je ignorować. Cena to propozycja, a nie ocena Twojej inwestycji.\n\n## Margines bezpieczeństwa\n\nKupuj tak, żeby nawet przy błędzie w ocenie nie stracić dużo. W praktyce chodzi o płacenie wyraźnie mniej, niż coś jest warte, i o unikanie ryzyka, którego nie rozumiesz. Ta idea dotyczy też całego portfela: rozproszenie i część bezpieczna to margines na nieznane.\n\n## Inwestor defensywny i przedsiębiorczy\n\nGraham dzieli inwestorów na dwa typy. Defensywny nie ma czasu ani chęci na analizy, więc trzyma szeroko rozproszony portfel i stałe proporcje między akcjami a obligacjami. Przedsiębiorczy poświęca dużo pracy na szukanie okazji. Graham uczciwie zaznacza, że połowiczne podejście, czyli trochę pracy i dużo ambicji, zwykle wychodzi najgorzej.\n\n## Inwestycja a spekulacja\n\nInwestycja opiera się na analizie, chroni kapitał i obiecuje rozsądny zwrot. Wszystko inne to spekulacja. Spekulować wolno, ale świadomie, małą kwotą i nazywając rzeczy po imieniu.\n\n## Co z tego bierze NKU\n\nRdzeń i część bezpieczna to podejście inwestora defensywnego. Satelity z tezami i warunkiem kiedy się mylę to Twoja przestrzeń przedsiębiorcza, w kontrolowanej dawce."
+ }
+]
