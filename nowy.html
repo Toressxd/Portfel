@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0b">
+<title>NKU · nowy Start</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Podgląd nowego ekranu Start: najważniejsze wskaźniki na jednym ekranie, w kolorach NKU. Tylko odczyt. */
+:root {
+  --bg: #ffffff; --surface: #f4f2f0; --raise: #ffffff; --ink: #111111; --muted: #6b6866; --line: #dedad6;
+  --red: #d4151f; --red-soft: #fbe6e6; --on-red: #ffffff;
+  --up: #0b6b40; --up-soft: #e2f3ea; --down: #c2171f; --warn: #9a6200; --warn-soft: #fbf0d9;
+  --f-display: "Archivo", "Arial Narrow", "Segoe UI", sans-serif;
+  --f-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --r: 20px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0b0b; --surface: #161616; --raise: #1d1c1b; --ink: #f4f2f1; --muted: #a29e9b; --line: #2a2827;
+    --red: #ff3b3f; --red-soft: #3a1214; --on-red: #0b0b0b;
+    --up: #45c98a; --up-soft: #12301f; --down: #ff6a64; --warn: #f0b545; --warn-soft: #33270e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0b0b; --surface: #161616; --raise: #1d1c1b; --ink: #f4f2f1; --muted: #a29e9b; --line: #2a2827;
+  --red: #ff3b3f; --red-soft: #3a1214; --on-red: #0b0b0b;
+  --up: #45c98a; --up-soft: #12301f; --down: #ff6a64; --warn: #f0b545; --warn-soft: #33270e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.45 var(--f-body); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 16px; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; line-height: 1.15; }
+h2 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; }
+.num { font-family: var(--f-display); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.mono { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.note { font-size: 0.82rem; color: var(--muted); }
+.label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; }
+.up { color: var(--up); } .down { color: var(--down); }
+.priv .num, .priv .blur { filter: blur(9px); }
+
+/* top bar */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--f-display); font-weight: 800; font-size: 1.1rem; }
+.brand svg { width: 30px; height: 30px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--red-soft); color: var(--red); white-space: nowrap; }
+.iconbtn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; cursor: pointer; text-decoration: none; }
+.iconbtn svg { width: 20px; height: 20px; }
+.topr { display: flex; gap: 8px; align-items: center; }
+
+/* cards */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.card > header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.tile { background: var(--raise); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; min-width: 0; }
+
+/* hero */
+.hero { padding: 6px 2px 0; display: grid; gap: 6px; }
+.hero .row { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.big { font-size: clamp(2.4rem, 11vw, 3.4rem); font-weight: 800; line-height: 1; }
+.big small { font-size: 0.45em; font-weight: 700; margin-left: 4px; }
+.delta { text-align: right; display: grid; gap: 2px; }
+.delta .pct { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+.delta .pct svg { width: 18px; height: 18px; }
+.chart { width: 100%; height: 150px; display: block; margin-top: 6px; }
+.chart-empty { height: 150px; display: grid; place-items: center; text-align: center; border: 1px dashed var(--line); border-radius: 16px; padding: 12px; }
+.seg { display: flex; justify-content: space-between; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px; }
+.seg button { flex: 1; border: 0; background: none; padding: 8px 0; border-radius: 10px; font-weight: 700; font-size: 0.85rem; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--raise); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.18); }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.split .tile .num { font-size: 1.15rem; font-weight: 700; }
+
+/* quick actions (round icons) */
+.quick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.quick a { display: grid; justify-items: center; gap: 6px; text-decoration: none; font-size: 0.74rem; font-weight: 600; color: var(--muted); }
+.quick span.ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
+.quick a:first-child span.ic { background: var(--red); border-color: var(--red); color: var(--on-red); }
+.quick svg { width: 22px; height: 22px; }
+
+/* score */
+.scorebox { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+.ring { position: relative; width: 132px; height: 132px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .in { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ring .in .num { font-size: 2.4rem; font-weight: 800; line-height: 1; }
+.streak { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.85rem; }
+.streak svg { width: 18px; height: 18px; color: var(--red); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.metric { cursor: pointer; text-align: left; display: grid; gap: 6px; width: 100%; }
+.metric .t { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+.metric .v { font-size: 1.6rem; font-weight: 800; }
+.bar { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: inherit; }
+.metric[aria-expanded="true"] { border-color: var(--ink); }
+.explain { grid-column: 1 / -1; font-size: 0.86rem; background: var(--raise); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 6px; }
+
+/* month */
+.budget { display: grid; gap: 8px; }
+.budget .track { position: relative; height: 54px; border-radius: 16px; background: var(--raise); border: 1px solid var(--line); overflow: hidden; }
+.budget .fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--red-soft), color-mix(in srgb, var(--red) 55%, var(--red-soft))); }
+.budget .lab { position: absolute; inset: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 14px; }
+.budget .lab div { display: grid; line-height: 1.15; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.three .tile { text-align: center; display: grid; gap: 2px; place-items: center; }
+.three .num { font-size: 1.35rem; font-weight: 800; }
+.mini-ring { width: 40px; height: 40px; transform: rotate(-90deg); }
+.flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.flow .tile { display: grid; gap: 2px; }
+.flow .num { font-size: 1.05rem; font-weight: 700; }
+
+/* milestone */
+.prog { height: 12px; border-radius: 99px; background: var(--raise); border: 1px solid var(--line); overflow: hidden; }
+.prog > i { display: block; height: 100%; background: var(--red); border-radius: inherit; min-width: 6px; }
+.stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stages div { border-top: 3px solid var(--line); padding-top: 6px; font-size: 0.75rem; color: var(--muted); text-align: center; font-weight: 600; }
+.stages div.done { border-color: var(--up); color: var(--ink); }
+.stages div.now { border-color: var(--red); color: var(--ink); }
+.ok { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 600; }
+.ok svg { width: 18px; height: 18px; flex: none; }
+
+/* composition */
+.stack { display: flex; height: 12px; border-radius: 99px; overflow: hidden; gap: 2px; }
+.stack i { display: block; height: 100%; }
+.legend { display: grid; gap: 8px; }
+.legend div { display: grid; grid-template-columns: 12px 1fr auto; gap: 10px; align-items: center; font-size: 0.92rem; }
+.legend b { width: 12px; height: 12px; border-radius: 4px; }
+
+.cols, .colstack { display: grid; gap: 16px; }
+@media (min-width: 900px) {
+  .cols { grid-template-columns: 1.15fr 1fr; align-items: start; }
+}
+.foot { text-align: center; }
+#notice { background: var(--warn-soft); color: var(--warn); border-radius: 14px; padding: 12px 14px; font-size: 0.9rem; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="top">
+    <div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="var(--red)"/><g transform="rotate(-90 32 32)" fill="none" stroke-width="9"><circle cx="32" cy="32" r="17" stroke="#ffffff" stroke-dasharray="61 46" stroke-dashoffset="-2"/><circle cx="32" cy="32" r="17" stroke="#111111" stroke-dasharray="38.8 68.2" stroke-dashoffset="-66"/></g></svg>NKU <span class="pill">podgląd nowego Startu</span></div>
+    <div class="topr">
+      <button class="iconbtn" type="button" id="eye" aria-label="Ukryj kwoty" title="Ukryj kwoty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <a class="iconbtn" href="./" aria-label="Wróć do aplikacji" title="Wróć do aplikacji"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></a>
+    </div>
+  </div>
+  <div id="notice" hidden></div>
+  <div id="view"><p class="note">Wczytuję Twoje dane…</p></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="backend.js"></script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const nf = (n, d = 0) => new Intl.NumberFormat("pl-PL", { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+  const zl = (n, d = 0) => n == null || isNaN(n) ? "–" : nf(n, d) + " zł";
+  const szl = n => n == null || isNaN(n) ? "–" : (n > 0 ? "+" : n < 0 ? "−" : "") + nf(Math.abs(n)) + " zł";
+  const pct = (n, d = 1) => n == null || !isFinite(n) ? "–" : (n > 0 ? "+" : n < 0 ? "−" : "") + nf(Math.abs(n), d) + "%";
+  const local = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const today = () => local(new Date());
+  const clamp = (x, a = 0, b = 100) => Math.max(a, Math.min(b, x));
+  const MIES = ["styczeń", "luty", "marzec", "kwiecień", "maj", "czerwiec", "lipiec", "sierpień", "wrzesień", "październik", "listopad", "grudzień"];
+  const S = { plan: null, stan: null, cele: null, budzetCfg: null, ust: null, tx: [], budzet: [], historia: [] };
+  let range = "1M", stage = "etap", open = null;
+  try { range = localStorage.getItem("nku-nowy-zakres") || "1M"; } catch (e) {}
+
+  /* ---------- numbers (the same rules as the main app, read-only) ---------- */
+  const isSell = t => String(t.typ || "").startsWith("sprz");
+  function portfolio() {
+    const ceny = S.stan?.ceny || {}, role = {}, broad = new Set();
+    for (const [k, r] of Object.entries(S.plan?.role || {})) for (const i of Object.keys(r.fundusze || {})) { role[i] = k; if (r.rdzen) broad.add(i); }
+    const pos = {};
+    for (const t of [...S.tx].sort((a, b) => (a.data || "").localeCompare(b.data || ""))) {
+      const p = pos[t.isin] ||= { isin: t.isin, u: 0, stat: 0, koszt: 0, konta: {} };
+      const u = +t.jednostki || 0, pln = +t.kwota_pln || 0;
+      if (isSell(t)) { if (p.u > 0) p.koszt -= p.koszt * Math.min(1, u / p.u); p.u -= u; }
+      else if (t.jednostki == null && t.wartosc_otwarcia_pln) { p.stat += +t.wartosc_otwarcia_pln; p.koszt += pln; }
+      else { p.u += u; p.koszt += pln; }
+      p.konta[t.konto || "zwykle"] = 1;
+    }
+    const list = Object.values(pos).map(p => ({ ...p, v: (ceny[p.isin] ? p.u * ceny[p.isin].pln : 0) + p.stat, rola: role[p.isin] || "inne", broad: broad.has(p.isin) })).filter(p => p.v > 0.5);
+    const total = list.reduce((s, p) => s + p.v, 0), koszt = list.reduce((s, p) => s + p.koszt, 0);
+    const roles = Object.entries(S.plan?.role || {}).map(([k, r]) => { const v = list.filter(p => p.rola === k).reduce((s, p) => s + p.v, 0); return { k, nazwa: r.nazwa, cel: +r.cel || 0, pasmo: +r.pasmo || 5, rdzen: !!r.rdzen, w: total ? v / total * 100 : 0 }; });
+    const ike = list.filter(p => p.konta.IKE || p.konta.IKZE).reduce((s, p) => s + p.v, 0);
+    return { list, total, koszt, roles, ike };
+  }
+  const hist = () => [...S.historia].filter(h => h.data).sort((a, b) => a.data.localeCompare(b.data));
+  function wealth(pf) {
+    const h = hist(), last = h[h.length - 1] || {};
+    const obl = +last.obligacje || (S.cele?.obligacje || []).reduce((s, o) => s + (+o.kwota || 0), 0);
+    const pod = +(S.cele?.poduszka?.zebrane || 0);
+    return { etf: pf.total, obl, pod, now: pf.total + obl + pod };
+  }
+  function month(m) {
+    const inM = S.budzet.filter(b => (b.data || "").startsWith(m));
+    const sum = typ => inM.filter(b => b.typ === typ).reduce((s, b) => s + (+b.kwota || 0), 0);
+    const bought = S.tx.filter(t => (t.data || "").startsWith(m) && !t.otwarcie && !isSell(t)).reduce((s, t) => s + (+t.kwota_pln || 0), 0);
+    const przychod = sum("przychod"), wydatek = sum("wydatek"), odlozone = sum("odlozone");
+    const stale = inM.filter(b => b.typ === "wydatek" && b.stale).reduce((s, b) => s + (+b.kwota || 0), 0);
+    const saved = Math.max(odlozone, bought); // a purchase usually also appears as "odłożone": do not count twice
+    return { przychod, wydatek, stale, odlozone: saved, rate: przychod ? saved / przychod * 100 : null };
+  }
+  function budgetFor() {
+    const lim = Object.values(S.budzetCfg?.limity || {}).reduce((s, v) => s + (+v || 0), 0);
+    if (lim > 0) return { kwota: lim, skad: "suma Twoich limitów kategorii" };
+    const w = +(S.plan?.profil?.wydatki || 0);
+    if (w > 0) return { kwota: w, skad: "miesięczne wydatki z Twojego planu" };
+    return { kwota: 0, skad: "" };
+  }
+  // a streak: days in a row (ending today or yesterday) with at least one budget entry
+  function streak() {
+    const days = new Set(S.budzet.map(b => b.data)); let n = 0; const d = new Date();
+    if (!days.has(local(d))) d.setDate(d.getDate() - 1);
+    while (days.has(local(d))) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+
+  /* ---------- the wealth score: six transparent parts, each 0-100 ---------- */
+  function score(pf, W, M, B) {
+    const pod = S.cele?.poduszka || {}, podCel = +pod.cel || 3 * (+(S.plan?.profil?.wydatki) || 0);
+    const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(), frac = now.getDate() / dim;
+    const inBand = pf.roles.length ? pf.roles.map(r => { const d = Math.abs(r.w - r.cel); return d <= r.pasmo ? 1 : Math.max(0, 1 - (d - r.pasmo) / (2 * r.pasmo)); }) : [];
+    const broadShare = pf.total ? pf.list.filter(p => p.broad).reduce((s, p) => s + p.v, 0) / pf.total * 100 : 0;
+    const bigSat = Math.max(0, ...pf.roles.filter(r => !r.rdzen).map(r => r.w));
+    // fixed bills (marked "co miesiąc") come at the start of the month: compare only the rest with the rest of the budget
+    const varBudget = B.kwota - M.stale, pace = B.kwota && varBudget > 0 ? (M.wydatek - M.stale) / (varBudget * frac) : B.kwota ? (M.wydatek > B.kwota ? 9 : 0) : null;
+    const parts = [
+      { id: "plyn", t: "Poduszka", ic: "M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z",
+        v: podCel ? clamp(+(pod.zebrane || 0) / podCel * 100) : null,
+        why: podCel ? `Masz ${zl(+pod.zebrane || 0)} z ${zl(podCel)} poduszki. 100 punktów to pełna poduszka.` : "Ustaw cel poduszki w Celach, żeby to policzyć.",
+        tip: "Poduszka chroni portfel: przy nagłym wydatku nie musisz sprzedawać funduszy w złym momencie." },
+      { id: "oszcz", t: "Stopa oszczędności", ic: "M3 17l6-6 4 4 8-8M15 7h6v6",
+        v: M.rate == null ? null : clamp(M.rate / 20 * 100),
+        why: M.rate == null ? "Wpisz w Budżecie przychód z tego miesiąca." : `W tym miesiącu odkładasz ${nf(M.rate, 0)}% przychodu. 20% i więcej to 100 punktów.`,
+        tip: "To najważniejsza dźwignia na długi termin: ważniejsza niż wybór funduszy." },
+      { id: "plan", t: "Zgodność z planem", ic: "M4 6h16M4 12h10M4 18h6",
+        v: inBand.length ? inBand.reduce((a, b) => a + b, 0) / inBand.length * 100 : null,
+        why: inBand.length ? `${inBand.filter(x => x === 1).length} z ${inBand.length} ról mieści się w paśmie. Rola poza pasmem traci punkty tym szybciej, im dalej jest.` : "Ustaw plan, żeby to policzyć.",
+        tip: "Wyrównujesz kolejnymi wpłatami: lista zakupów w Portfelu robi to za Ciebie." },
+      { id: "dyw", t: "Rozproszenie", ic: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+        v: pf.total ? clamp(Math.min(100, broadShare / 50 * 100) - Math.max(0, bigSat - 15) * 3) : null,
+        why: pf.total ? `Szeroki rynek (rdzeń) to ${nf(broadShare, 0)}% ETF-ów${bigSat > 15 ? `, a największa satelita ma ${nf(bigSat, 1)}%, czyli ponad 15%` : ""}. 100 punktów: rdzeń co najmniej połowa i żadna satelita powyżej 15%.` : "Dodaj pozycje, żeby to policzyć.",
+        tip: "Im więcej w szerokim rynku, tym mniej zależysz od jednej branży czy kraju." },
+      { id: "prac", t: "Pieniądze pracują", ic: "M3 12h4l3-8 4 16 3-8h4",
+        v: W.now ? clamp((W.etf + W.obl) / W.now * 100) : null,
+        why: W.now ? `${nf((W.etf + W.obl) / W.now * 100, 0)}% majątku jest w funduszach i obligacjach. Reszta to poduszka, która ma leżeć bezpiecznie.` : "Brak danych.",
+        tip: "Gdy poduszka jest pełna, nadwyżka gotówki powinna iść do planu, a nie leżeć bez pracy." },
+      { id: "tempo", t: "Tempo wydawania", ic: "M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z",
+        v: pace == null ? null : clamp(pace <= 1 ? 100 : 100 - (pace - 1) * 150),
+        why: pace == null ? "Ustaw limity w Budżecie albo miesięczne wydatki w planie, żeby to policzyć." : varBudget <= 0 ? `Same stałe opłaty (${zl(M.stale)}) zjadają cały budżet ${zl(B.kwota)}. Warto go urealnić.` : `Budżet ${zl(B.kwota)} (${B.skad}). Stałe opłaty ${zl(M.stale)} odliczam, na resztę zostaje ${zl(varBudget)}. Z tego wydałeś ${zl(M.wydatek - M.stale)}, a minęło ${nf(frac * 100, 0)}% miesiąca. ${pace <= 1 ? "Mieścisz się w tempie." : `Wydajesz ${nf(pace, 1)} razy szybciej niż pozwala budżet.`}`,
+        tip: "Stałe opłaty zaznaczasz w Budżecie jako „co miesiąc”. Jeśli budżet jest za niski, urealnij go w planie albo ustaw limity kategorii." }
+    ];
+    const known = parts.filter(p => p.v != null);
+    return { parts, total: known.length ? Math.round(known.reduce((s, p) => s + p.v, 0) / known.length) : null };
+  }
+  const tone = v => v == null ? "var(--line)" : v >= 70 ? "var(--up)" : v >= 40 ? "var(--warn)" : "var(--down)";
+
+  /* ---------- pieces ---------- */
+  function chart(points) {
+    if (points.length < 2) return `<div class="chart-empty"><p class="note">Za mało historii na wykres w tym okresie.<br>Punkty dopisują się same przy każdej aktualizacji kursów.</p></div>`;
+    const W = 600, H = 150, pad = 6, xs = points.map(p => new Date(p.data + "T12:00:00").getTime()), ys = points.map(p => p.v);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), dy = (y1 - y0) || 1;
+    const X = x => (x1 === x0 ? W / 2 : (x - x0) / (x1 - x0) * W), Y = y => pad + (1 - (y - y0) / dy) * (H - 2 * pad - 10);
+    const d = points.map((p, i) => `${i ? "L" : "M"}${X(xs[i]).toFixed(1)},${Y(p.v).toFixed(1)}`).join(" ");
+    const col = ys[ys.length - 1] >= ys[0] ? "var(--up)" : "var(--down)";
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Majątek w czasie">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".35"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+      <path d="${d} L${W},${H} L0,${H} Z" fill="url(#g)"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`;
+  }
+  const ringSvg = (v, size = 132, w = 12) => { const r = (size - w) / 2, c = 2 * Math.PI * r; return `<svg viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${w}"/><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${tone(v)}" stroke-width="${w}" stroke-linecap="round" stroke-dasharray="${c * clamp(v || 0) / 100} ${c}"/></svg>`; };
+  const ARROW = up => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">${up ? '<path d="M7 17 17 7M9 7h8v8"/>' : '<path d="M7 7l10 10M17 9v8H9"/>'}</svg>`;
+  const ICON = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${p}"/></svg>`;
+
+  function render() {
+    const pf = portfolio(), W = wealth(pf), m = today().slice(0, 7), M = month(m), B = budgetFor(), SC = score(pf, W, M, B);
+    // history of the whole wealth (older points before bonds were tracked fall back to the ETF value)
+    const h = hist().map(p => ({ data: p.data, v: +p.majatek || 0, wpl: +p.wplacono || 0 })).filter(p => p.v > 0);
+    if (W.now && (!h.length || h[h.length - 1].data < today())) h.push({ data: today(), v: W.now, wpl: h.length ? h[h.length - 1].wpl : 0 });
+    const days = { "1T": 7, "1M": 31, "3M": 92, "1R": 366, "Maks": 1e5 }[range];
+    const from = local(new Date(Date.now() - days * 86400000)), pts = h.filter(p => p.data >= from);
+    const base = pts[0], ch = base ? W.now - base.v : null, chP = base?.v ? ch / base.v * 100 : null;
+    const wplCh = base ? (pts[pts.length - 1].wpl - base.wpl) : 0;
+    // milestone
+    const goal = +(S.plan?.profil?.cel_kwota || 0), stages = [1e3, 1e4, 1e5, 1e6], nextStage = stages.find(s => s > W.now) || 1e7;
+    const prevStage = [...stages].reverse().find(s => s <= W.now) || 0, target = stage === "etap" ? nextStage : (goal || 1e6);
+    const start = stage === "etap" ? prevStage : 0, prog = clamp((W.now - start) / (target - start) * 100);
+    const rok = +(S.plan?.profil?.cel_rok || 0), monthsLeft = rok ? Math.max(1, (rok - new Date().getFullYear()) * 12 + (11 - new Date().getMonth())) : 0;
+    const i = 0.05 / 12, fv = (p, n) => p * Math.pow(1 + i, n), pmt = monthsLeft ? Math.max(0, ((goal || 1e6) - fv(W.now, monthsLeft)) * i / (Math.pow(1 + i, monthsLeft) - 1)) : null;
+    const tempo = +(S.plan?.profil?.wplata || 0);
+    const dim = new Date(+m.slice(0, 4), +m.slice(5), 0).getDate(), dleft = dim - new Date().getDate() + 1, left = B.kwota - M.wydatek;
+    const parts = [["ETF-y", W.etf - pf.ike, "var(--red)"], ["IKE / IKZE", pf.ike, "var(--warn)"], ["Obligacje skarbowe", W.obl, "var(--up)"], ["Poduszka", W.pod, "var(--muted)"]].filter(x => x[1] > 0.5);
+
+    $("#view").innerHTML = `<div style="display:grid;gap:18px">
+      <section class="hero" aria-label="Majątek">
+        <span class="label">Twój majątek</span>
+        <div class="row"><div class="big num">${nf(W.now)}<small>zł</small></div>
+          ${ch != null ? `<div class="delta ${ch >= 0 ? "up" : "down"}"><span class="pct">${ARROW(ch >= 0)}${pct(chP, 2)}</span><span class="num" style="font-size:.95rem;font-weight:700">${szl(ch)}</span></div>` : ""}</div>
+        ${chart(pts)}
+        <div class="seg" role="group" aria-label="Okres">${["1T", "1M", "3M", "1R", "Maks"].map(r => `<button type="button" data-range="${r}" aria-pressed="${r === range}">${r}</button>`).join("")}</div>
+        ${ch != null ? `<div class="split"><div class="tile"><span class="label">Wpłaciłeś</span><div class="num">${szl(wplCh)}</div></div><div class="tile"><span class="label">Rynek i odsetki</span><div class="num ${ch - wplCh >= 0 ? "up" : "down"}">${szl(ch - wplCh)}</div></div></div>` : ""}
+      </section>
+
+      <nav class="quick" aria-label="Szybkie akcje">
+        <a href="./#budzet"><span class="ic">${ICON("M12 5v14M5 12h14")}</span>Wydatek</a>
+        <a href="./#wplata"><span class="ic">${ICON("M12 3v12M7 10l5 5 5-5M5 21h14")}</span>Wpłata</a>
+        <a href="./#raporty"><span class="ic">${ICON("M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z")}</span>Prasówka</a>
+        <a href="./#cele"><span class="ic">${ICON("M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z")}</span>Cele</a>
+        <a href="./#wiedza"><span class="ic">${ICON("M2 5c3-1.3 6.5-1.3 10 1 3.5-2.3 7-2.3 10-1v14c-3-1.3-6.5-1.3-10 1-3.5-2.3-7-2.3-10-1zM12 6v14")}</span>Wiedza</a>
+      </nav>
+
+      <div class="cols">
+        <div class="colstack">
+          <section class="card" aria-label="Wynik majątku">
+            <header><h2>Wynik majątku</h2>${(() => { const n = streak(); return n ? `<span class="streak">${ICON("M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-10z")}${n} ${n === 1 ? "dzień" : "dni"} z wpisami</span>` : `<span class="note">wpisz dziś wydatek, zacznij serię</span>`; })()}</header>
+            <div class="scorebox"><div class="ring">${ringSvg(SC.total)}<div class="in"><span class="num">${SC.total ?? "–"}</span><span class="label">na 100</span></div></div>
+              <div style="display:grid;gap:6px"><strong style="font-size:1.05rem">${SC.total == null ? "Za mało danych" : SC.total >= 70 ? "Bardzo dobrze" : SC.total >= 40 ? "Dobrze, jest co poprawić" : "Sporo do poprawy"}</strong><p class="note">Średnia z sześciu prostych wskaźników. Kliknij kafelek, żeby zobaczyć, jak jest liczony i co go poprawia.</p></div></div>
+            <div class="grid2">${SC.parts.map(p => `<button type="button" class="tile metric" data-m="${p.id}" aria-expanded="${open === p.id}"><span class="t">${ICON(p.ic).replace("<svg", '<svg style="width:15px;height:15px"')}${esc(p.t)}</span><span class="v num">${p.v == null ? "–" : nf(p.v, 0)}</span><span class="bar"><i style="width:${clamp(p.v || 0)}%;background:${tone(p.v)}"></i></span></button>${open === p.id ? `<div class="explain"><p>${esc(p.why)}</p><p class="note">${esc(p.tip)}</p></div>` : ""}`).join("")}</div>
+          </section>
+
+          <section class="card" aria-label="Kamień milowy">
+            <header><h2>Kamień milowy</h2><div class="seg" style="padding:3px" role="group" aria-label="Widok">${[["etap", "Etap"], ["calosc", "Całość"]].map(([v, l]) => `<button type="button" data-stage="${v}" aria-pressed="${stage === v}" style="padding:5px 12px">${l}</button>`).join("")}</div></header>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span><span class="label">${stage === "etap" ? "Do kolejnego progu" : goal ? "Do Twojego celu" : "Do miliona"}</span><br><strong class="num" style="font-size:1.3rem">brakuje ${zl(Math.max(0, target - W.now))}</strong></span><span class="num" style="font-size:1.6rem;font-weight:800">${nf(prog, 0)}%</span></div>
+            <div class="prog"><i style="width:${prog}%"></i></div>
+            <div class="stages">${stages.map(s => `<div class="${W.now >= s ? "done" : s === nextStage ? "now" : ""}">${s >= 1e6 ? "1 mln" : nf(s / 1000) + " tys."}</div>`).join("")}</div>
+            <div class="split"><div class="tile"><span class="label">Twoje tempo</span><div class="num up">${tempo ? "+" + zl(tempo) : "–"}</div><span class="note">wpłata miesięcznie z planu</span></div>
+              <div class="tile"><span class="label">Potrzebujesz</span><div class="num">${pmt != null ? "+" + zl(pmt) : "–"}</div><span class="note">${monthsLeft ? `miesięcznie do końca ${rok} (${goal ? "cel " + zl(goal) : "milion"}, przy 5% rocznie)` : "ustaw rok celu w planie"}</span></div></div>
+            ${pmt != null && tempo ? `<span class="ok ${tempo >= pmt ? "up" : "down"}">${ICON(tempo >= pmt ? "M5 12l5 5 9-10" : "M12 8v5M12 16h.01")}${tempo >= pmt ? "Przy tym tempie zdążysz na termin" : `Przy tym tempie brakuje ok. ${zl(pmt - tempo)} miesięcznie`}</span>` : ""}
+            <p class="note">To rachunek, nie prognoza. Liczy się cały majątek: fundusze, obligacje i poduszka.</p>
+          </section>
+        </div>
+
+        <div class="colstack">
+          <section class="card" aria-label="Ten miesiąc">
+            <header><h2>${MIES[+m.slice(5) - 1][0].toUpperCase() + MIES[+m.slice(5) - 1].slice(1)} ${m.slice(0, 4)}</h2><a class="note" href="./#budzet">budżet ›</a></header>
+            ${B.kwota ? `<div class="budget"><span class="label">Budżet miesięczny: <span class="num">${zl(B.kwota)}</span></span>
+              <div class="track"><div class="fill" style="width:${clamp(M.wydatek / B.kwota * 100)}%"></div><div class="lab"><div><span class="label">Wydano</span><strong class="num">${zl(M.wydatek)}</strong></div><div style="text-align:right"><span class="label">${left >= 0 ? "Zostało" : "Ponad budżet"}</span><strong class="num ${left >= 0 ? "" : "down"}">${zl(Math.abs(left))}</strong></div></div></div>
+              <span class="note">Budżet: ${esc(B.skad)}.</span></div>` : `<p class="note">Ustaw limity w Budżecie, a zobaczysz tu, ile zostało na ten miesiąc.</p>`}
+            <div class="three">
+              <div class="tile"><span class="num">${dleft}</span><span class="note">dni do końca</span></div>
+              <div class="tile"><span class="num">${B.kwota ? zl(Math.max(0, left) / dleft) : "–"}</span><span class="note">na dzień</span></div>
+              <div class="tile"><svg class="mini-ring" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--line)" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="${tone(M.rate == null ? null : clamp(M.rate / 20 * 100))}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${2 * Math.PI * 16 * clamp(M.rate || 0) / 100} 200"/></svg><span class="num" style="font-size:1.05rem">${M.rate == null ? "–" : nf(M.rate, 0) + "%"}</span><span class="note">stopa oszczędności</span></div>
+            </div>
+            <div class="flow">
+              <div class="tile"><span class="label">Przychód</span><span class="num up">${zl(M.przychod)}</span></div>
+              <div class="tile"><span class="label">Wydatki</span><span class="num down">${zl(M.wydatek)}</span></div>
+              <div class="tile"><span class="label">Odłożone</span><span class="num">${zl(M.odlozone)}</span></div>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Skład majątku">
+            <header><h2>Skład majątku</h2><span class="note">${pf.total ? `wynik ETF ${szl(pf.total - pf.koszt)}` : ""}</span></header>
+            <div class="stack">${parts.map(([, v, c]) => `<i style="width:${v / W.now * 100}%;background:${c}"></i>`).join("")}</div>
+            <div class="legend">${parts.map(([l, v, c]) => `<div><b style="background:${c}"></b><span>${l}</span><span class="num" style="font-weight:700">${zl(v)} <span class="note">${nf(v / W.now * 100, 0)}%</span></span></div>`).join("")}</div>
+          </section>
+        </div>
+      </div>
+      <p class="note foot">To podgląd nowego ekranu Start. Pokazuje Twoje prawdziwe dane, tylko do odczytu. Główna aplikacja działa bez zmian.</p>
+    </div>`;
+
+    document.querySelectorAll("[data-range]").forEach(b => b.onclick = () => { range = b.dataset.range; try { localStorage.setItem("nku-nowy-zakres", range); } catch (e) {} render(); });
+    document.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => { stage = b.dataset.stage; render(); });
+    document.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { open = open === b.dataset.m ? null : b.dataset.m; render(); });
+  }
+
+  /* ---------- data: the same account and database as the app, read only ---------- */
+  let priv = false;
+  $("#eye").onclick = () => { priv = !priv; document.documentElement.classList.toggle("priv", priv); };
+  let t = null; const later = () => { clearTimeout(t); t = setTimeout(render, 60); };
+  (async () => {
+    let db;
+    try { db = await window.PortfelBackend.connect(); }
+    catch (e) { $("#notice").textContent = "Nie udało się połączyć z bazą. Otwórz najpierw aplikację NKU i zaloguj się."; $("#notice").hidden = false; return; }
+    const doc = (p, k) => db.doc(p).onSnapshot(s => { S[k] = s.exists ? s.data() : null; if (k === "ust") { const m = S.ust?.motyw; if (m === "jasny") document.documentElement.dataset.theme = "light"; else if (m === "ciemny") document.documentElement.dataset.theme = "dark"; if (S.ust?.prywatny) { priv = true; document.documentElement.classList.add("priv"); } } later(); });
+    const col = (n, k) => db.collection(n).onSnapshot(s => { S[k] = s.docs.map(d => ({ _id: d.id, ...d.data() })); later(); });
+    doc("app/plan", "plan"); doc("app/stan", "stan"); doc("app/cele", "cele"); doc("app/budzet", "budzetCfg"); doc("app/ustawienia", "ust");
+    col("transakcje", "tx"); col("budzet", "budzet"); col("historia", "historia");
+  })();
+})();
+</script>
+</body>
+</html>
