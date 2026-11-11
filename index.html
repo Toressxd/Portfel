@@ -293,6 +293,90 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
   .md { max-width: 78ch; }
 }
 @media (min-width: 1500px) { .wrap { max-width: 1400px; } }
+/* Start: wskaźniki na górze ekranu; klasy z prefiksem nx-, żeby nie mieszać się ze starym CSS.
+   Układ zależy od szerokości samego bloku (container queries), a nie okna, bo na komputerze Start ma kolumny. */
+.nx { display: grid; gap: 14px; min-width: 0; }
+.nx-wrap { container: nx / inline-size; min-width: 0; }
+.nx-num { font-family: var(--f-display); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+html.priv .nx-num { filter: blur(7px); user-select: none; }
+.nx-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+.nx-ink { color: var(--ink); }
+.nx-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: grid; gap: 12px; min-width: 0; align-content: start; }
+.nx-card > header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.nx-card h2 { font-size: 1.05rem; }
+.nx-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.nx-row strong.nx-num { font-size: 1.2rem; }
+.nx .note { margin: 0; }
+
+/* wealth */
+.nx-big { font-size: clamp(2.2rem, 10vw, 3rem); font-weight: 800; line-height: 1.05; color: var(--ink); }
+.nx-big small { font-size: 0.45em; font-weight: 700; margin-left: 4px; }
+.nx-delta { text-align: right; display: grid; gap: 2px; font-weight: 700; }
+.nx-delta .nx-pct { font-family: var(--f-display); font-weight: 800; font-size: 1.25rem; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+.nx svg.nx-i18 { width: 18px; height: 18px; flex: none; }
+.nx-chart { width: 100%; height: 120px; display: block; }
+.nx-chart-empty { height: 120px; display: grid; place-items: center; text-align: center; border: 1px dashed var(--line); border-radius: 14px; padding: 12px; }
+.nx-seg { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 3px; }
+.nx-seg button { flex: 1; border: 0; background: none; padding: 7px 0; border-radius: 9px; font: 700 0.82rem var(--f-body); color: var(--muted); cursor: pointer; }
+.nx-seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.nx-why { margin: 0; font-size: 0.88rem; color: var(--muted); }
+.nx-why b { color: var(--ink); }
+.nx-why b.up { color: var(--up); } .nx-why b.down { color: var(--down); }
+.nx-stack { display: flex; height: 8px; border-radius: 99px; overflow: hidden; gap: 2px; }
+.nx-stack i { display: block; height: 100%; min-width: 3px; }
+.nx-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.82rem; color: var(--muted); }
+.nx-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.nx-legend .nx-num { color: var(--ink); font-weight: 700; }
+.nx-legend b { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+/* quick actions: on the phone only (the computer has the side menu and its Dodaj button) */
+.nx-quick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.nx-quick button { display: grid; justify-items: center; gap: 5px; border: 0; background: none; padding: 0; cursor: pointer; font: 600 0.72rem var(--f-body); color: var(--ink); }
+.nx-quick .nx-ic { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
+.nx-quick button:first-child .nx-ic { background: var(--red); border-color: var(--red); color: var(--on-red); }
+.nx-quick svg { width: 21px; height: 21px; }
+@media (min-width: 1024px) { .nx-quick { display: none; } }
+
+/* score */
+.nx-scorebox { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
+.nx-ring { position: relative; width: 84px; height: 84px; }
+.nx-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.nx-ring .nx-in { position: absolute; inset: 0; display: grid; place-content: center; }
+.nx-ring .nx-in .nx-num { font-size: 1.9rem; font-weight: 800; color: var(--ink); }
+.nx-verdict { display: grid; gap: 3px; min-width: 0; }
+.nx-verdict strong { font-size: 1.05rem; }
+.nx-verdict .note { display: inline-flex; align-items: center; gap: 5px; }
+.nx-fire { width: 15px; height: 15px; color: var(--red); flex: none; }
+.nx-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+.nx-score { container: nxs / inline-size; }
+@container nxs (max-width: 360px) { .nx-metric .nx-t { font-size: 0.8rem; } .nx-metrics { gap: 4px 8px; } }
+.nx-metric { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px 8px; text-align: left; border: 0; border-radius: 10px; background: none; padding: 7px 4px; cursor: pointer; font: inherit; color: inherit; min-width: 0; }
+.nx-metric:hover, .nx-metric[aria-expanded="true"] { background: var(--bg); }
+.nx-metric .nx-t { font-size: 0.85rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-metric .nx-v { font-size: 1.05rem; font-weight: 800; }
+.nx-metric .nx-bar { grid-column: 1 / -1; }
+.nx-bar { height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; display: block; }
+.nx-bar > i { display: block; height: 100%; border-radius: inherit; }
+.nx-bar-l { height: 8px; }
+.nx-explain { font-size: 0.88rem; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
+.nx-explain p { margin: 0; }
+.nx-sep { height: 1px; background: var(--line); }
+.nx-pctbig { font-size: 1.4rem; font-weight: 800; color: var(--ink); }
+.nx-budget { display: grid; gap: 8px; }
+.nx-link { border: 0; background: none; padding: 0; color: var(--red); font: 700 0.85rem var(--f-body); cursor: pointer; }
+
+/* wide block (computer): wealth on the left, score on the right */
+@container nx (min-width: 760px) {
+  .nx-top { grid-template-columns: 1.25fr 1fr; align-items: stretch; }
+  .nx-top .nx-quick { grid-column: 1 / -1; }
+}
+/* on the computer the Start screen is two columns: the new top spans both */
+@media (min-width: 1024px) { #v-start > div > .nx-wrap { column-span: all; } }
+
+/* phone: no blue flash or text selection when tapping buttons and tiles */
+* { -webkit-tap-highlight-color: transparent; }
+:is(button, summary, label, .go, nav, [role=tab], [data-go]) { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+:focus:not(:focus-visible) { outline: none; }
 </style>
 
 <div class="wrap">
@@ -331,8 +415,8 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=2026-11-10-1"></script>
-<script src="backend.js?v=2026-11-10-1"></script>
+<script src="config.js?v=2026-11-11-1"></script>
+<script src="backend.js?v=2026-11-11-1"></script>
 <script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <script>
 (() => {
@@ -851,19 +935,199 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
     if (id === "zakupy") return S.tx.some(t => !t.otwarcie && monthOf(t.data) === curMonth());
     return false;
   }
+  /* ---------- Start: majątek z wykresem, wynik majątku, miesiąc i kamień milowy ---------- */
+  const NOWY = (() => {
+    const nf = (n, d = 0) => new Intl.NumberFormat("pl-PL", { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+    const zl = (n, d = 0) => n == null || isNaN(n) ? "–" : nf(n, d) + " zł";
+    const szl = n => n == null || isNaN(n) ? "–" : (n > 0 ? "+" : n < 0 ? "−" : "") + nf(Math.abs(n)) + " zł";
+    const pct = (n, d = 1) => n == null || !isFinite(n) ? "–" : (n > 0 ? "+" : n < 0 ? "−" : "") + nf(Math.abs(n), d) + "%";
+    const local = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const today = () => local(new Date());
+    const clamp = (x, a = 0, b = 100) => Math.max(a, Math.min(b, x));
+    const MIES = ["styczeń", "luty", "marzec", "kwiecień", "maj", "czerwiec", "lipiec", "sierpień", "wrzesień", "październik", "listopad", "grudzień"];
+    let range = "1M", stage = "etap", open = null;
+    try { range = localStorage.getItem("nku-nowy-zakres") || "1M"; } catch (e) {}
+
+    const isSell = t => String(t.typ || "").startsWith("sprz");
+    function portfolio() {
+      const ceny = S.stan?.ceny || {}, role = {}, broad = new Set();
+      for (const [k, r] of Object.entries(S.plan?.role || {})) for (const i of Object.keys(r.fundusze || {})) { role[i] = k; if (r.rdzen) broad.add(i); }
+      const pos = {};
+      for (const t of [...S.tx].sort((a, b) => (a.data || "").localeCompare(b.data || ""))) {
+        const p = pos[t.isin] ||= { isin: t.isin, u: 0, stat: 0, koszt: 0, konta: {} };
+        const u = +t.jednostki || 0, pln = +t.kwota_pln || 0;
+        if (isSell(t)) { if (p.u > 0) p.koszt -= p.koszt * Math.min(1, u / p.u); p.u -= u; }
+        else if (t.jednostki == null && t.wartosc_otwarcia_pln) { p.stat += +t.wartosc_otwarcia_pln; p.koszt += pln; }
+        else { p.u += u; p.koszt += pln; }
+        p.konta[t.konto || "zwykle"] = 1;
+      }
+      const list = Object.values(pos).map(p => ({ ...p, v: (ceny[p.isin] ? p.u * ceny[p.isin].pln : 0) + p.stat, rola: role[p.isin] || "inne", broad: broad.has(p.isin) })).filter(p => p.v > 0.5);
+      const total = list.reduce((s, p) => s + p.v, 0), koszt = list.reduce((s, p) => s + p.koszt, 0);
+      const roles = Object.entries(S.plan?.role || {}).map(([k, r]) => { const v = list.filter(p => p.rola === k).reduce((s, p) => s + p.v, 0); return { k, nazwa: r.nazwa, cel: +r.cel || 0, pasmo: +r.pasmo || 5, rdzen: !!r.rdzen, w: total ? v / total * 100 : 0 }; });
+      const ike = list.filter(p => p.konta.IKE || p.konta.IKZE).reduce((s, p) => s + p.v, 0);
+      return { list, total, koszt, roles, ike };
+    }
+    const hist = () => [...S.historia].filter(h => h.data).sort((a, b) => a.data.localeCompare(b.data));
+    function wealth(pf) {
+            const obl = bondsValue();
+      const pod = +(S.cele?.poduszka?.zebrane || 0);
+      return { etf: pf.total, obl, pod, now: pf.total + obl + pod };
+    }
+    function month(m) {
+      const inM = S.budzet.filter(b => (b.data || "").startsWith(m));
+      const sum = typ => inM.filter(b => b.typ === typ).reduce((s, b) => s + (+b.kwota || 0), 0);
+      const bought = S.tx.filter(t => (t.data || "").startsWith(m) && !t.otwarcie && !isSell(t)).reduce((s, t) => s + (+t.kwota_pln || 0), 0);
+      const przychod = sum("przychod"), wydatek = sum("wydatek"), odlozone = sum("odlozone");
+      const stale = inM.filter(b => b.typ === "wydatek" && b.stale).reduce((s, b) => s + (+b.kwota || 0), 0);
+      const saved = Math.max(odlozone, bought); // a purchase usually also appears as "odłożone": do not count twice
+      return { przychod, wydatek, stale, odlozone: saved, rate: przychod ? saved / przychod * 100 : null };
+    }
+    function budgetFor() {
+      const lim = Object.values(S.budzetCfg?.limity || {}).reduce((s, v) => s + (+v || 0), 0);
+      if (lim > 0) return { kwota: lim, skad: "suma Twoich limitów kategorii" };
+      const w = +(S.plan?.profil?.wydatki || 0);
+      if (w > 0) return { kwota: w, skad: "miesięczne wydatki z Twojego planu" };
+      return { kwota: 0, skad: "" };
+    }
+    function streak() {
+      const days = new Set(S.budzet.map(b => b.data)); let n = 0; const d = new Date();
+      if (!days.has(local(d))) d.setDate(d.getDate() - 1);
+      while (days.has(local(d))) { n++; d.setDate(d.getDate() - 1); }
+      return n;
+    }
+    function score(pf, W, M, B) {
+      const pod = S.cele?.poduszka || {}, podCel = +pod.cel || 3 * (+(S.plan?.profil?.wydatki) || 0);
+      const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(), frac = now.getDate() / dim;
+      const inBand = pf.roles.length ? pf.roles.map(r => { const d = Math.abs(r.w - r.cel); return d <= r.pasmo ? 1 : Math.max(0, 1 - (d - r.pasmo) / (2 * r.pasmo)); }) : [];
+      const broadShare = pf.total ? pf.list.filter(p => p.broad).reduce((s, p) => s + p.v, 0) / pf.total * 100 : 0;
+      const bigSat = Math.max(0, ...pf.roles.filter(r => !r.rdzen).map(r => r.w));
+      const varBudget = B.kwota - M.stale, pace = B.kwota && varBudget > 0 ? (M.wydatek - M.stale) / (varBudget * frac) : B.kwota ? (M.wydatek > B.kwota ? 9 : 0) : null;
+      const parts = [
+        { id: "plyn", t: "Poduszka", ic: "M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z",
+          v: podCel ? clamp(+(pod.zebrane || 0) / podCel * 100) : null,
+          why: podCel ? `Masz ${zl(+pod.zebrane || 0)} z ${zl(podCel)} poduszki. 100 punktów to pełna poduszka.` : "Ustaw cel poduszki w Celach, żeby to policzyć.",
+          tip: "Poduszka chroni portfel: przy nagłym wydatku nie musisz sprzedawać funduszy w złym momencie." },
+        { id: "oszcz", t: "Stopa oszczędności", ic: "M3 17l6-6 4 4 8-8M15 7h6v6",
+          v: M.rate == null ? null : clamp(M.rate / 20 * 100),
+          why: M.rate == null ? "Wpisz w Budżecie przychód z tego miesiąca." : `W tym miesiącu odkładasz ${nf(M.rate, 0)}% przychodu. 20% i więcej to 100 punktów.`,
+          tip: "To najważniejsza dźwignia na długi termin: ważniejsza niż wybór funduszy." },
+        { id: "plan", t: "Zgodność z planem", ic: "M4 6h16M4 12h10M4 18h6",
+          v: inBand.length ? inBand.reduce((a, b) => a + b, 0) / inBand.length * 100 : null,
+          why: inBand.length ? `${inBand.filter(x => x === 1).length} z ${inBand.length} ról mieści się w paśmie. Rola poza pasmem traci punkty tym szybciej, im dalej jest.` : "Ustaw plan, żeby to policzyć.",
+          tip: "Wyrównujesz kolejnymi wpłatami: lista zakupów w Portfelu robi to za Ciebie." },
+        { id: "dyw", t: "Rozproszenie", ic: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+          v: pf.total ? clamp(Math.min(100, broadShare / 50 * 100) - Math.max(0, bigSat - 15) * 3) : null,
+          why: pf.total ? `Szeroki rynek (rdzeń) to ${nf(broadShare, 0)}% ETF-ów${bigSat > 15 ? `, a największa satelita ma ${nf(bigSat, 1)}%, czyli ponad 15%` : ""}. 100 punktów: rdzeń co najmniej połowa i żadna satelita powyżej 15%.` : "Dodaj pozycje, żeby to policzyć.",
+          tip: "Im więcej w szerokim rynku, tym mniej zależysz od jednej branży czy kraju." },
+        { id: "prac", t: "Pieniądze pracują", ic: "M3 12h4l3-8 4 16 3-8h4",
+          v: W.now ? clamp((W.etf + W.obl) / W.now * 100) : null,
+          why: W.now ? `${nf((W.etf + W.obl) / W.now * 100, 0)}% majątku jest w funduszach i obligacjach. Reszta to poduszka, która ma leżeć bezpiecznie.` : "Brak danych.",
+          tip: "Gdy poduszka jest pełna, nadwyżka gotówki powinna iść do planu, a nie leżeć bez pracy." },
+        { id: "tempo", t: "Tempo wydawania", ic: "M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z",
+          v: pace == null ? null : clamp(pace <= 1 ? 100 : 100 - (pace - 1) * 150),
+          why: pace == null ? "Ustaw limity w Budżecie albo miesięczne wydatki w planie, żeby to policzyć." : varBudget <= 0 ? `Same stałe opłaty (${zl(M.stale)}) zjadają cały budżet ${zl(B.kwota)}. Warto go urealnić.` : `Budżet ${zl(B.kwota)} (${B.skad}). Stałe opłaty ${zl(M.stale)} odliczam, na resztę zostaje ${zl(varBudget)}. Z tego wydałeś ${zl(M.wydatek - M.stale)}, a minęło ${nf(frac * 100, 0)}% miesiąca. ${pace <= 1 ? "Mieścisz się w tempie." : `Wydajesz ${nf(pace, 1)} razy szybciej niż pozwala budżet.`}`,
+          tip: "Stałe opłaty zaznaczasz w Budżecie jako „co miesiąc”. Jeśli budżet jest za niski, urealnij go w planie albo ustaw limity kategorii." }
+      ];
+      const known = parts.filter(p => p.v != null);
+      return { parts, total: known.length ? Math.round(known.reduce((s, p) => s + p.v, 0) / known.length) : null };
+    }
+    const tone = v => v == null ? "var(--line)" : v >= 70 ? "var(--up)" : v >= 40 ? "var(--warn)" : "var(--down)";
+    function chart(points) {
+      if (points.length < 2) return `<div class="nx-chart-empty"><p class="note">Za mało historii na wykres w tym okresie.<br>Punkty dopisują się same przy każdej aktualizacji kursów.</p></div>`;
+      const W = 600, H = 150, pad = 6, xs = points.map(p => new Date(p.data + "T12:00:00").getTime()), ys = points.map(p => p.v);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), dy = (y1 - y0) || 1;
+      const X = x => (x1 === x0 ? W / 2 : (x - x0) / (x1 - x0) * W), Y = y => pad + (1 - (y - y0) / dy) * (H - 2 * pad - 10);
+      const d = points.map((p, i) => `${i ? "L" : "M"}${X(xs[i]).toFixed(1)},${Y(p.v).toFixed(1)}`).join(" ");
+      const col = ys[ys.length - 1] >= ys[0] ? "var(--up)" : "var(--down)";
+      return `<svg class="nx-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Majątek w czasie">
+        <defs><linearGradient id="nx-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".35"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+        <path d="${d} L${W},${H} L0,${H} Z" fill="url(#nx-g)"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`;
+    }
+    const ringSvg = (v, size = 132, w = 12) => { const r = (size - w) / 2, c = 2 * Math.PI * r; return `<svg viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${w}"/><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${tone(v)}" stroke-width="${w}" stroke-linecap="round" stroke-dasharray="${c * clamp(v || 0) / 100} ${c}"/></svg>`; };
+    const ARROW = up => `<svg class="nx-i18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">${up ? '<path d="M7 17 17 7M9 7h8v8"/>' : '<path d="M7 7l10 10M17 9v8H9"/>'}</svg>`;
+    const ICON = (p, c = "") => `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${p}"/></svg>`;
+
+
+    function data() {
+      const pf = portfolio(), W = wealth(pf), m = today().slice(0, 7), M = month(m), B = budgetFor(), SC = score(pf, W, M, B);
+      return { pf, W, m, M, B, SC };
+    }
+    // top: wealth with the chart and its composition, quick actions, the score
+    function top() {
+      const { pf, W, SC } = data();
+      const h = hist().map(p => ({ data: p.data, v: +p.majatek || 0, wpl: +p.wplacono || 0 })).filter(p => p.v > 0);
+      if (W.now && (!h.length || h[h.length - 1].data < today())) h.push({ data: today(), v: W.now, wpl: h.length ? h[h.length - 1].wpl : 0 });
+      const days = { "1T": 7, "1M": 31, "3M": 92, "1R": 366, "Maks": 1e5 }[range] || 31;
+      const from = local(new Date(Date.now() - days * 86400000)), pts = h.filter(p => p.data >= from);
+      const base = pts[0], ch = base ? W.now - base.v : null, chP = base?.v ? ch / base.v * 100 : null;
+      const wplCh = base ? (pts[pts.length - 1].wpl - base.wpl) : 0;
+      const parts = [["ETF-y", W.etf - pf.ike, "var(--red)"], ["IKE", pf.ike, "var(--warn)"], ["Obligacje", W.obl, "var(--up)"], ["Poduszka", W.pod, "var(--muted)"]].filter(x => x[1] > 0.5);
+      const n = streak();
+      return `<div class="nx-wrap"><div class="nx nx-top">
+        <section class="nx-card nx-hero" aria-label="Majątek">
+          <div class="nx-row"><div><span class="nx-label">Twój majątek</span><div class="nx-big nx-num">${nf(W.now)}<small>zł</small></div></div>
+            ${ch != null ? `<div class="nx-delta ${ch >= 0 ? "up" : "down"}"><span class="nx-pct">${ARROW(ch >= 0)}${pct(chP, 2)}</span><span class="nx-num">${szl(ch)}</span></div>` : ""}</div>
+          ${chart(pts)}
+          <div class="nx-seg" role="group" aria-label="Okres">${["1T", "1M", "3M", "1R", "Maks"].map(r => `<button type="button" data-nx-range="${r}" aria-pressed="${r === range}">${r}</button>`).join("")}</div>
+          ${ch != null ? `<p class="nx-why">Z tego <b class="nx-num">${szl(wplCh)}</b> to Twoje wpłaty, a <b class="nx-num ${ch - wplCh >= 0 ? "up" : "down"}">${szl(ch - wplCh)}</b> rynek i odsetki.</p>` : ""}
+          ${W.now ? `<div class="nx-stack" aria-hidden="true">${parts.map(([, v, c]) => `<i style="flex:${v};background:${c}"></i>`).join("")}</div>
+          <div class="nx-legend">${parts.map(([l, v, c]) => `<span><b style="background:${c}"></b>${l} <span class="nx-num">${nf(v / W.now * 100, 0)}%</span></span>`).join("")}</div>` : ""}
+        </section>
+        <nav class="nx-quick" aria-label="Szybkie akcje">
+          <button type="button" data-go="add:wydatek"><span class="nx-ic">${ICON("M12 5v14M5 12h14")}</span>Wydatek</button>
+          <button type="button" data-go="wplata"><span class="nx-ic">${ICON("M12 3v12M7 10l5 5 5-5M5 21h14")}</span>Wpłata</button>
+          <button type="button" data-go="raporty:raporty"><span class="nx-ic">${ICON("M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z")}</span>Prasówka</button>
+          <button type="button" data-go="cele"><span class="nx-ic">${ICON("M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z")}</span>Cele</button>
+          <button type="button" data-go="wiedza"><span class="nx-ic">${ICON("M2 5c3-1.3 6.5-1.3 10 1 3.5-2.3 7-2.3 10-1v14c-3-1.3-6.5-1.3-10 1-3.5-2.3-7-2.3-10-1zM12 6v14")}</span>Wiedza</button>
+        </nav>
+        <section class="nx-card nx-score" aria-label="Wynik majątku">
+          <div class="nx-scorebox"><div class="nx-ring">${ringSvg(SC.total, 96, 10)}<div class="nx-in"><span class="nx-num">${SC.total ?? "–"}</span></div></div>
+            <div class="nx-verdict"><span class="nx-label">Wynik majątku · na 100</span><strong>${SC.total == null ? "Za mało danych" : SC.total >= 70 ? "Bardzo dobrze" : SC.total >= 40 ? "Dobrze, jest co poprawić" : "Sporo do poprawy"}</strong>
+              <span class="note">${n ? `${ICON("M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-10z", "nx-fire")}${n} ${n === 1 ? "dzień" : "dni"} z rzędu z wpisami` : "Wpisz dziś wydatek i zacznij serię"}</span></div></div>
+          <div class="nx-metrics">${SC.parts.map(p => `<button type="button" class="nx-metric" data-nx-m="${p.id}" aria-expanded="${open === p.id}"><span class="nx-t">${esc({ oszcz: "Oszczędzanie", plan: "Zgodność z planem".replace(" z planem", ""), prac: "Inwestowanie", tempo: "Tempo wydatków" }[p.id] || p.t)}</span><span class="nx-v nx-num" style="color:${p.v == null ? "var(--muted)" : tone(p.v)}">${p.v == null ? "–" : nf(p.v, 0)}</span><span class="nx-bar"><i style="width:${clamp(p.v || 0)}%;background:${tone(p.v)}"></i></span></button>`).join("")}</div>
+          ${(() => { const p = SC.parts.find(x => x.id === open); return p ? `<div class="nx-explain"><strong>${esc(p.t)}</strong><p>${esc(p.why)}</p><p class="note">${esc(p.tip)}</p></div>` : `<p class="note">Kliknij wskaźnik, żeby zobaczyć, jak jest liczony i co go poprawia.</p>`; })()}
+        </section>
+      </div></div>`;
+    }
+    // below the to-do card: this month's budget and the next milestone in one card
+    function bottom() {
+      const { W, m, M, B } = data();
+      const goal = +(S.plan?.profil?.cel_kwota || 0), stages = [1e3, 1e4, 1e5, 1e6], next = stages.find(s => s > W.now) || 1e7;
+      const prev = [...stages].reverse().find(s => s <= W.now) || 0, prog = clamp((W.now - prev) / (next - prev) * 100);
+      const rok = +(S.plan?.profil?.cel_rok || 0), monthsLeft = rok ? Math.max(1, (rok - new Date().getFullYear()) * 12 + (11 - new Date().getMonth())) : 0;
+      const i = 0.05 / 12, pmt = monthsLeft ? Math.max(0, ((goal || 1e6) - W.now * Math.pow(1 + i, monthsLeft)) * i / (Math.pow(1 + i, monthsLeft) - 1)) : null;
+      const tempo = +(S.plan?.profil?.wplata || 0);
+      const dim = new Date(+m.slice(0, 4), +m.slice(5), 0).getDate(), dleft = dim - new Date().getDate() + 1, left = B.kwota - M.wydatek;
+      const mName = MIES[+m.slice(5) - 1], stageName = s => s >= 1e6 ? "1 mln zł" : nf(s / 1000) + " tys. zł";
+      return `<section class="nx-card nx" aria-label="Miesiąc i cel">
+        <header><h2>${mName[0].toUpperCase() + mName.slice(1)}</h2><button type="button" class="nx-link" data-go="budzet">Budżet ›</button></header>
+        ${B.kwota ? `<div class="nx-budget">
+            <div class="nx-row"><span><span class="nx-label">Wydano</span><br><strong class="nx-num">${zl(M.wydatek)}</strong> <span class="note">z ${zl(B.kwota)}</span></span>
+              <span style="text-align:right"><span class="nx-label">${left >= 0 ? "Zostało" : "Ponad budżet"}</span><br><strong class="nx-num ${left >= 0 ? "up" : "down"}">${zl(Math.abs(left))}</strong></span></div>
+            <div class="nx-bar nx-bar-l"><i style="width:${clamp(M.wydatek / B.kwota * 100)}%;background:${left >= 0 ? (M.wydatek / B.kwota > 0.85 ? "var(--warn)" : "var(--up)") : "var(--down)"}"></i></div>
+            <p class="note">${dleft} ${dleft === 1 ? "dzień" : "dni"} do końca miesiąca${left > 0 ? ` · możesz wydać ${zl(left / dleft)} dziennie` : ""}${M.rate != null ? ` · odkładasz ${nf(M.rate, 0)}% przychodu` : ""}</p></div>`
+          : `<p class="note">Ustaw limity w Budżecie albo miesięczne wydatki w planie, a zobaczysz tu, ile zostało.${M.rate != null ? ` W tym miesiącu odkładasz ${nf(M.rate, 0)}% przychodu.` : ""}</p>`}
+        <div class="nx-sep"></div>
+        <div class="nx-row"><span><span class="nx-label">Następny próg: ${stageName(next)}</span><br><strong class="nx-num">brakuje ${zl(Math.max(0, next - W.now))}</strong></span><span class="nx-num nx-pctbig">${nf(prog, 0)}%</span></div>
+        <div class="nx-bar nx-bar-l"><i style="width:${prog}%;background:var(--red)"></i></div>
+        ${pmt != null && tempo ? `<p class="note">Do ${goal ? "celu " + zl(goal) : "miliona"} w ${rok}: potrzeba ok. <b class="nx-ink">${zl(pmt)}</b> miesięcznie (przy 5% rocznie), Twój plan to <b class="nx-ink">${zl(tempo)}</b>. <span class="${tempo >= pmt ? "up" : "down"}">${tempo >= pmt ? "Zdążysz." : `Brakuje ok. ${zl(pmt - tempo)} miesięcznie.`}</span></p>` : `<p class="note">Ustaw w planie rok celu, a policzę, ile trzeba odkładać miesięcznie.</p>`}
+      </section>`;
+    }
+    // the controls only change the view: re-render the Start screen
+    function bind(el, rerender) {
+      el.querySelectorAll("[data-nx-range]").forEach(b => b.onclick = () => { range = b.dataset.nxRange; try { localStorage.setItem("nku-nowy-zakres", range); } catch (e) {} rerender(); });
+      el.querySelectorAll("[data-nx-m]").forEach(b => b.onclick = () => { open = open === b.dataset.nxM ? null : b.dataset.nxM; rerender(); });
+    }
+    return { top, bottom, bind };
+  })();
+
   function renderStart(c) {
     const el = $("#v-start");
-    const bonds = bondsValue(), pod = +(S.cele?.poduszka?.zebrane || 0);
-    const majatek = c.total + bonds + pod;
     const ch = checks(c);
     const todo = ch.filter(x => x.lvl === "todo" || x.lvl === "warn").length;
     const done = STEPS.filter(s => stepDone(s.id)).length;
-    const wynik = c.total - c.koszt;
     el.innerHTML = `<div style="display:grid;gap:18px">
-      <div class="hero"><span class="label">Twój majątek</span><div class="big">${zl(majatek)}</div>
-        <div class="chips"><span class="chip">ETF <b>${zl(c.total)}</b></span><span class="chip">Obligacje <b>${zl(bonds)}</b></span><span class="chip">Poduszka <b>${zl(pod)}</b></span></div>
-        ${c.list.length ? `<p class="note">Wynik na ETF-ach <span class="${cls(wynik)}">${szl(wynik)} (${pct(c.koszt ? wynik / c.koszt * 100 : null)})</span>${CFG.spokojny ? "" : ` · tydzień <span class="${cls(c.total - c.prevTotal)}">${szl(c.total - c.prevTotal)}</span>`}</p>` : ""}
-      </div>
+      ${NOWY.top()}
       <div class="card">
         <div class="status-head"><div class="mark ${todo ? "todo" : "ok"}">${todo ? todo : "✓"}</div>
           <div><h2>${todo ? (todo === 1 ? "Jedna rzecz do zrobienia" : `${todo} rzeczy do zrobienia`) : "Spokojnie. Wszystko według planu."}</h2><p class="note">${todo ? "Pozostałe sprawy są w porządku albo tylko do wiadomości." : "Nic nie wymaga Twojej uwagi."}</p></div></div>
@@ -872,6 +1136,7 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
           const main = sorted.filter(x => x.lvl === "todo" || x.lvl === "warn"), rest = sorted.filter(x => !main.includes(x));
           return `${main.length ? `<ul class="checks">${main.map(li).join("")}</ul>` : ""}${rest.length ? `<details class="more"><summary>Do wiadomości (${rest.length})</summary><ul class="checks">${rest.map(li).join("")}</ul></details>` : ""}`; })()}
       </div>
+      ${NOWY.bottom()}
       ${(() => {
         if (poziom() !== "poczatkujacy") return "";
         const done = s => s.id === "plan" ? !!S.plan : s.id === "zakup" ? S.tx.some(t => !t.otwarcie) || !!CFG.lekcje?.zakup : s.id === "ike" ? !!(CFG.lekcje?.ike || CFG.lekcje?.ikze || CFG.lekcje?.konto_zwykle) : !!CFG.lekcje?.[s.id];
@@ -903,8 +1168,9 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
         return done === STEPS.length ? `<details class="more card"><summary><span>Przegląd: ${esc(monthName(curMonth()))} <span class="up">✓ zrobiony</span></span></summary>${list}</details>`
           : `<div class="card"><header><h2>Przegląd: ${esc(monthName(curMonth()))}</h2><span class="note">${done} z ${STEPS.length} · raz w miesiącu, ok. 20 minut</span></header>
           <div class="progress"><div style="width:${done / STEPS.length * 100}%"></div></div>${list}</div>`; })()}
-      ${c.roles.length ? `<div class="card"><header><h2>Plan ${esc(S.plan?.rdzen_satelity || "")}</h2><span class="note">czerwona kreska = cel</span></header><div class="roles">${c.roles.map(r => `<div class="role"><div class="row"><span>${esc(r.nazwa)}</span><span class="mono">${c.list.length ? nf(r.waga, 1) + "% / " : ""}${r.cel}%</span></div>${bar(c.list.length ? r.waga : 0, 100, r.cel, r.rola === "rdzen" ? "" : "red")}</div>`).join("")}</div>${S.canWrite ? `<div class="actions"><button class="btn ghost" type="button" data-go="plan">Zmień plan</button><span class="note">cel, podział, fundusze, tezy</span></div>` : ""}</div>` : ""}
+      ${c.roles.length ? `<details class="more card"><summary>Plan ${esc(S.plan?.rdzen_satelity || "")} i zmiana planu</summary><p class="note">czerwona kreska = cel</p><div class="roles">${c.roles.map(r => `<div class="role"><div class="row"><span>${esc(r.nazwa)}</span><span class="mono">${c.list.length ? nf(r.waga, 1) + "% / " : ""}${r.cel}%</span></div>${bar(c.list.length ? r.waga : 0, 100, r.cel, r.rola === "rdzen" ? "" : "red")}</div>`).join("")}</div>${S.canWrite ? `<div class="actions"><button class="btn ghost" type="button" data-go="plan">Zmień plan</button><span class="note">cel, podział, fundusze, tezy</span></div>` : ""}</details>` : ""}
     </div>`;
+    NOWY.bind(el, () => renderStart(c));
     el.querySelectorAll("#day-steps input").forEach(inp => inp.addEventListener("change", () => markDay(inp.id.slice(3), inp.checked)));
     // opening the report from the daily card counts as reading it; expenses are ticked by the entry itself
     el.querySelectorAll("#day-steps [data-day]").forEach(b => { if (!b.dataset.go.startsWith("add")) b.addEventListener("click", () => markDay(b.dataset.day)); });
