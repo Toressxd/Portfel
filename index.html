@@ -554,6 +554,7 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
 
   /* ---------- small renderers ---------- */
   function md(src) {
+    if (Array.isArray(src)) src = src.map(x => "- " + x).join("\n"); // a summary saved as a list of points
     const out = []; let list = null, para = [];
     const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
     const flushP = () => { if (para.length) { out.push("<p>" + inline(para.join(" ")) + "</p>"); para = []; } };

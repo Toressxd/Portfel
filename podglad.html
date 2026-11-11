@@ -294,78 +294,85 @@ button.listen[aria-pressed="true"] { border-color: var(--red); color: var(--red)
   .md { max-width: 78ch; }
 }
 @media (min-width: 1500px) { .wrap { max-width: 1400px; } }
-/* nowy Start (podgląd): wskaźniki na górze ekranu Start; klasy z prefiksem nx-, żeby nie mieszać się ze starym CSS */
-.nx { --nx-raise: var(--raise, var(--bg)); display: grid; gap: 18px; }
-.nx-num { font-family: var(--f-display); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+/* nowy Start (podgląd): wskaźniki na górze ekranu Start; klasy z prefiksem nx-, żeby nie mieszać się ze starym CSS.
+   Układ zależy od szerokości samego bloku (container queries), a nie okna, bo na komputerze Start ma kolumny. */
+.nx { display: grid; gap: 14px; min-width: 0; }
+.nx-wrap { container: nx / inline-size; min-width: 0; }
+.nx-num { font-family: var(--f-display); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 html.priv .nx-num { filter: blur(7px); user-select: none; }
-.nx-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; }
-.nx-card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.nx-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+.nx-ink { color: var(--ink); }
+.nx-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: grid; gap: 12px; min-width: 0; align-content: start; }
 .nx-card > header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .nx-card h2 { font-size: 1.05rem; }
-.nx-tile { background: var(--nx-raise); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; min-width: 0; }
-.nx-hero { padding: 6px 2px 0; display: grid; gap: 6px; }
-.nx-hero .nx-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
-.nx-big { font-size: clamp(2.4rem, 11vw, 3.4rem); font-weight: 800; line-height: 1; }
+.nx-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.nx-row strong.nx-num { font-size: 1.2rem; }
+.nx .note { margin: 0; }
+
+/* wealth */
+.nx-big { font-size: clamp(2.2rem, 10vw, 3rem); font-weight: 800; line-height: 1.05; color: var(--ink); }
 .nx-big small { font-size: 0.45em; font-weight: 700; margin-left: 4px; }
-.nx-delta { text-align: right; display: grid; gap: 2px; }
-.nx-delta .nx-pct { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+.nx-delta { text-align: right; display: grid; gap: 2px; font-weight: 700; }
+.nx-delta .nx-pct { font-family: var(--f-display); font-weight: 800; font-size: 1.25rem; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
 .nx svg.nx-i18 { width: 18px; height: 18px; flex: none; }
-.nx-chart { width: 100%; height: 150px; display: block; margin-top: 6px; }
-.nx-chart-empty { height: 150px; display: grid; place-items: center; text-align: center; border: 1px dashed var(--line); border-radius: 16px; padding: 12px; }
-.nx-seg { display: flex; justify-content: space-between; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px; }
-.nx-seg button { flex: 1; border: 0; background: none; padding: 8px 0; border-radius: 10px; font: 700 0.85rem var(--f-body); color: var(--muted); cursor: pointer; }
-.nx-seg button[aria-pressed="true"] { background: var(--nx-raise); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.18); }
-.nx-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.nx-split .nx-tile .nx-num { font-size: 1.15rem; font-weight: 700; }
-.nx-quick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.nx-quick button { display: grid; justify-items: center; gap: 6px; border: 0; background: none; padding: 0; cursor: pointer; font: 600 0.74rem var(--f-body); color: var(--muted); }
-.nx-quick .nx-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
+.nx-chart { width: 100%; height: 120px; display: block; }
+.nx-chart-empty { height: 120px; display: grid; place-items: center; text-align: center; border: 1px dashed var(--line); border-radius: 14px; padding: 12px; }
+.nx-seg { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 3px; }
+.nx-seg button { flex: 1; border: 0; background: none; padding: 7px 0; border-radius: 9px; font: 700 0.82rem var(--f-body); color: var(--muted); cursor: pointer; }
+.nx-seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.nx-why { margin: 0; font-size: 0.88rem; color: var(--muted); }
+.nx-why b { color: var(--ink); }
+.nx-why b.up { color: var(--up); } .nx-why b.down { color: var(--down); }
+.nx-stack { display: flex; height: 8px; border-radius: 99px; overflow: hidden; gap: 2px; }
+.nx-stack i { display: block; height: 100%; min-width: 3px; }
+.nx-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.82rem; color: var(--muted); }
+.nx-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.nx-legend .nx-num { color: var(--ink); font-weight: 700; }
+.nx-legend b { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+/* quick actions: on the phone only (the computer has the side menu and its Dodaj button) */
+.nx-quick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.nx-quick button { display: grid; justify-items: center; gap: 5px; border: 0; background: none; padding: 0; cursor: pointer; font: 600 0.72rem var(--f-body); color: var(--ink); }
+.nx-quick .nx-ic { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
 .nx-quick button:first-child .nx-ic { background: var(--red); border-color: var(--red); color: var(--on-red); }
-.nx-quick svg { width: 22px; height: 22px; }
-.nx-scorebox { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
-.nx-ring { position: relative; width: 132px; height: 132px; }
+.nx-quick svg { width: 21px; height: 21px; }
+@media (min-width: 1024px) { .nx-quick { display: none; } }
+
+/* score */
+.nx-scorebox { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
+.nx-ring { position: relative; width: 84px; height: 84px; }
 .nx-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.nx-ring .nx-in { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
-.nx-ring .nx-in .nx-num { font-size: 2.4rem; font-weight: 800; line-height: 1; }
-.nx-streak { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.85rem; }
-.nx-streak svg { color: var(--red); }
-.nx-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.nx-metric { cursor: pointer; text-align: left; display: grid; gap: 6px; width: 100%; font: inherit; color: inherit; }
-.nx-metric .nx-t { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); font-weight: 600; }
-.nx-metric .nx-t svg { width: 15px; height: 15px; }
-.nx-metric .nx-v { font-size: 1.6rem; font-weight: 800; }
-.nx-bar { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; display: block; }
+.nx-ring .nx-in { position: absolute; inset: 0; display: grid; place-content: center; }
+.nx-ring .nx-in .nx-num { font-size: 1.9rem; font-weight: 800; color: var(--ink); }
+.nx-verdict { display: grid; gap: 3px; min-width: 0; }
+.nx-verdict strong { font-size: 1.05rem; }
+.nx-verdict .note { display: inline-flex; align-items: center; gap: 5px; }
+.nx-fire { width: 15px; height: 15px; color: var(--red); flex: none; }
+.nx-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+.nx-score { container: nxs / inline-size; }
+@container nxs (max-width: 360px) { .nx-metric .nx-t { font-size: 0.8rem; } .nx-metrics { gap: 4px 8px; } }
+.nx-metric { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px 8px; text-align: left; border: 0; border-radius: 10px; background: none; padding: 7px 4px; cursor: pointer; font: inherit; color: inherit; min-width: 0; }
+.nx-metric:hover, .nx-metric[aria-expanded="true"] { background: var(--bg); }
+.nx-metric .nx-t { font-size: 0.85rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-metric .nx-v { font-size: 1.05rem; font-weight: 800; }
+.nx-metric .nx-bar { grid-column: 1 / -1; }
+.nx-bar { height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; display: block; }
 .nx-bar > i { display: block; height: 100%; border-radius: inherit; }
-.nx-metric[aria-expanded="true"] { border-color: var(--ink); }
-.nx-explain { grid-column: 1 / -1; font-size: 0.86rem; background: var(--nx-raise); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 6px; }
+.nx-bar-l { height: 8px; }
+.nx-explain { font-size: 0.88rem; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
 .nx-explain p { margin: 0; }
+.nx-sep { height: 1px; background: var(--line); }
+.nx-pctbig { font-size: 1.4rem; font-weight: 800; color: var(--ink); }
 .nx-budget { display: grid; gap: 8px; }
-.nx-track { position: relative; height: 54px; border-radius: 16px; background: var(--nx-raise); border: 1px solid var(--line); overflow: hidden; }
-.nx-fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--red-soft), color-mix(in srgb, var(--red) 55%, var(--red-soft))); }
-.nx-lab { position: absolute; inset: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 14px; }
-.nx-lab div { display: grid; line-height: 1.15; }
-.nx-three, .nx-flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.nx-three .nx-tile { text-align: center; display: grid; gap: 2px; place-items: center; }
-.nx-three .nx-num { font-size: 1.35rem; font-weight: 800; }
-.nx-mini { width: 40px; height: 40px; transform: rotate(-90deg); }
-.nx-flow .nx-tile { display: grid; gap: 2px; }
-.nx-flow .nx-num { font-size: 1.05rem; font-weight: 700; }
-.nx-prog { height: 12px; border-radius: 99px; background: var(--nx-raise); border: 1px solid var(--line); overflow: hidden; }
-.nx-prog > i { display: block; height: 100%; background: var(--red); border-radius: inherit; min-width: 6px; }
-.nx-stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.nx-stages div { border-top: 3px solid var(--line); padding-top: 6px; font-size: 0.75rem; color: var(--muted); text-align: center; font-weight: 600; }
-.nx-stages div.done { border-color: var(--up); color: var(--ink); }
-.nx-stages div.now { border-color: var(--red); color: var(--ink); }
-.nx-ok { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 600; }
-.nx-stack { display: flex; height: 12px; border-radius: 99px; overflow: hidden; gap: 2px; }
-.nx-stack i { display: block; height: 100%; }
-.nx-legend { display: grid; gap: 8px; }
-.nx-legend div { display: grid; grid-template-columns: 12px 1fr auto; gap: 10px; align-items: center; font-size: 0.92rem; }
-.nx-legend b { width: 12px; height: 12px; border-radius: 4px; }
-.nx-cols, .nx-colstack { display: grid; gap: 16px; }
-@media (min-width: 1100px) { .nx-cols { grid-template-columns: 1.15fr 1fr; align-items: start; } }
-.nx-badge { display: inline-flex; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--red-soft); color: var(--red); }
-.nx-link { border: 0; background: none; padding: 0; color: var(--muted); font: 600 0.82rem var(--f-body); cursor: pointer; }
+.nx-link { border: 0; background: none; padding: 0; color: var(--red); font: 700 0.85rem var(--f-body); cursor: pointer; }
+
+/* wide block (computer): wealth on the left, score on the right */
+@container nx (min-width: 760px) {
+  .nx-top { grid-template-columns: 1.25fr 1fr; align-items: stretch; }
+  .nx-top .nx-quick { grid-column: 1 / -1; }
+}
+/* on the computer the Start screen is two columns: the new top spans both */
+@media (min-width: 1024px) { #v-start > div > .nx-wrap { column-span: all; } }
 </style>
 
 <div class="wrap">
@@ -627,6 +634,7 @@ html.priv .nx-num { filter: blur(7px); user-select: none; }
 
   /* ---------- small renderers ---------- */
   function md(src) {
+    if (Array.isArray(src)) src = src.map(x => "- " + x).join("\n"); // a summary saved as a list of points
     const out = []; let list = null, para = [];
     const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
     const flushP = () => { if (para.length) { out.push("<p>" + inline(para.join(" ")) + "</p>"); para = []; } };
@@ -1036,31 +1044,31 @@ html.priv .nx-num { filter: blur(7px); user-select: none; }
     const ARROW = up => `<svg class="nx-i18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">${up ? '<path d="M7 17 17 7M9 7h8v8"/>' : '<path d="M7 7l10 10M17 9v8H9"/>'}</svg>`;
     const ICON = (p, c = "") => `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${p}"/></svg>`;
 
-    function html() {
+
+    function data() {
       const pf = portfolio(), W = wealth(pf), m = today().slice(0, 7), M = month(m), B = budgetFor(), SC = score(pf, W, M, B);
+      return { pf, W, m, M, B, SC };
+    }
+    // top: wealth with the chart and its composition, quick actions, the score
+    function top() {
+      const { pf, W, SC } = data();
       const h = hist().map(p => ({ data: p.data, v: +p.majatek || 0, wpl: +p.wplacono || 0 })).filter(p => p.v > 0);
       if (W.now && (!h.length || h[h.length - 1].data < today())) h.push({ data: today(), v: W.now, wpl: h.length ? h[h.length - 1].wpl : 0 });
       const days = { "1T": 7, "1M": 31, "3M": 92, "1R": 366, "Maks": 1e5 }[range] || 31;
       const from = local(new Date(Date.now() - days * 86400000)), pts = h.filter(p => p.data >= from);
       const base = pts[0], ch = base ? W.now - base.v : null, chP = base?.v ? ch / base.v * 100 : null;
       const wplCh = base ? (pts[pts.length - 1].wpl - base.wpl) : 0;
-      const goal = +(S.plan?.profil?.cel_kwota || 0), stages = [1e3, 1e4, 1e5, 1e6], nextStage = stages.find(s => s > W.now) || 1e7;
-      const prevStage = [...stages].reverse().find(s => s <= W.now) || 0, target = stage === "etap" ? nextStage : (goal || 1e6);
-      const start = stage === "etap" ? prevStage : 0, prog = clamp((W.now - start) / (target - start) * 100);
-      const rok = +(S.plan?.profil?.cel_rok || 0), monthsLeft = rok ? Math.max(1, (rok - new Date().getFullYear()) * 12 + (11 - new Date().getMonth())) : 0;
-      const i = 0.05 / 12, fv = (p, n) => p * Math.pow(1 + i, n), pmt = monthsLeft ? Math.max(0, ((goal || 1e6) - fv(W.now, monthsLeft)) * i / (Math.pow(1 + i, monthsLeft) - 1)) : null;
-      const tempo = +(S.plan?.profil?.wplata || 0);
-      const dim = new Date(+m.slice(0, 4), +m.slice(5), 0).getDate(), dleft = dim - new Date().getDate() + 1, left = B.kwota - M.wydatek;
-      const parts = [["ETF-y", W.etf - pf.ike, "var(--red)"], ["IKE / IKZE", pf.ike, "var(--warn)"], ["Obligacje skarbowe", W.obl, "var(--up)"], ["Poduszka", W.pod, "var(--muted)"]].filter(x => x[1] > 0.5);
-      const mName = MIES[+m.slice(5) - 1];
-      return `<div class="nx">
-        <section class="nx-hero" aria-label="Majątek">
-          <span class="nx-label">Twój majątek <span class="nx-badge">nowy Start · podgląd</span></span>
-          <div class="nx-row"><div class="nx-big nx-num">${nf(W.now)}<small>zł</small></div>
-            ${ch != null ? `<div class="nx-delta ${ch >= 0 ? "up" : "down"}"><span class="nx-pct">${ARROW(ch >= 0)}${pct(chP, 2)}</span><span class="nx-num" style="font-size:.95rem;font-weight:700">${szl(ch)}</span></div>` : ""}</div>
+      const parts = [["ETF-y", W.etf - pf.ike, "var(--red)"], ["IKE", pf.ike, "var(--warn)"], ["Obligacje", W.obl, "var(--up)"], ["Poduszka", W.pod, "var(--muted)"]].filter(x => x[1] > 0.5);
+      const n = streak();
+      return `<div class="nx-wrap"><div class="nx nx-top">
+        <section class="nx-card nx-hero" aria-label="Majątek">
+          <div class="nx-row"><div><span class="nx-label">Twój majątek</span><div class="nx-big nx-num">${nf(W.now)}<small>zł</small></div></div>
+            ${ch != null ? `<div class="nx-delta ${ch >= 0 ? "up" : "down"}"><span class="nx-pct">${ARROW(ch >= 0)}${pct(chP, 2)}</span><span class="nx-num">${szl(ch)}</span></div>` : ""}</div>
           ${chart(pts)}
           <div class="nx-seg" role="group" aria-label="Okres">${["1T", "1M", "3M", "1R", "Maks"].map(r => `<button type="button" data-nx-range="${r}" aria-pressed="${r === range}">${r}</button>`).join("")}</div>
-          ${ch != null ? `<div class="nx-split"><div class="nx-tile"><span class="nx-label">Wpłaciłeś</span><div class="nx-num">${szl(wplCh)}</div></div><div class="nx-tile"><span class="nx-label">Rynek i odsetki</span><div class="nx-num ${ch - wplCh >= 0 ? "up" : "down"}">${szl(ch - wplCh)}</div></div></div>` : ""}
+          ${ch != null ? `<p class="nx-why">Z tego <b class="nx-num">${szl(wplCh)}</b> to Twoje wpłaty, a <b class="nx-num ${ch - wplCh >= 0 ? "up" : "down"}">${szl(ch - wplCh)}</b> rynek i odsetki.</p>` : ""}
+          ${W.now ? `<div class="nx-stack" aria-hidden="true">${parts.map(([, v, c]) => `<i style="flex:${v};background:${c}"></i>`).join("")}</div>
+          <div class="nx-legend">${parts.map(([l, v, c]) => `<span><b style="background:${c}"></b>${l} <span class="nx-num">${nf(v / W.now * 100, 0)}%</span></span>`).join("")}</div>` : ""}
         </section>
         <nav class="nx-quick" aria-label="Szybkie akcje">
           <button type="button" data-go="add:wydatek"><span class="nx-ic">${ICON("M12 5v14M5 12h14")}</span>Wydatek</button>
@@ -1069,58 +1077,45 @@ html.priv .nx-num { filter: blur(7px); user-select: none; }
           <button type="button" data-go="cele"><span class="nx-ic">${ICON("M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z")}</span>Cele</button>
           <button type="button" data-go="wiedza"><span class="nx-ic">${ICON("M2 5c3-1.3 6.5-1.3 10 1 3.5-2.3 7-2.3 10-1v14c-3-1.3-6.5-1.3-10 1-3.5-2.3-7-2.3-10-1zM12 6v14")}</span>Wiedza</button>
         </nav>
-        <div class="nx-cols">
-          <div class="nx-colstack">
-            <section class="nx-card" aria-label="Wynik majątku">
-              <header><h2>Wynik majątku</h2>${(() => { const n = streak(); return n ? `<span class="nx-streak">${ICON("M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-10z", "nx-i18")}${n} ${n === 1 ? "dzień" : "dni"} z wpisami</span>` : `<span class="note">wpisz dziś wydatek, zacznij serię</span>`; })()}</header>
-              <div class="nx-scorebox"><div class="nx-ring">${ringSvg(SC.total)}<div class="nx-in"><span class="nx-num">${SC.total ?? "–"}</span><span class="nx-label">na 100</span></div></div>
-                <div style="display:grid;gap:6px"><strong style="font-size:1.05rem">${SC.total == null ? "Za mało danych" : SC.total >= 70 ? "Bardzo dobrze" : SC.total >= 40 ? "Dobrze, jest co poprawić" : "Sporo do poprawy"}</strong><p class="note">Średnia z sześciu prostych wskaźników. Kliknij kafelek, żeby zobaczyć, jak jest liczony i co go poprawia.</p></div></div>
-              <div class="nx-grid2">${SC.parts.map(p => `<button type="button" class="nx-tile nx-metric" data-nx-m="${p.id}" aria-expanded="${open === p.id}"><span class="nx-t">${ICON(p.ic)}${esc(p.t)}</span><span class="nx-v nx-num">${p.v == null ? "–" : nf(p.v, 0)}</span><span class="nx-bar"><i style="width:${clamp(p.v || 0)}%;background:${tone(p.v)}"></i></span></button>${open === p.id ? `<div class="nx-explain"><p>${esc(p.why)}</p><p class="note">${esc(p.tip)}</p></div>` : ""}`).join("")}</div>
-            </section>
-            <section class="nx-card" aria-label="Kamień milowy">
-              <header><h2>Kamień milowy</h2><div class="nx-seg" style="padding:3px" role="group" aria-label="Widok">${[["etap", "Etap"], ["calosc", "Całość"]].map(([v, l]) => `<button type="button" data-nx-stage="${v}" aria-pressed="${stage === v}" style="padding:5px 12px">${l}</button>`).join("")}</div></header>
-              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span><span class="nx-label">${stage === "etap" ? "Do kolejnego progu" : goal ? "Do Twojego celu" : "Do miliona"}</span><br><strong class="nx-num" style="font-size:1.3rem">brakuje ${zl(Math.max(0, target - W.now))}</strong></span><span class="nx-num" style="font-size:1.6rem;font-weight:800">${nf(prog, 0)}%</span></div>
-              <div class="nx-prog"><i style="width:${prog}%"></i></div>
-              <div class="nx-stages">${stages.map(s => `<div class="${W.now >= s ? "done" : s === nextStage ? "now" : ""}">${s >= 1e6 ? "1 mln" : nf(s / 1000) + " tys."}</div>`).join("")}</div>
-              <div class="nx-split"><div class="nx-tile"><span class="nx-label">Twoje tempo</span><div class="nx-num up">${tempo ? "+" + zl(tempo) : "–"}</div><span class="note">wpłata miesięcznie z planu</span></div>
-                <div class="nx-tile"><span class="nx-label">Potrzebujesz</span><div class="nx-num">${pmt != null ? "+" + zl(pmt) : "–"}</div><span class="note">${monthsLeft ? `miesięcznie do końca ${rok} (${goal ? "cel " + zl(goal) : "milion"}, przy 5% rocznie)` : "ustaw rok celu w planie"}</span></div></div>
-              ${pmt != null && tempo ? `<span class="nx-ok ${tempo >= pmt ? "up" : "down"}">${ICON(tempo >= pmt ? "M5 12l5 5 9-10" : "M12 8v5M12 16h.01", "nx-i18")}${tempo >= pmt ? "Przy tym tempie zdążysz na termin" : `Przy tym tempie brakuje ok. ${zl(pmt - tempo)} miesięcznie`}</span>` : ""}
-              <p class="note">To rachunek, nie prognoza. Liczy się cały majątek: fundusze, obligacje i poduszka.</p>
-            </section>
-          </div>
-          <div class="nx-colstack">
-            <section class="nx-card" aria-label="Ten miesiąc">
-              <header><h2>${mName[0].toUpperCase() + mName.slice(1)} ${m.slice(0, 4)}</h2><button type="button" class="nx-link" data-go="budzet">budżet ›</button></header>
-              ${B.kwota ? `<div class="nx-budget"><span class="nx-label">Budżet miesięczny: <span class="nx-num">${zl(B.kwota)}</span></span>
-                <div class="nx-track"><div class="nx-fill" style="width:${clamp(M.wydatek / B.kwota * 100)}%"></div><div class="nx-lab"><div><span class="nx-label">Wydano</span><strong class="nx-num">${zl(M.wydatek)}</strong></div><div style="text-align:right"><span class="nx-label">${left >= 0 ? "Zostało" : "Ponad budżet"}</span><strong class="nx-num ${left >= 0 ? "" : "down"}">${zl(Math.abs(left))}</strong></div></div></div>
-                <span class="note">Budżet: ${esc(B.skad)}.</span></div>` : `<p class="note">Ustaw limity w Budżecie, a zobaczysz tu, ile zostało na ten miesiąc.</p>`}
-              <div class="nx-three">
-                <div class="nx-tile"><span class="nx-num">${dleft}</span><span class="note">dni do końca</span></div>
-                <div class="nx-tile"><span class="nx-num">${B.kwota ? zl(Math.max(0, left) / dleft) : "–"}</span><span class="note">na dzień</span></div>
-                <div class="nx-tile"><svg class="nx-mini" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--line)" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="${tone(M.rate == null ? null : clamp(M.rate / 20 * 100))}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${2 * Math.PI * 16 * clamp(M.rate || 0) / 100} 200"/></svg><span class="nx-num" style="font-size:1.05rem">${M.rate == null ? "–" : nf(M.rate, 0) + "%"}</span><span class="note">stopa oszczędności</span></div>
-              </div>
-              <div class="nx-flow">
-                <div class="nx-tile"><span class="nx-label">Przychód</span><span class="nx-num up">${zl(M.przychod)}</span></div>
-                <div class="nx-tile"><span class="nx-label">Wydatki</span><span class="nx-num down">${zl(M.wydatek)}</span></div>
-                <div class="nx-tile"><span class="nx-label">Odłożone</span><span class="nx-num">${zl(M.odlozone)}</span></div>
-              </div>
-            </section>
-            ${W.now ? `<section class="nx-card" aria-label="Skład majątku">
-              <header><h2>Skład majątku</h2><span class="note">${pf.total ? `wynik ETF ${szl(pf.total - pf.koszt)}` : ""}</span></header>
-              <div class="nx-stack">${parts.map(([, v, c]) => `<i style="width:${v / W.now * 100}%;background:${c}"></i>`).join("")}</div>
-              <div class="nx-legend">${parts.map(([l, v, c]) => `<div><b style="background:${c}"></b><span>${l}</span><span class="nx-num" style="font-weight:700">${zl(v)} <span class="note">${nf(v / W.now * 100, 0)}%</span></span></div>`).join("")}</div>
-            </section>` : ""}
-          </div>
-        </div>
-      </div>`;
+        <section class="nx-card nx-score" aria-label="Wynik majątku">
+          <div class="nx-scorebox"><div class="nx-ring">${ringSvg(SC.total, 96, 10)}<div class="nx-in"><span class="nx-num">${SC.total ?? "–"}</span></div></div>
+            <div class="nx-verdict"><span class="nx-label">Wynik majątku · na 100</span><strong>${SC.total == null ? "Za mało danych" : SC.total >= 70 ? "Bardzo dobrze" : SC.total >= 40 ? "Dobrze, jest co poprawić" : "Sporo do poprawy"}</strong>
+              <span class="note">${n ? `${ICON("M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-10z", "nx-fire")}${n} ${n === 1 ? "dzień" : "dni"} z rzędu z wpisami` : "Wpisz dziś wydatek i zacznij serię"}</span></div></div>
+          <div class="nx-metrics">${SC.parts.map(p => `<button type="button" class="nx-metric" data-nx-m="${p.id}" aria-expanded="${open === p.id}"><span class="nx-t">${esc({ oszcz: "Oszczędzanie", plan: "Zgodność z planem".replace(" z planem", ""), prac: "Inwestowanie", tempo: "Tempo wydatków" }[p.id] || p.t)}</span><span class="nx-v nx-num" style="color:${p.v == null ? "var(--muted)" : tone(p.v)}">${p.v == null ? "–" : nf(p.v, 0)}</span><span class="nx-bar"><i style="width:${clamp(p.v || 0)}%;background:${tone(p.v)}"></i></span></button>`).join("")}</div>
+          ${(() => { const p = SC.parts.find(x => x.id === open); return p ? `<div class="nx-explain"><strong>${esc(p.t)}</strong><p>${esc(p.why)}</p><p class="note">${esc(p.tip)}</p></div>` : `<p class="note">Kliknij wskaźnik, żeby zobaczyć, jak jest liczony i co go poprawia.</p>`; })()}
+        </section>
+      </div></div>`;
+    }
+    // below the to-do card: this month's budget and the next milestone in one card
+    function bottom() {
+      const { W, m, M, B } = data();
+      const goal = +(S.plan?.profil?.cel_kwota || 0), stages = [1e3, 1e4, 1e5, 1e6], next = stages.find(s => s > W.now) || 1e7;
+      const prev = [...stages].reverse().find(s => s <= W.now) || 0, prog = clamp((W.now - prev) / (next - prev) * 100);
+      const rok = +(S.plan?.profil?.cel_rok || 0), monthsLeft = rok ? Math.max(1, (rok - new Date().getFullYear()) * 12 + (11 - new Date().getMonth())) : 0;
+      const i = 0.05 / 12, pmt = monthsLeft ? Math.max(0, ((goal || 1e6) - W.now * Math.pow(1 + i, monthsLeft)) * i / (Math.pow(1 + i, monthsLeft) - 1)) : null;
+      const tempo = +(S.plan?.profil?.wplata || 0);
+      const dim = new Date(+m.slice(0, 4), +m.slice(5), 0).getDate(), dleft = dim - new Date().getDate() + 1, left = B.kwota - M.wydatek;
+      const mName = MIES[+m.slice(5) - 1], stageName = s => s >= 1e6 ? "1 mln zł" : nf(s / 1000) + " tys. zł";
+      return `<section class="nx-card nx" aria-label="Miesiąc i cel">
+        <header><h2>${mName[0].toUpperCase() + mName.slice(1)}</h2><button type="button" class="nx-link" data-go="budzet">Budżet ›</button></header>
+        ${B.kwota ? `<div class="nx-budget">
+            <div class="nx-row"><span><span class="nx-label">Wydano</span><br><strong class="nx-num">${zl(M.wydatek)}</strong> <span class="note">z ${zl(B.kwota)}</span></span>
+              <span style="text-align:right"><span class="nx-label">${left >= 0 ? "Zostało" : "Ponad budżet"}</span><br><strong class="nx-num ${left >= 0 ? "up" : "down"}">${zl(Math.abs(left))}</strong></span></div>
+            <div class="nx-bar nx-bar-l"><i style="width:${clamp(M.wydatek / B.kwota * 100)}%;background:${left >= 0 ? (M.wydatek / B.kwota > 0.85 ? "var(--warn)" : "var(--up)") : "var(--down)"}"></i></div>
+            <p class="note">${dleft} ${dleft === 1 ? "dzień" : "dni"} do końca miesiąca${left > 0 ? ` · możesz wydać ${zl(left / dleft)} dziennie` : ""}${M.rate != null ? ` · odkładasz ${nf(M.rate, 0)}% przychodu` : ""}</p></div>`
+          : `<p class="note">Ustaw limity w Budżecie albo miesięczne wydatki w planie, a zobaczysz tu, ile zostało.${M.rate != null ? ` W tym miesiącu odkładasz ${nf(M.rate, 0)}% przychodu.` : ""}</p>`}
+        <div class="nx-sep"></div>
+        <div class="nx-row"><span><span class="nx-label">Następny próg: ${stageName(next)}</span><br><strong class="nx-num">brakuje ${zl(Math.max(0, next - W.now))}</strong></span><span class="nx-num nx-pctbig">${nf(prog, 0)}%</span></div>
+        <div class="nx-bar nx-bar-l"><i style="width:${prog}%;background:var(--red)"></i></div>
+        ${pmt != null && tempo ? `<p class="note">Do ${goal ? "celu " + zl(goal) : "miliona"} w ${rok}: potrzeba ok. <b class="nx-ink">${zl(pmt)}</b> miesięcznie (przy 5% rocznie), Twój plan to <b class="nx-ink">${zl(tempo)}</b>. <span class="${tempo >= pmt ? "up" : "down"}">${tempo >= pmt ? "Zdążysz." : `Brakuje ok. ${zl(pmt - tempo)} miesięcznie.`}</span></p>` : `<p class="note">Ustaw w planie rok celu, a policzę, ile trzeba odkładać miesięcznie.</p>`}
+      </section>`;
     }
     // the controls only change the view: re-render the Start screen
     function bind(el, rerender) {
       el.querySelectorAll("[data-nx-range]").forEach(b => b.onclick = () => { range = b.dataset.nxRange; try { localStorage.setItem("nku-nowy-zakres", range); } catch (e) {} rerender(); });
-      el.querySelectorAll("[data-nx-stage]").forEach(b => b.onclick = () => { stage = b.dataset.nxStage; rerender(); });
       el.querySelectorAll("[data-nx-m]").forEach(b => b.onclick = () => { open = open === b.dataset.nxM ? null : b.dataset.nxM; rerender(); });
     }
-    return { html, bind };
+    return { top, bottom, bind };
   })();
 
   function renderStart(c) {
@@ -1132,7 +1127,7 @@ html.priv .nx-num { filter: blur(7px); user-select: none; }
     const done = STEPS.filter(s => stepDone(s.id)).length;
     const wynik = c.total - c.koszt;
     el.innerHTML = `<div style="display:grid;gap:18px">
-      ${NOWY.html()}<div class="hero" hidden><span class="label">Twój majątek</span><div class="big">${zl(majatek)}</div>
+      ${NOWY.top()}<div class="hero" hidden><span class="label">Twój majątek</span><div class="big">${zl(majatek)}</div>
         <div class="chips"><span class="chip">ETF <b>${zl(c.total)}</b></span><span class="chip">Obligacje <b>${zl(bonds)}</b></span><span class="chip">Poduszka <b>${zl(pod)}</b></span></div>
         ${c.list.length ? `<p class="note">Wynik na ETF-ach <span class="${cls(wynik)}">${szl(wynik)} (${pct(c.koszt ? wynik / c.koszt * 100 : null)})</span>${CFG.spokojny ? "" : ` · tydzień <span class="${cls(c.total - c.prevTotal)}">${szl(c.total - c.prevTotal)}</span>`}</p>` : ""}
       </div>
@@ -1144,6 +1139,7 @@ html.priv .nx-num { filter: blur(7px); user-select: none; }
           const main = sorted.filter(x => x.lvl === "todo" || x.lvl === "warn"), rest = sorted.filter(x => !main.includes(x));
           return `${main.length ? `<ul class="checks">${main.map(li).join("")}</ul>` : ""}${rest.length ? `<details class="more"><summary>Do wiadomości (${rest.length})</summary><ul class="checks">${rest.map(li).join("")}</ul></details>` : ""}`; })()}
       </div>
+      ${NOWY.bottom()}
       ${(() => {
         if (poziom() !== "poczatkujacy") return "";
         const done = s => s.id === "plan" ? !!S.plan : s.id === "zakup" ? S.tx.some(t => !t.otwarcie) || !!CFG.lekcje?.zakup : s.id === "ike" ? !!(CFG.lekcje?.ike || CFG.lekcje?.ikze || CFG.lekcje?.konto_zwykle) : !!CFG.lekcje?.[s.id];
@@ -1175,7 +1171,7 @@ html.priv .nx-num { filter: blur(7px); user-select: none; }
         return done === STEPS.length ? `<details class="more card"><summary><span>Przegląd: ${esc(monthName(curMonth()))} <span class="up">✓ zrobiony</span></span></summary>${list}</details>`
           : `<div class="card"><header><h2>Przegląd: ${esc(monthName(curMonth()))}</h2><span class="note">${done} z ${STEPS.length} · raz w miesiącu, ok. 20 minut</span></header>
           <div class="progress"><div style="width:${done / STEPS.length * 100}%"></div></div>${list}</div>`; })()}
-      ${c.roles.length ? `<div class="card"><header><h2>Plan ${esc(S.plan?.rdzen_satelity || "")}</h2><span class="note">czerwona kreska = cel</span></header><div class="roles">${c.roles.map(r => `<div class="role"><div class="row"><span>${esc(r.nazwa)}</span><span class="mono">${c.list.length ? nf(r.waga, 1) + "% / " : ""}${r.cel}%</span></div>${bar(c.list.length ? r.waga : 0, 100, r.cel, r.rola === "rdzen" ? "" : "red")}</div>`).join("")}</div>${S.canWrite ? `<div class="actions"><button class="btn ghost" type="button" data-go="plan">Zmień plan</button><span class="note">cel, podział, fundusze, tezy</span></div>` : ""}</div>` : ""}
+      ${c.roles.length ? `<details class="more card"><summary>Plan ${esc(S.plan?.rdzen_satelity || "")} i zmiana planu</summary><p class="note">czerwona kreska = cel</p><div class="roles">${c.roles.map(r => `<div class="role"><div class="row"><span>${esc(r.nazwa)}</span><span class="mono">${c.list.length ? nf(r.waga, 1) + "% / " : ""}${r.cel}%</span></div>${bar(c.list.length ? r.waga : 0, 100, r.cel, r.rola === "rdzen" ? "" : "red")}</div>`).join("")}</div>${S.canWrite ? `<div class="actions"><button class="btn ghost" type="button" data-go="plan">Zmień plan</button><span class="note">cel, podział, fundusze, tezy</span></div>` : ""}</details>` : ""}
     </div>`;
     NOWY.bind(el, () => renderStart(c));
     el.querySelectorAll("#day-steps input").forEach(inp => inp.addEventListener("change", () => markDay(inp.id.slice(3), inp.checked)));
